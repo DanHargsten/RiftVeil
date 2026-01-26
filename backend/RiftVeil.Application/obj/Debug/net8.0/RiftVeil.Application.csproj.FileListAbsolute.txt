@@ -1,0 +1,15 @@
+E:\Projects\RiftVeil\backend\RiftVeil.Application\bin\Debug\net8.0\RiftVeil.Application.deps.json
+E:\Projects\RiftVeil\backend\RiftVeil.Application\bin\Debug\net8.0\RiftVeil.Application.dll
+E:\Projects\RiftVeil\backend\RiftVeil.Application\bin\Debug\net8.0\RiftVeil.Application.pdb
+E:\Projects\RiftVeil\backend\RiftVeil.Application\bin\Debug\net8.0\RiftVeil.Domain.dll
+E:\Projects\RiftVeil\backend\RiftVeil.Application\bin\Debug\net8.0\RiftVeil.Domain.pdb
+E:\Projects\RiftVeil\backend\RiftVeil.Application\obj\Debug\net8.0\RiftVeil.Application.csproj.AssemblyReference.cache
+E:\Projects\RiftVeil\backend\RiftVeil.Application\obj\Debug\net8.0\RiftVeil.Application.GeneratedMSBuildEditorConfig.editorconfig
+E:\Projects\RiftVeil\backend\RiftVeil.Application\obj\Debug\net8.0\RiftVeil.Application.AssemblyInfoInputs.cache
+E:\Projects\RiftVeil\backend\RiftVeil.Application\obj\Debug\net8.0\RiftVeil.Application.AssemblyInfo.cs
+E:\Projects\RiftVeil\backend\RiftVeil.Application\obj\Debug\net8.0\RiftVeil.Application.csproj.CoreCompileInputs.cache
+E:\Projects\RiftVeil\backend\RiftVeil.Application\obj\Debug\net8.0\RiftVeil.CB95A711.Up2Date
+E:\Projects\RiftVeil\backend\RiftVeil.Application\obj\Debug\net8.0\RiftVeil.Application.dll
+E:\Projects\RiftVeil\backend\RiftVeil.Application\obj\Debug\net8.0\refint\RiftVeil.Application.dll
+E:\Projects\RiftVeil\backend\RiftVeil.Application\obj\Debug\net8.0\RiftVeil.Application.pdb
+E:\Projects\RiftVeil\backend\RiftVeil.Application\obj\Debug\net8.0\ref\RiftVeil.Application.dll

@@ -1,0 +1,43 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36915.13
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RiftVeil.Api", "RiftVeil.Api\RiftVeil.Api.csproj", "{9C4CCC73-A860-486E-848A-0A7567E08644}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RiftVeil.Domain", "RiftVeil.Domain\RiftVeil.Domain.csproj", "{9B0D81A4-0094-4CDC-9CCE-A7BD7A83B060}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RiftVeil.Application", "RiftVeil.Application\RiftVeil.Application.csproj", "{7BF9B683-8EEB-4952-94A8-DAB21951AA90}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RiftVeil.Infrastructure", "RiftVeil.Infrastructure\RiftVeil.Infrastructure.csproj", "{95FDE5F0-C6DD-4F7B-B72E-91564B6FFCCD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9C4CCC73-A860-486E-848A-0A7567E08644}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9C4CCC73-A860-486E-848A-0A7567E08644}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9C4CCC73-A860-486E-848A-0A7567E08644}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9C4CCC73-A860-486E-848A-0A7567E08644}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9B0D81A4-0094-4CDC-9CCE-A7BD7A83B060}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9B0D81A4-0094-4CDC-9CCE-A7BD7A83B060}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9B0D81A4-0094-4CDC-9CCE-A7BD7A83B060}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9B0D81A4-0094-4CDC-9CCE-A7BD7A83B060}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7BF9B683-8EEB-4952-94A8-DAB21951AA90}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7BF9B683-8EEB-4952-94A8-DAB21951AA90}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7BF9B683-8EEB-4952-94A8-DAB21951AA90}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7BF9B683-8EEB-4952-94A8-DAB21951AA90}.Release|Any CPU.Build.0 = Release|Any CPU
+		{95FDE5F0-C6DD-4F7B-B72E-91564B6FFCCD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{95FDE5F0-C6DD-4F7B-B72E-91564B6FFCCD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{95FDE5F0-C6DD-4F7B-B72E-91564B6FFCCD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{95FDE5F0-C6DD-4F7B-B72E-91564B6FFCCD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {FE030314-41AC-4CAD-8D7E-1F7EABEE0B4C}
+	EndGlobalSection
+EndGlobal

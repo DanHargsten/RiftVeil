@@ -1,0 +1,33 @@
+# Personal workspace folder
+# Contains personal files, thesis documentation, todos, tickets, random thoughts
+_docs/
+
+# --- .NET / Visual Studio ---
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# --- Rider / JetBrains ---
+.idea/
+
+# --- Node / Vite ---
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Env files (frontend) ---
+.env
+.env.local
+.env.*.local
+
+# --- OS ---
+.DS_Store
+Thumbs.db
