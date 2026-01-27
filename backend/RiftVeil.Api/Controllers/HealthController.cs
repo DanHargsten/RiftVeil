@@ -3,12 +3,12 @@ using Microsoft.AspNetCore.Mvc;
 namespace RiftVeil.Api.Controllers;
 
 [ApiController]
-[Route("api/controller")]
-public class HealthController : ControllerBase
+[Route("api/health")]
+public class HealthController(IWebHostEnvironment env) : ControllerBase
 {
     [HttpGet]
     public IActionResult Get()
     {
-        return Ok(new { status = "Success!" });
+        return Ok(new { status = "ok", env = env.EnvironmentName });
     }
 }
