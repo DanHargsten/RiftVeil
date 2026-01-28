@@ -37,6 +37,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
     app.UseCors();
+
+    // Initialize database
+    using var scope = app.Services.CreateScope();
+    var context = scope.ServiceProvider.GetRequiredService<RiftVeilDbContext>();
+
+    context.Database.Migrate();
+    DbInitializer.Initialize(context);
 }
 
 app.UseHttpsRedirection();
