@@ -3,6 +3,9 @@ using RiftVeil.Domain.Enums;
 
 namespace RiftVeil.Infrastructure.Data;
 
+/// <summary>
+/// Seeds a minimal dataset for local development and demos.
+/// </summary>
 public static class DbInitializer
 {
     /// <summary>
@@ -16,7 +19,7 @@ public static class DbInitializer
 
         var now = DateTimeOffset.UtcNow;
 
-        // --- Leagues ---
+        // Seed baseline leagues for local browsing/tests.
         var lec = new League(
             name: "League of Legends EMEA Championship",
             shortName: "LEC",
@@ -44,7 +47,7 @@ public static class DbInitializer
         context.Leagues.AddRange(lec, lcs, intl);
         context.SaveChanges();
 
-        // --- Tournaments ---
+        // Seed a couple of representative tournaments.
         var worlds2025 = new Tournament(
             leagueId: intl.Id,
             name: "Worlds 2025",
@@ -68,8 +71,7 @@ public static class DbInitializer
         context.Tournaments.AddRange(worlds2025, lecSpring2026);
         context.SaveChanges();
 
-        // --- Matches ---
-        // 2 finished matches (with scores + VOD)
+        // Seed finished vs scheduled matches to exercise UI states.
         var finished1 = new Match(
             tournamentId: worlds2025.Id,
             team1Name: "T1",
@@ -108,7 +110,6 @@ public static class DbInitializer
             vodUrl: "https://example.com/vod/worlds-2025-semi-1"
         );
 
-        // 3 scheduled matches (today/tomorrow/next week)
         var scheduledToday = new Match(
             tournamentId: lecSpring2026.Id,
             team1Name: "Karmine Corp",

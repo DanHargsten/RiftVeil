@@ -1,7 +1,7 @@
 namespace RiftVeil.Domain.Enums
 {
     /// <summary>
-    /// Represents the status of a match.
+    /// Aligns match state with scheduling and UI workflows.
     /// </summary>
     public enum MatchStatus
     {

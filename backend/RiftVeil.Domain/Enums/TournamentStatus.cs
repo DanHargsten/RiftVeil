@@ -1,7 +1,7 @@
 namespace RiftVeil.Domain.Enums
 {
     /// <summary>
-    /// Represents the status of a tournament.
+    /// Tracks lifecycle states used by scheduling and UI.
     /// </summary>
     public enum TournamentStatus
     {

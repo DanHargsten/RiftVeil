@@ -4,6 +4,9 @@ using RiftVeil.Domain.Entities;
 
 namespace RiftVeil.Infrastructure.Data;
 
+/// <summary>
+/// Central EF Core context that enforces model rules and timestamps.
+/// </summary>
 public class RiftVeilDbContext(DbContextOptions<RiftVeilDbContext> options) : DbContext(options)
 {
     public DbSet<DbSmokeTest> DbSmokeTest => Set<DbSmokeTest>();
@@ -68,7 +71,7 @@ public class RiftVeilDbContext(DbContextOptions<RiftVeilDbContext> options) : Db
     }
 
     /// <summary>
-    /// Saves changes to the database.
+    /// Ensures timestamps are set before persisting changes.
     /// </summary>
     public override int SaveChanges()
     {
@@ -78,7 +81,7 @@ public class RiftVeilDbContext(DbContextOptions<RiftVeilDbContext> options) : Db
 
 
     /// <summary>
-    /// Saves changes to the database asynchronously.
+    /// Ensures timestamps are set before persisting changes.
     /// </summary>
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -88,7 +91,7 @@ public class RiftVeilDbContext(DbContextOptions<RiftVeilDbContext> options) : Db
 
 
     /// <summary>
-    /// Updates timestamps for entities.
+    /// Applies create/update timestamps consistently across entities.
     /// </summary>
     private void UpdateTimestamps()
     {

@@ -1,0 +1,55 @@
+using System.Linq.Expressions;
+using RiftVeil.Domain.Entities;
+using RiftVeil.Application.DTOs.Matches;
+using RiftVeil.Application.DTOs.Tournaments;
+
+namespace RiftVeil.Application.Mappings;
+
+public static class MatchProjections
+{
+    /// <summary>
+    /// Projects matches for list views.
+    /// </summary>
+    public static Expression<Func<Match, MatchListItemDto>> ToListItemDto()
+    {
+        return match => new MatchListItemDto(
+            match.Id,
+            match.TournamentId,
+            match.Tournament.Name,
+            match.Team1Name,
+            match.Team2Name,
+            match.StartsAtUtc,
+            match.BestOf,
+            match.Status
+        );
+    }
+
+
+    /// <summary>
+    /// Maps a materialized match to a details DTO.
+    /// </summary>
+    public static MatchDetailsDto ToDetailsDto(this Match match)
+    {
+        return new MatchDetailsDto(
+            match.Id,
+            match.Team1Name,
+            match.Team2Name,
+            match.StartsAtUtc,
+            match.StartedAtUtc,
+            match.FinishedAtUtc,
+            match.BestOf,
+            match.Status,
+            match.Team1Score,
+            match.Team2Score,
+            match.VodUrl,
+            new TournamentListItemDto(
+                match.Tournament.Id,
+                match.Tournament.LeagueId,
+                match.Tournament.Name,
+                match.Tournament.StartsAtUtc,
+                match.Tournament.EndsAtUtc,
+                match.Tournament.Status
+            )
+        );
+    }
+}

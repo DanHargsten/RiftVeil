@@ -3,16 +3,16 @@ using RiftVeil.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Controllers + Swagger
+// Development tooling for API discovery/testing.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// DbContext (SQL Server)
+// Central data access for the API layer.
 builder.Services.AddDbContext<RiftVeilDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// CORS
+// Allow the local frontend dev server to call the API.
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -30,8 +30,6 @@ builder.Services.AddCors(options =>
 
 
 var app = builder.Build();
-
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

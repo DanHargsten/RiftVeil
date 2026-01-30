@@ -3,6 +3,9 @@ using RiftVeil.Domain.Enums;
 
 namespace RiftVeil.Domain.Entities;
 
+/// <summary>
+/// Represents a tournament within a league.
+/// </summary>
 public class Tournament : BaseEntity
 {
     public int LeagueId { get; private set; }
@@ -16,7 +19,8 @@ public class Tournament : BaseEntity
 
     public ICollection<Match> Matches { get; private set; } = [];
 
-    // Constructor for EF Core
+
+    // Required for EF Core materialization without exposing public setters.
     private Tournament() { }
 
     public Tournament(int leagueId, string name, DateTimeOffset startsAtUtc, DateTimeOffset? endsAtUtc,

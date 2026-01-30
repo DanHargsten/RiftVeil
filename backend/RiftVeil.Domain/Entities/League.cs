@@ -2,6 +2,9 @@ using RiftVeil.Domain.Common;
 
 namespace RiftVeil.Domain.Entities;
 
+/// <summary>
+/// Represents a competitive league that owns tournaments.
+/// </summary>
 public class League : BaseEntity
 {
     public string Name { get; private set; } = null!;
@@ -12,7 +15,8 @@ public class League : BaseEntity
 
     public ICollection<Tournament> Tournaments { get; private set; } = [];
 
-    // Constructor for EF Core
+
+    // Required for EF Core materialization without exposing public setters.
     private League() { }
 
     public League(string name, string shortName, string? region = null, string? logoUrl = null, string? externalId = null)

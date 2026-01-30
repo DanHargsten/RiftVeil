@@ -1,16 +1,13 @@
 namespace RiftVeil.Domain.Common;
 
 /// <summary>
-/// Provides utility methods for validating domain entities.
+/// Centralizes validation rules so entities stay consistent.
 /// </summary>
 public static class ValidationUtils
 {
     /// <summary>
-    /// Validates a name string.
+    /// Keeps human-facing names within shared constraints.
     /// </summary>
-    /// <param name="value">The name string to validate.</param>
-    /// <param name="paramName">The name of the parameter being validated.</param>
-    /// <returns>The trimmed name string.</returns>
     public static string ValidateName(string value, string paramName)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -24,11 +21,8 @@ public static class ValidationUtils
 
 
     /// <summary>
-    /// Validates a short name string.
+    /// Normalizes short codes for indexing and comparisons.
     /// </summary>
-    /// <param name="value">The short name string to validate.</param>
-    /// <param name="paramName">The name of the parameter being validated.</param>
-    /// <returns>The trimmed and upper-cased short name string.</returns>
     public static string ValidateShortName(string value, string paramName)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -40,17 +34,15 @@ public static class ValidationUtils
             throw new ArgumentException("Short name cannot exceed 20 characters.", paramName);
 
         if (trimmed.Any(char.IsWhiteSpace))
-            throw new ArgumentException("Short name cannon contain spaces", paramName);
+            throw new ArgumentException("Short name cannot contain spaces", paramName);
 
         return trimmed.ToUpperInvariant();
     }
 
 
     /// <summary>
-    /// Normalizes an optional string.
+    /// Avoids persisting empty strings for optional fields.
     /// </summary>
-    /// <param name="value">The optional string to normalize.</param>
-    /// <returns>The trimmed string or null if the input is null or whitespace.</returns>
     public static string? NormalizeOptional(string? value)
     {
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
@@ -58,10 +50,8 @@ public static class ValidationUtils
 
 
     /// <summary>
-    /// Ensures that a DateTimeOffset is in UTC.
+    /// Standardizes timestamps to UTC for storage.
     /// </summary>
-    /// <param name="value">The DateTimeOffset to ensure is in UTC.</param>
-    /// <returns>The DateTimeOffset in UTC.</returns>
     public static DateTimeOffset EnsureUtc(DateTimeOffset value)
     {
         if (value.Offset != TimeSpan.Zero)
@@ -74,15 +64,13 @@ public static class ValidationUtils
 
 
     /// <summary>
-    /// Ensures that a DateTime is in UTC.
+    /// Treats unspecified kinds as UTC to avoid local-time drift.
     /// </summary>
-    /// <param name="value">The DateTime to ensure is in UTC.</param>
-    /// <returns>The DateTime in UTC.</returns>
     public static DateTimeOffset EnsureUtc(DateTime value)
     {
         if (value.Kind == DateTimeKind.Unspecified)
         {
-            // Assume UTC if the kind is unspecified
+            // Treat unspecified as UTC to avoid implicit local conversion.
             return new DateTimeOffset(value, TimeSpan.Zero);
         }
 

@@ -1,4 +1,4 @@
 using System.Runtime.CompilerServices;
 
-// Make entities in this assembly visible to the RiftVeil.Infrastructure assembly
+// Allow Infrastructure to configure EF models without widening visibility.
 [assembly: InternalsVisibleTo("RiftVeil.Infrastructure")]

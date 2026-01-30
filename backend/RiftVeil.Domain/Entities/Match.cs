@@ -3,12 +3,15 @@ using RiftVeil.Domain.Enums;
 
 namespace RiftVeil.Domain.Entities;
 
+/// <summary>
+/// Represents a scheduled or completed match within a tournament.
+/// </summary>
 public class Match : BaseEntity
 {
     public int TournamentId { get; private set; }
     public Tournament Tournament { get; private set; } = null!;
-    public string Team1Name { get; private set; } = null!;  // TODO: Team1Id
-    public string Team2Name { get; private set; } = null!;  // TODO: Team2Id
+    public string Team1Name { get; private set; } = null!;  // Kept only names until Team entity exists.
+    public string Team2Name { get; private set; } = null!;  // Kept only names until Team entity exists.
     public DateTimeOffset StartsAtUtc { get; private set; }
     public DateTimeOffset? StartedAtUtc { get; private set; }
     public DateTimeOffset? FinishedAtUtc { get; private set; }
@@ -19,7 +22,8 @@ public class Match : BaseEntity
     public string? VodUrl { get; private set; }
     public string? ExternalId { get; private set; }
 
-    // Constuctor for EF Core
+
+    // Required for EF Core materialization without exposing public setters.
     private Match() { }
 
     public Match(int tournamentId, string team1Name, string team2Name, DateTimeOffset startsAtUtc, int bestOf,

@@ -1,7 +1,7 @@
 namespace RiftVeil.Domain.Common;
 
 /// <summary>
-/// Base entity class for all domain entities.
+/// Centralizes identity and timestamps to keep persistence consistent.
 /// </summary>
 public abstract class BaseEntity
 {
