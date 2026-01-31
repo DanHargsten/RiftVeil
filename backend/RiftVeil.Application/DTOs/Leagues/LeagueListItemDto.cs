@@ -1,4 +1,4 @@
-namespace RiftVeil.Application.DTOs.Leagues;
+namespace RiftVeil.Application.Dtos.Leagues;
 
 /// <summary>
 /// Represents a league list item.

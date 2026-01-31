@@ -1,6 +1,6 @@
 using RiftVeil.Domain.Enums;
 
-namespace RiftVeil.Application.DTOs.Matches;
+namespace RiftVeil.Application.Dtos.Matches;
 
 /// <summary>
 /// Represents a match list item.

@@ -1,6 +1,6 @@
 using System.Linq.Expressions;
-using RiftVeil.Application.DTOs.Leagues;
-using RiftVeil.Application.DTOs.Tournaments;
+using RiftVeil.Application.Dtos.Leagues;
+using RiftVeil.Application.Dtos.Tournaments;
 using RiftVeil.Domain.Entities;
 
 namespace RiftVeil.Application.Mappings;

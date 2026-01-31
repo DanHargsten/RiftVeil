@@ -1,6 +1,6 @@
 using RiftVeil.Domain.Enums;
 
-namespace RiftVeil.Application.DTOs.Tournaments;
+namespace RiftVeil.Application.Dtos.Tournaments;
 
 /// <summary>
 /// Represents a tournament list item.

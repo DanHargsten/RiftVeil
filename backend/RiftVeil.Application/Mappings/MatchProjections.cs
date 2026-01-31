@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using RiftVeil.Domain.Entities;
-using RiftVeil.Application.DTOs.Matches;
-using RiftVeil.Application.DTOs.Tournaments;
+using RiftVeil.Application.Dtos.Matches;
+using RiftVeil.Application.Dtos.Tournaments;
 
 namespace RiftVeil.Application.Mappings;
 

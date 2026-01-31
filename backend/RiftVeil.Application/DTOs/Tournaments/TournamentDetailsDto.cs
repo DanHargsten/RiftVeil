@@ -1,8 +1,8 @@
-using RiftVeil.Application.DTOs.Leagues;
-using RiftVeil.Application.DTOs.Matches;
+using RiftVeil.Application.Dtos.Leagues;
+using RiftVeil.Application.Dtos.Matches;
 using RiftVeil.Domain.Enums;
 
-namespace RiftVeil.Application.DTOs.Tournaments;
+namespace RiftVeil.Application.Dtos.Tournaments;
 
 /// <summary>
 /// Represents tournament details.

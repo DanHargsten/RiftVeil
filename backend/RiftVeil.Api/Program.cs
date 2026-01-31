@@ -1,12 +1,28 @@
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
+using RiftVeil.Infrastructure.Services.Read;
+using RiftVeil.Application.Interfaces.Read;
 using RiftVeil.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Development tooling for API discovery/testing.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Serialize enums as stings
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        
+        // Make JSON more readable in development
+        options.JsonSerializerOptions.WriteIndented = builder.Environment.IsDevelopment();
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Add services for reading data from the database.
+builder.Services.AddScoped<ILeagueReadService, LeagueReadService>();
+builder.Services.AddScoped<ITournamentReadService, TournamentReadService>();
+builder.Services.AddScoped<IMatchReadService, MatchReadService>();
 
 // Central data access for the API layer.
 builder.Services.AddDbContext<RiftVeilDbContext>(options =>

@@ -1,7 +1,7 @@
-using RiftVeil.Application.DTOs.Tournaments;
+using RiftVeil.Application.Dtos.Tournaments;
 using RiftVeil.Domain.Enums;
 
-namespace RiftVeil.Application.DTOs.Matches;
+namespace RiftVeil.Application.Dtos.Matches;
 
 /// <summary>
 /// Represents match details.

@@ -1,0 +1,31 @@
+using RiftVeil.Application.Dtos.Matches;
+using RiftVeil.Domain.Enums;
+
+namespace RiftVeil.Application.Interfaces.Read;
+
+public interface IMatchReadService
+{
+    /// <summary>
+    /// Retrieves a list of all matches.
+    /// </summary>
+    /// <param name="tournamentId">The ID of the tournament to filter matches by.</param>
+    /// <param name="status">The status of the matches to filter by.</param>
+    /// <returns>A list of match items.</returns>
+    Task<List<MatchListItemDto>> GetAllAsync(int? tournamentId = null, MatchStatus? status = null);
+
+
+    /// <summary>
+    /// Retrieves a list of upcoming matches.
+    /// </summary>
+    /// <param name="hoursAhead">The number of hours ahead to look for upcoming matches.</param>
+    /// <returns>A list of match items.</returns>
+    Task<List<MatchListItemDto>> GetUpcomingAsync(int days = 7);
+
+
+    /// <summary>
+    /// Retrieves details of a specific match.
+    /// </summary>
+    /// <param name="id">The ID of the match to retrieve details for.</param>
+    /// <returns>The match details, or null if not found.</returns>
+    Task<MatchDetailsDto?> GetByIdAsync(int id);
+}
