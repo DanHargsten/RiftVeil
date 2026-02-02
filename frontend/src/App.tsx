@@ -1,25 +1,23 @@
 import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
-import {MatchList} from "@/components/MatchList.tsx";
+import {BrowserRouter, Route, Routes} from "react-router-dom";
+import {Tournaments} from "@/routes/Tournaments.tsx";
+import {Navbar} from "@/components/Navbar.tsx";
+import {Matches} from "@/routes/Matches.tsx";
+import {Leagues} from "@/routes/Leagues.tsx";
 
 const queryClient = new QueryClient();
 
 function App() {
     return (
         <QueryClientProvider client={queryClient}>
-            <div className="app">
-                <header className="app-header">
-                    <div className="app-header__container">
-                        <h1 className="app-header__title">Rift Veil</h1>
-                        <p className="app-header__subtitle">
-                            League of Legends Esports Schedule
-                        </p>
-                    </div>
-                </header>
-                
-                <main className="app-main">
-                    <MatchList />
-                </main>
-            </div>
+            <BrowserRouter>
+                <Navbar />
+                <Routes>
+                    <Route path="/" element={<Matches />} />
+                    <Route path="/tournaments" element={<Tournaments />} />
+                    <Route path="/leagues" element={<Leagues />} />
+                </Routes>
+            </BrowserRouter>
         </QueryClientProvider>
     );
 }

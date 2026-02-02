@@ -56,7 +56,12 @@ if (app.Environment.IsDevelopment())
     using var scope = app.Services.CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<RiftVeilDbContext>();
 
-    context.Database.Migrate();
+    // Only run migrations if using SQL Server
+    if (context.Database.ProviderName != "Microsoft.EntityFrameworkCore.InMemory")
+    {
+        context.Database.Migrate();
+    }
+    
     DbInitializer.Initialize(context);
 }
 
@@ -65,3 +70,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+public partial class Program { }
