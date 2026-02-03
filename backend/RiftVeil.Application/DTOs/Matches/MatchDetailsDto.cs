@@ -10,6 +10,8 @@ public record MatchDetailsDto(
     int Id,
     string Team1Name,
     string Team2Name,
+    string Team1ShortName,
+    string Team2ShortName,
     DateTimeOffset StartsAtUtc,
     DateTimeOffset? StartedAtUtc,
     DateTimeOffset? FinishedAtUtc,

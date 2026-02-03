@@ -18,6 +18,8 @@ public static class MatchProjections
             match.Tournament.Name,
             match.Team1Name,
             match.Team2Name,
+            match.Team1ShortName,
+            match.Team2ShortName,
             match.StartsAtUtc,
             match.BestOf,
             match.Status
@@ -34,6 +36,8 @@ public static class MatchProjections
             match.Id,
             match.Team1Name,
             match.Team2Name,
+            match.Team1ShortName,
+            match.Team2ShortName,
             match.StartsAtUtc,
             match.StartedAtUtc,
             match.FinishedAtUtc,

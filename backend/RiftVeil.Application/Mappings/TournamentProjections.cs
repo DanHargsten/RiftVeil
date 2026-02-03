@@ -49,6 +49,8 @@ public static class TournamentProjections
                 tournament.Name,
                 m.Team1Name,
                 m.Team2Name,
+                m.Team1ShortName,
+                m.Team2ShortName,
                 m.StartsAtUtc,
                 m.BestOf,
                 m.Status

@@ -125,40 +125,52 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
             tournamentId: lecSpring2026.Id,
             team1Name: "Fnatic",
             team2Name: "G2 Esports",
+            team1ShortName: "FNC",
+            team2ShortName: "G2",
             startsAtUtc: now.AddHours(6),
             bestOf: 1,
             status: MatchStatus.Scheduled,
-            externalId: "lec-spring-2026-match-1"
+            externalId: "lec-spring-2026-match-1",
+            vodUrl: null
         );
 
         var scheduledTomorrow = new Match(
             tournamentId: lecSpring2026.Id,
             team1Name: "Karmine Corp",
             team2Name: "MAD Lions KOI",
+            team1ShortName: "KC",
+            team2ShortName: "MAD", 
             startsAtUtc: now.AddHours(20),
             bestOf: 1,
             status: MatchStatus.Scheduled,
-            externalId: "lec-spring-2026-match-2"
+            externalId: "lec-spring-2026-match-2",
+            vodUrl: null
         );
 
         var scheduledNextWeek = new Match(
             tournamentId: lecSpring2026.Id,
             team1Name: "Team BDS",
             team2Name: "SK Gaming",
+            team1ShortName: "BDS",
+            team2ShortName: "SK",
             startsAtUtc: now.AddDays(6).AddHours(2),
             bestOf: 1,
             status: MatchStatus.Scheduled,
-            externalId: "lec-spring-2026-match-3"
+            externalId: "lec-spring-2026-match-3",
+            vodUrl: null
         );
 
         var finishedMatch = new Match(
             tournamentId: worlds2025.Id,
             team1Name: "T1",
             team2Name: "Gen.G",
+            team1ShortName: "T1",
+            team2ShortName: "GEN",     
             startsAtUtc: now.AddMonths(-3).AddDays(5),
             bestOf: 5,
             status: MatchStatus.Finished,
-            externalId: "worlds-2025-final"
+            externalId: "worlds-2025-final",
+            vodUrl: null
         );
         finishedMatch.MarkFinished(
             startedAtUtc: finishedMatch.StartsAtUtc,

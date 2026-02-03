@@ -11,6 +11,8 @@ public record MatchListItemDto(
     string TournamentName,
     string Team1Name,
     string Team2Name,
+    string Team1ShortName,
+    string Team2ShortName,
     DateTimeOffset StartsAtUtc,
     int BestOf,
     MatchStatus Status

@@ -12,6 +12,8 @@ public class Match : BaseEntity
     public Tournament Tournament { get; private set; } = null!;
     public string Team1Name { get; private set; } = null!;  // Kept only names until Team entity exists.
     public string Team2Name { get; private set; } = null!;  // Kept only names until Team entity exists.
+    public string Team1ShortName { get; private set; } = null!;
+    public string Team2ShortName { get; private set; } = null!;
     public DateTimeOffset StartsAtUtc { get; private set; }
     public DateTimeOffset? StartedAtUtc { get; private set; }
     public DateTimeOffset? FinishedAtUtc { get; private set; }
@@ -26,8 +28,9 @@ public class Match : BaseEntity
     // Required for EF Core materialization without exposing public setters.
     private Match() { }
 
-    public Match(int tournamentId, string team1Name, string team2Name, DateTimeOffset startsAtUtc, int bestOf,
-        MatchStatus status = MatchStatus.Scheduled, string? externalId = null, string? vodUrl = null)
+    public Match(int tournamentId, string team1Name, string team2Name, string team1ShortName, string team2ShortName,
+        DateTimeOffset startsAtUtc, int bestOf, MatchStatus status = MatchStatus.Scheduled,
+        string? externalId = null, string? vodUrl = null)
     {
         if (bestOf <= 0)
             throw new ArgumentOutOfRangeException(nameof(bestOf), "BestOf must be a positive number.");
@@ -38,6 +41,8 @@ public class Match : BaseEntity
         TournamentId = tournamentId;
         Team1Name = ValidationUtils.ValidateName(team1Name, nameof(team1Name));
         Team2Name = ValidationUtils.ValidateName(team2Name, nameof(team2Name));
+        Team1ShortName = ValidationUtils.ValidateShortName(team1ShortName, nameof(Team1ShortName));
+        Team2ShortName = ValidationUtils.ValidateShortName(team2ShortName, nameof(Team2ShortName));
         StartsAtUtc = ValidationUtils.EnsureUtc(startsAtUtc);
         BestOf = bestOf;
         Status = status;
