@@ -9,10 +9,10 @@ namespace RiftVeil.Infrastructure.Data;
 /// </summary>
 public class RiftVeilDbContext(DbContextOptions<RiftVeilDbContext> options) : DbContext(options)
 {
-    public DbSet<DbSmokeTest> DbSmokeTest => Set<DbSmokeTest>();
     public DbSet<League> Leagues => Set<League>();
     public DbSet<Match> Matches => Set<Match>();
     public DbSet<Tournament> Tournaments => Set<Tournament>();
+    public DbSet<Game> Games => Set<Game>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -37,6 +37,7 @@ public class RiftVeilDbContext(DbContextOptions<RiftVeilDbContext> options) : Db
         modelBuilder.Entity<Tournament>(entity =>
         {
             entity.Property(tournament => tournament.Name).IsRequired().HasMaxLength(100);
+            entity.Property(tournament => tournament.Stage).HasMaxLength(100);
             entity.Property(tournament => tournament.StartsAtUtc).IsRequired();
             entity.Property(tournament => tournament.ExternalId).HasMaxLength(100);
             entity.Property(tournament => tournament.LiquipediaSlug).HasMaxLength(200);
@@ -53,6 +54,8 @@ public class RiftVeilDbContext(DbContextOptions<RiftVeilDbContext> options) : Db
         {
             entity.Property(match => match.Team1Name).IsRequired().HasMaxLength(100);
             entity.Property(match => match.Team2Name).IsRequired().HasMaxLength(100);
+            entity.Property(match => match.Team1ShortName).IsRequired().HasMaxLength(20);
+            entity.Property(match => match.Team2ShortName).IsRequired().HasMaxLength(20);
             entity.Property(match => match.StartsAtUtc).IsRequired();
             entity.Property(match => match.VodUrl).HasMaxLength(2048);
             entity.Property(match => match.ExternalId).HasMaxLength(100);
@@ -60,11 +63,43 @@ public class RiftVeilDbContext(DbContextOptions<RiftVeilDbContext> options) : Db
             entity.HasIndex(match => match.StartsAtUtc);
             entity.HasIndex(match => new { match.TournamentId, match.Status });
 
+            entity.HasMany(match => match.Games)
+                .WithOne(game => game.Match)
+                .HasForeignKey(game => game.MatchId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
             entity.ToTable(table =>
             {
                 table.HasCheckConstraint(
                     "CK_Match_BestOf_AllowedValues",
                     "[BestOf] IN (1, 2, 3, 5)"
+                );
+            });
+        });
+
+        modelBuilder.Entity<Game>(entity =>
+        {
+            entity.Property(game => game.GameNumber).IsRequired();
+            entity.Property(game => game.Team1Side).HasMaxLength(10);
+            entity.Property(game => game.Team2Side).HasMaxLength(10);
+            entity.Property(game => game.VodUrl).HasMaxLength(2048);
+            entity.Property(game => game.ExternalId).HasMaxLength(100);
+
+            entity.HasIndex(game => new { game.MatchId, game.GameNumber }).IsUnique();
+            
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_Game_WinningTeam_AllowedValues",
+                    "[WinningTeam] IS NULL OR [WinningTeam] IN (1, 2)"
+                );
+                table.HasCheckConstraint(
+                    "CK_Game_Team1Side_AllowedValues",
+                    "[Team1Side] IS NULL OR [Team1Side] IN ('Blue', 'Red')"
+                );
+                table.HasCheckConstraint(
+                    "CK_Game_Team2Side_AllowedValues",
+                    "[Team2Side] IS NULL OR [Team2Side] IN ('Blue', 'Red')"
                 );
             });
         });

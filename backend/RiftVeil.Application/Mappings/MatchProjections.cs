@@ -16,13 +16,18 @@ public static class MatchProjections
             match.Id,
             match.TournamentId,
             match.Tournament.Name,
+            match.Tournament.Stage,
+            match.Tournament.League.Name,
+            match.Tournament.League.ShortName,
             match.Team1Name,
             match.Team2Name,
             match.Team1ShortName,
             match.Team2ShortName,
             match.StartsAtUtc,
             match.BestOf,
-            match.Status
+            match.Status,
+            match.Team1Score,
+            match.Team2Score
         );
     }
 
@@ -49,7 +54,10 @@ public static class MatchProjections
             new TournamentListItemDto(
                 match.Tournament.Id,
                 match.Tournament.LeagueId,
+                match.Tournament.League.Name,
+                match.Tournament.League.ShortName,
                 match.Tournament.Name,
+                match.Tournament.Stage,
                 match.Tournament.StartsAtUtc,
                 match.Tournament.EndsAtUtc,
                 match.Tournament.Status

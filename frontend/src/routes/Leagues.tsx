@@ -1,18 +1,16 @@
 ﻿export function Leagues() {
     return (
-        <div className="app">
-            <header className="app-header">
-                <div className="app-header__container">
-                    <h1 className="app-header__title">Leagues</h1>
-                    <p className="app-header__subtitle">
-                        Browse all leagues
-                    </p>
-                </div>
+        <div className="page page--leagues">
+            <header className="page-header">
+                <h1 id="leagues-title" className="page-header__title">Leagues</h1>
+                <p className="page-header__subtitle">
+                    Browse all leagues
+                </p>
             </header>
 
-            <main className="app-main">
+            <section className="page-content" aria-labelledby="leagues-title">
                 <p>Leagues coming soon...</p>
-            </main>
+            </section>
         </div>
     );
 }

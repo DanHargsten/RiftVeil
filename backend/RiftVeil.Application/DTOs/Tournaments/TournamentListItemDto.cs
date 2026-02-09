@@ -8,7 +8,10 @@ namespace RiftVeil.Application.Dtos.Tournaments;
 public record TournamentListItemDto(
     int Id,
     int LeagueId,
+    string LeagueName,
+    string LeagueShortName,
     string Name,
+    string? Stage,
     DateTimeOffset StartsAtUtc,
     DateTimeOffset? EndsAtUtc,
     TournamentStatus Status

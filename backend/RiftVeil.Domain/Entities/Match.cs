@@ -23,6 +23,8 @@ public class Match : BaseEntity
     public int? Team2Score { get; private set; }
     public string? VodUrl { get; private set; }
     public string? ExternalId { get; private set; }
+    
+    public ICollection<Game> Games { get; private set;  } = [];
 
 
     // Required for EF Core materialization without exposing public setters.

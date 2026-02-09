@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RiftVeil.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using RiftVeil.Infrastructure.Data;
 namespace RiftVeil.Infrastructure.Migrations
 {
     [DbContext(typeof(RiftVeilDbContext))]
-    partial class RiftVeilDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260209095737_AddTournamentStage")]
+    partial class AddTournamentStage
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,69 +24,6 @@ namespace RiftVeil.Infrastructure.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("RiftVeil.Domain.Entities.Game", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTimeOffset>("CreatedAtUtc")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<TimeSpan?>("Duration")
-                        .HasColumnType("time");
-
-                    b.Property<string>("ExternalId")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTimeOffset?>("FinishedAtUtc")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<int>("GameNumber")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MatchId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTimeOffset?>("StartedAtUtc")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("Team1Side")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<string>("Team2Side")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("VodUrl")
-                        .HasMaxLength(2048)
-                        .HasColumnType("nvarchar(2048)");
-
-                    b.Property<int?>("WinningTeam")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MatchId", "GameNumber")
-                        .IsUnique();
-
-                    b.ToTable("Games", t =>
-                        {
-                            t.HasCheckConstraint("CK_Game_Team1Side_AllowedValues", "[Team1Side] IS NULL OR [Team1Side] IN ('Blue', 'Red')");
-
-                            t.HasCheckConstraint("CK_Game_Team2Side_AllowedValues", "[Team2Side] IS NULL OR [Team2Side] IN ('Blue', 'Red')");
-
-                            t.HasCheckConstraint("CK_Game_WinningTeam_AllowedValues", "[WinningTeam] IS NULL OR [WinningTeam] IN (1, 2)");
-                        });
-                });
 
             modelBuilder.Entity("RiftVeil.Domain.Entities.League", b =>
                 {
@@ -169,8 +109,7 @@ namespace RiftVeil.Infrastructure.Migrations
 
                     b.Property<string>("Team1ShortName")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Team2Name")
                         .IsRequired()
@@ -182,8 +121,7 @@ namespace RiftVeil.Infrastructure.Migrations
 
                     b.Property<string>("Team2ShortName")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("TournamentId")
                         .HasColumnType("int");
@@ -259,17 +197,6 @@ namespace RiftVeil.Infrastructure.Migrations
                     b.ToTable("Tournaments");
                 });
 
-            modelBuilder.Entity("RiftVeil.Domain.Entities.Game", b =>
-                {
-                    b.HasOne("RiftVeil.Domain.Entities.Match", "Match")
-                        .WithMany("Games")
-                        .HasForeignKey("MatchId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Match");
-                });
-
             modelBuilder.Entity("RiftVeil.Domain.Entities.Match", b =>
                 {
                     b.HasOne("RiftVeil.Domain.Entities.Tournament", "Tournament")
@@ -295,11 +222,6 @@ namespace RiftVeil.Infrastructure.Migrations
             modelBuilder.Entity("RiftVeil.Domain.Entities.League", b =>
                 {
                     b.Navigation("Tournaments");
-                });
-
-            modelBuilder.Entity("RiftVeil.Domain.Entities.Match", b =>
-                {
-                    b.Navigation("Games");
                 });
 
             modelBuilder.Entity("RiftVeil.Domain.Entities.Tournament", b =>

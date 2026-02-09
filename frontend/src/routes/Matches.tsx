@@ -2,19 +2,18 @@
 
 export function Matches() {
     return (
-        <div className="app">
-            <header className="app-header">
-                <div className="app-header__container">
-                    <h1 className="app-header__title">Matches</h1>
-                    <p className="app-header__subtitle">
-                        Upcoming League of Legends matches
-                    </p>
-                </div>
+        <div className="page page--matches">
+            <header className="page-header">
+                <h1 id="matches-title" className="page-header__title">Matches</h1>
+                <p className="page-header__subtitle">
+                    Upcoming League of Legends matches
+                </p>
             </header>
-
-            <main className="app-main">
-                <MatchList />
-            </main>
+            
+            <section className="page-content" aria-labelledby="matches-title">
+                <MatchList />                
+            </section>
+                
         </div>
     );
 }

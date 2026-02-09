@@ -1,18 +1,16 @@
 ﻿export function Tournaments() {
     return (
-        <div className="app">
-            <header className="app-header">
-                <div className="app-header__container">
-                    <h1 className="app-header__title">Tournaments</h1>
-                    <p className="app-header__subtitle">
-                        Browse all tournaments
-                    </p>
-                </div>
+        <div className="page page--tournaments">
+            <header className="page-header">
+                <h1 id="tournaments-title" className="page-header__title">Tournaments</h1>
+                <p className="page-header__subtitle">
+                    Browse all tournaments
+                </p>
             </header>
 
-            <main className="app-main">
-                <p>Tournaments coming soon...</p>
-            </main>
+            <section className="page-content" aria-labelledby="tournaments-title">
+                <p>Tournaments coming soon...</p>                
+            </section>
         </div>
     );
 }

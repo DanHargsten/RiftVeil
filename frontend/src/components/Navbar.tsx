@@ -2,9 +2,9 @@
 
 export function Navbar() {
     return (
-        <div className="navbar">
-            <div className="navbar__container">
-                <NavLink to="/" className="navbarName">
+        <nav className="navbar" aria-label="Primary">
+            <div className="navbar__container container">
+                <NavLink to="/" className="navbar__brand">
                     Rift Veil
                 </NavLink>
                 
@@ -22,6 +22,6 @@ export function Navbar() {
                     </NavLink>
                 </div>
             </div>
-        </div>
+        </nav>
     )
 }

@@ -16,7 +16,10 @@ public static class TournamentProjections
         return tournament => new TournamentListItemDto(
             tournament.Id,
             tournament.LeagueId,
+            tournament.League.Name,
+            tournament.League.ShortName,
             tournament.Name,
+            tournament.Stage,
             tournament.StartsAtUtc,
             tournament.EndsAtUtc,
             tournament.Status
@@ -47,13 +50,18 @@ public static class TournamentProjections
                 m.Id,
                 m.TournamentId,
                 tournament.Name,
+                tournament.Stage,
+                tournament.League.Name,
+                tournament.League.ShortName,
                 m.Team1Name,
                 m.Team2Name,
                 m.Team1ShortName,
                 m.Team2ShortName,
                 m.StartsAtUtc,
                 m.BestOf,
-                m.Status
+                m.Status,
+                m.Team1Score,
+                m.Team2Score
             ))]
         );
     }

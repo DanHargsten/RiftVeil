@@ -36,7 +36,10 @@ public static class LeagueProjections
             [.. league.Tournaments.Select(t => new TournamentListItemDto(
                 t.Id,
                 t.LeagueId,
+                league.Name,
+                league.ShortName,
                 t.Name,
+                t.Stage,
                 t.StartsAtUtc,
                 t.EndsAtUtc,
                 t.Status
