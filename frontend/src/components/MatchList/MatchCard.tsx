@@ -1,5 +1,5 @@
 ﻿import { type MatchListItem } from "@/lib/api.ts";
-import { useState } from "react";
+import React, { useState } from "react";
 
 type SpoilerPrefs = {
     globalEnabled: boolean;
@@ -13,6 +13,16 @@ interface MatchCardProps {
     onHide: () => void;
 }
 
+
+/**
+ * MatchCard - Displays individual match information with spoiler protection
+ * 
+ * Features:
+ * - Three-stage expansion: compact -> score revealed -> full details
+ * - Dynamic time display based on match age
+ * - Mirrored team layout for visual balance
+ * - Status-based color coding in header
+ */
 export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps) {
     const [expanded, setExpanded] = useState(false);
 
@@ -29,7 +39,28 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
         match.team1Score != null &&
         match.team2Score != null;
 
-    const timeLabel = formatTime(match.startsAtUtc);
+    // Dynamic time display based on match age
+    // Today: "14:00", This week: "2d ago", Older: "4 nov"
+    const getTimeDisplay = () => {
+        if (isFinished) {
+            const matchDate = new Date(match.startsAtUtc);
+            const today = new Date();            
+            today.setHours(0, 0, 0, 0);
+            matchDate.setHours(0, 0, 0);
+            
+            const diffDays = Math.floor((today.getTime() - matchDate.getTime()) / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 0) return formatTime(match.startsAtUtc);
+            if (diffDays < 7) return `${diffDays}d ago`;
+            
+            return new Date(match.startsAtUtc).toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric"
+            });
+        }
+        
+        return formatTime(match.startsAtUtc);
+    };
 
     const handleCardClick = () => {
         // Only expand if spoilers are already shown
@@ -39,17 +70,27 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
     };
 
     const handleEyeClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
+        e.stopPropagation(); // Prevent card expansion when toggling spoiler
         if (showingSpoilers) {
             onHide();
-            setExpanded(false); // Collapse when hiding
+            setExpanded(false);
         } else {
             onReveal();
         }
     };
 
+    // Apply status-specific styling classes
+    const getStatusClass = () => {
+        if (match.status === "Live") return "match-card--live";
+        if (match.status === "Finished") return "match-card--finished";
+        if (match.status === "Cancelled") return "match-card--cancelled";
+        return "match-card--upcoming";
+    };
+
+    
     return (
-        <article className={`match-card ${expanded ? "match-card--expanded" : ""}`}>
+        <article className={`match-card ${getStatusClass()} ${expanded ? "match-card--expanded" : ""}`}>
+            
             {/* Header: Tournament + Status */}
             <div className="match-card__header">
                 <div className="match-card__tournament">
@@ -73,7 +114,7 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
             {/* Main: Time + Teams (clickable for expansion) */}
             <div className="match-card__main" onClick={handleCardClick}>
                 <time className="match-card__time" dateTime={match.startsAtUtc}>
-                    {timeLabel}
+                    {getTimeDisplay()}
                 </time>
 
                 <div className="match-card__teams">
@@ -81,8 +122,12 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
                     <div className="match-card__team">
                         <div className="match-card__team-logo">
                             <img
-                                src="https://placehold.co/48x48/1a1a2e/16a34a?text=T1"
+                                src={`/logos/teams/${match.team1ShortName.toLowerCase()}.png`}
                                 alt={match.team1ShortName}
+                                className="match-card__team-logo"
+                                onError={(e) => {
+                                    e.currentTarget.src = `/logos/teams/placeholder.png`;
+                                }}
                             />
                         </div>
                         <div className="match-card__team-info">
@@ -91,23 +136,29 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
                         </div>
                     </div>
 
-                    {/* VS or Score */}
+                    {/* Always show "/" - show score based on visibility */}
                     <div className="match-card__vs">
                         {canShowScore ? (
-                            <span className="match-card__score">
-                {match.team1Score} - {match.team2Score}
-              </span>
+                            <>
+                                <span className="match-card__score-number">{match.team1Score}</span>
+                                {" / "}
+                                <span className="match-card__score-number">{match.team2Score}</span>
+                            </>
                         ) : (
-                            <span>/</span>
+                            "/"
                         )}
                     </div>
 
-                    {/* Team 2 */}
+                    {/* Mirror team layouts so logos meet in center */}
                     <div className="match-card__team">
                         <div className="match-card__team-logo">
                             <img
-                                src="https://placehold.co/48x48/1a1a2e/f97316?text=T2"
+                                src={`/logos/teams/${match.team2ShortName.toLowerCase()}.png`}
                                 alt={match.team2ShortName}
+                                className="match-card__team-logo"
+                                onError={(e) => {
+                                    e.currentTarget.src = `/logos/teams/placeholder.png`;
+                                }}
                             />
                         </div>
                         <div className="match-card__team-info">
@@ -143,16 +194,16 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
                     {/* Placeholder for game-by-game breakdown */}
                     <div className="match-card__games">
                         <div className="match-card__game">
-                            <span className="game-number">🎮 Game 1</span>
+                            <span className="game-number">Game 1</span>
                             <span className="game-duration">32:45</span>
                         </div>
                         <div className="match-card__game">
-                            <span className="game-number">🎮 Game 2</span>
+                            <span className="game-number">Game 2</span>
                             <span className="game-duration">28:12</span>
                         </div>
                         {match.team1Score === 2 && match.team2Score === 1 && (
                             <div className="match-card__game">
-                                <span className="game-number">🎮 Game 3</span>
+                                <span className="game-number">Game 3</span>
                                 <span className="game-duration">41:03</span>
                             </div>
                         )}
@@ -178,7 +229,7 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
 }
 
 function formatTime(isoUtc: string) {
-    return new Date(isoUtc).toLocaleTimeString("sv-SE", {
+    return new Date(isoUtc).toLocaleTimeString(undefined, {
         hour: "2-digit",
         minute: "2-digit",
     });

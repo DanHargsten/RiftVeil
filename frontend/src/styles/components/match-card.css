@@ -1,0 +1,142 @@
+﻿.match-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-block: 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid white;
+}
+
+.match-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+    padding: 0.5rem 0.75rem;
+    
+    border-bottom: 1px solid white;
+}
+
+.match-card__tournament {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.match-card__tournament,
+.match-card__best-of {
+    font-size: 0.8rem;
+    font-weight: lighter;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.match-card__main {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    padding-inline: 0.75rem;
+    padding-block: 1.25rem;
+}
+
+.match-card__time {
+    justify-self: start;
+}
+
+.match-card__teams {
+    justify-self: center;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;    
+}
+
+.match-card__team {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+
+    /* Mirror layouts so logos meet in center */
+    &:first-child {
+        flex-direction: row-reverse;
+        text-align: right;
+    }
+    
+    &:last-child {
+        flex-direction: row;
+        text-align: left;
+    }
+}
+
+.match-card__team-logo {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+}
+
+.match-card__team-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+
+    .team-short {
+        font-size: 1.4rem;
+    }
+    
+    .team-full {
+        display: none;
+    }
+}
+
+.match-card__vs {
+    flex-shrink: 0;
+    font-weight: bold;
+    text-align: center;
+    min-width: 50px; /* Fixed width prevents layout shift when scores appear */
+    font-size: 1.75rem; /* Large "/" */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.match-card__score-number {
+    font-size: 1.25rem; /* Smaller than "/" */
+    min-width: 1ch; /* Reserve space for single digit */
+}
+
+.match-card__eye {
+    justify-self: end;
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    
+    &--active {
+        
+    }
+}
+/*
+
+.match-card--expanded
+
+!* Expanded details section *!
+    .match-card__details
+    .match-card__detail-row
+    .match-card__detail-label
+    .match-card__detail-value
+    .match-card__games
+    .match-card__game
+    .match-card__vod-section
+    .match-card__vod-link
+    .match-card__collapse
+
+!* Status badge *!
+    .status-badge
+    .status-badge--live
+
+!* Game details *!
+    .game-number
+    .game-duration
+*/
