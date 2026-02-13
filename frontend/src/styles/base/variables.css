@@ -1,0 +1,13 @@
+:root {
+    --clr-background: #1C1C1C;
+    --clr-border: #272c35;
+    
+    --clr-accent: #18a387;
+    --clr-accent-hover: #56ecce;
+    
+    --clr-text-muted: #88929c;
+    
+    --clr-card-bg: #1b1e25;
+    --clr-card-header: #15181e;
+    --clr-card-game: #15181e;
+}

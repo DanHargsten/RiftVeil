@@ -1,14 +1,41 @@
-﻿/*
+﻿.match-list {
+    /*border: 1px solid darkgreen;*/
+}
+
+.match-list__header {
+    /*background: #e4bc59;*/
+}
+
+.match-list__title {
+    /*background: #e4bc59;*/
+}
+
+
+
+.match-list__groups {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    
+    /*border: 1px solid yellowgreen;*/
+}
+
+.match-list__group {
+    display: flex;
+    flex-direction: column;    
+    
+    /*border: 1px solid yellow;*/
+}
+
+
+/*
 .match-list
 .match-list__state
 .match-list__state--loading
 .match-list__state--error
 .match-list__state--empty
-.match-list__header
-.match-list__title
 
-.match-list__groups
-.match-list__group
+
 .match-list__group--today
 .match-list__group--past
 .match-list__group-title

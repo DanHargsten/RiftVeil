@@ -11,7 +11,9 @@ function App() {
     return (
         <QueryClientProvider client={queryClient}>
             <BrowserRouter>
-                <Navbar />                    
+                <header>
+                    <Navbar />                    
+                </header>
                 <main className="app-main">
                     <div className="container">                                                    
                         <Routes>
