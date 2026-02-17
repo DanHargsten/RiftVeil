@@ -21,7 +21,7 @@ public static class DbInitializer
 
         // Seed baseline leagues for local browsing/tests.
         var lec = new League(
-            name: "League of Legends EMEA Championship",
+            name: "EMEA Championship",
             shortName: "LEC",
             region: "EMEA",
             logoUrl: null,
@@ -29,7 +29,7 @@ public static class DbInitializer
         );
 
         var lcs = new League(
-            name: "League of Legends North America Championship",
+            name: "North America Championship",
             shortName: "LCS",
             region: "NA",
             logoUrl: null,
@@ -37,7 +37,7 @@ public static class DbInitializer
         );
 
         var intl = new League(
-            name: "League of Legends International Championship",
+            name: "International Championship",
             shortName: "INTL",
             region: "Global",
             logoUrl: null,
@@ -153,6 +153,32 @@ public static class DbInitializer
         );
 
         context.Matches.AddRange(finished1, finished2, scheduledToday, scheduledTomorrow, scheduledNextWeek);
+        context.SaveChanges();
+        
+        // Games for T1 vs G2 (Bo5, T1 won 3-2)
+        context.Games.AddRange(
+            new Game(matchId: finished1.Id, gameNumber: 1, winningTeam: 1,
+                vodUrl: "https://example.com/vod/worlds-final-g1"),
+            new Game(matchId: finished1.Id, gameNumber: 2, winningTeam: 2,
+                vodUrl: "https://example.com/vod/worlds-final-g2"),
+            new Game(matchId: finished1.Id, gameNumber: 3, winningTeam: 1,
+                vodUrl: "https://example.com/vod/worlds-final-g3"),
+            new Game(matchId: finished1.Id, gameNumber: 4, winningTeam: 2,
+                vodUrl: "https://example.com/vod/worlds-final-g4"),
+            new Game(matchId: finished1.Id, gameNumber: 5, winningTeam: 1,
+                vodUrl: "https://example.com/vod/worlds-final-g5")
+        );
+
+        // Games for GEN vs FNC (Bo3, GEN won 2-1)
+        context.Games.AddRange(
+            new Game(matchId: finished2.Id, gameNumber: 1, winningTeam: 1,
+                vodUrl: "https://example.com/vod/worlds-semi1-g1"),
+            new Game(matchId: finished2.Id, gameNumber: 2, winningTeam: 2,
+                vodUrl: "https://example.com/vod/worlds-semi1-g2"),
+            new Game(matchId: finished2.Id, gameNumber: 3, winningTeam: 1,
+                vodUrl: "https://example.com/vod/worlds-semi1-g3")
+        );
+
         context.SaveChanges();
     }
 }

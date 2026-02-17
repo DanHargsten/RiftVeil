@@ -3,6 +3,7 @@ using RiftVeil.Domain.Entities;
 using RiftVeil.Application.Dtos.Matches;
 using RiftVeil.Application.Dtos.Leagues;
 using RiftVeil.Application.Dtos.Tournaments;
+using RiftVeil.Application.Dtos.Games;
 
 namespace RiftVeil.Application.Mappings;
 
@@ -61,7 +62,11 @@ public static class TournamentProjections
                 m.BestOf,
                 m.Status,
                 m.Team1Score,
-                m.Team2Score
+                m.Team2Score,
+                m.Games
+                    .OrderBy(g => g.GameNumber)
+                    .Select(g => new GameDto(g.Id, g.GameNumber, g.WinningTeam, g.VodUrl))
+                    .ToList()
             ))]
         );
     }

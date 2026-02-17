@@ -1,3 +1,4 @@
+using RiftVeil.Application.Dtos.Games;
 using RiftVeil.Domain.Enums;
 
 namespace RiftVeil.Application.Dtos.Matches;
@@ -20,5 +21,6 @@ public record MatchListItemDto(
     int BestOf,
     MatchStatus Status,
     int? Team1Score,
-    int? Team2Score
+    int? Team2Score,
+    List<GameDto> Games
 );

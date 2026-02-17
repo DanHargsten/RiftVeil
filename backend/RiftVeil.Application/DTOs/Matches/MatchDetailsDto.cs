@@ -1,4 +1,5 @@
 using RiftVeil.Application.Dtos.Tournaments;
+using RiftVeil.Application.Dtos.Games;
 using RiftVeil.Domain.Enums;
 
 namespace RiftVeil.Application.Dtos.Matches;
@@ -23,5 +24,6 @@ public record MatchDetailsDto(
 
     string? VodUrl,
 
-    TournamentListItemDto Tournament
+    TournamentListItemDto Tournament,
+    List<GameDto> Games
 );

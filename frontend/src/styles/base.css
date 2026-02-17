@@ -20,6 +20,10 @@
     padding: 0;
 }
 
+html, body {
+    height: 100%;
+}
+
 html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -31,6 +35,7 @@ body {
     color: var(--clr-font);
     line-height: 1.5;
     height: 100dvh;
+    /*background-color: var(--clr-card-bg);*/
     background-color: var(--clr-bg);
 }
 
@@ -50,4 +55,8 @@ button {
     border: none;
     cursor: pointer;
     background: none;
+}
+
+table {
+    border-spacing: 0;
 }

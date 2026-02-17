@@ -5,7 +5,10 @@
 
 @import "./components/match-card.css";
 @import "./components/match-list.css";
+@import "./components/table.css";
 
 @import "./layout/app.css";
 @import "./layout/page-layout.css";
 @import "./layout/container.css";
+
+@import "./pages/league.css";

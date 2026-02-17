@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using RiftVeil.Domain.Entities;
 using RiftVeil.Application.Dtos.Matches;
 using RiftVeil.Application.Dtos.Tournaments;
+using RiftVeil.Application.Dtos.Games;
 
 namespace RiftVeil.Application.Mappings;
 
@@ -27,7 +28,11 @@ public static class MatchProjections
             match.BestOf,
             match.Status,
             match.Team1Score,
-            match.Team2Score
+            match.Team2Score,
+            match.Games
+                .OrderBy(g => g.GameNumber)
+                .Select(g => new GameDto(g. Id, g.GameNumber, g.WinningTeam, g.VodUrl))
+                .ToList()
         );
     }
 
@@ -61,7 +66,11 @@ public static class MatchProjections
                 match.Tournament.StartsAtUtc,
                 match.Tournament.EndsAtUtc,
                 match.Tournament.Status
-            )
+            ),
+            match.Games
+                .OrderBy(g => g.GameNumber)
+                .Select(g => new GameDto(g.Id, g.GameNumber, g.WinningTeam, g.VodUrl))
+                .ToList()
         );
     }
 }

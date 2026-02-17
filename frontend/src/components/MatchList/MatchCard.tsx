@@ -26,6 +26,7 @@ interface MatchCardProps {
  */
 export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps) {
     const [expanded, setExpanded] = useState(false);
+    const [revealedGames, setRevealedGames] = useState<Set<number>>(new Set());
 
     const isFinished = match.status === "Finished";
     const isLive = match.status === "Live";
@@ -68,6 +69,18 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
         } else {
             onReveal();
         }
+    };
+
+    const toggleGameSpoiler = (gameNumber: number) => {
+        setRevealedGames(prev => {
+            const next = new Set(prev);
+            if (next.has(gameNumber)) {
+                next.delete(gameNumber);
+            } else {
+                next.add(gameNumber);
+            }
+            return next;
+        });
     };
 
     // Apply status-specific styling classes
@@ -202,13 +215,46 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
                         
                         {/* Placeholder for game-by-game breakdown */}
                         <div className="match-card__games">
-                            {Array.from({ length: match.bestOf }, (_, i) => (
-                                <div className="match-card__game" key={i}>
-                                    <span className="match-card__game-number">{i + 1}</span>
-                                    <span className="match-card__game-spoiler">Show result</span>
-                                    <span className="match-card__game-vod" title="Watch VOD"><PlayIcon /></span>
-                                </div>
-                            ))}
+                            {Array.from({ length: match.bestOf }, (_, i) => {
+                                const game = match.games.find(g => g.gameNumber === i + 1);
+                                const gameWinnerName = game?.winningTeam === 1
+                                    ? match.team1ShortName
+                                    : game?.winningTeam === 2
+                                        ? match.team2ShortName
+                                        : null;
+                                const canShowGameResult = showingSpoilers || revealedGames.has(i +1);
+                                
+                                return (
+                                    <div
+                                        className="match-card__game"
+                                        key={i}
+                                        onClick={() => toggleGameSpoiler(i + 1)}
+                                    >
+                                        <span className="match-card__game-number">{i + 1}</span>
+                                        <span className="match-card__game-spoiler">
+                                            {canShowGameResult && gameWinnerName
+                                                ? `${gameWinnerName} wins`
+                                                : "Show result"}
+                                        </span>
+                                        {game?.vodUrl ? (
+                                            <a
+                                                href={game.vodUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="match-card__game-vod"
+                                                title="Watch VOD"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <PlayIcon />
+                                            </a>
+                                        ) : (
+                                            <span className="match-card__game-vod match-card__game-vod--disabled">
+                                                <PlayIcon />
+                                            </span>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                         
                     </div>

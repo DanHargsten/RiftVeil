@@ -10,15 +10,15 @@ export function Navbar() {
                 
                 <div className="navbar__links">
                     <NavLink to="/" className={({ isActive }) => isActive ? "navbar__link navbar__link--active" : "navbar__link"} end>
-                        Matches
+                        Match
                     </NavLink>
 
                     <NavLink to="/tournaments" className={({ isActive }) => isActive ? "navbar__link navbar__link--active" : "navbar__link"}>
-                        Tournaments
+                        Tourna
                     </NavLink>
 
                     <NavLink to="/leagues" className={({ isActive }) => isActive ? "navbar__link navbar__link--active" : "navbar__link"}>
-                        Leagues
+                        Leagu
                     </NavLink>
                 </div>
             </div>
