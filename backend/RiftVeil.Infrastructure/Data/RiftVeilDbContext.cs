@@ -13,6 +13,7 @@ public class RiftVeilDbContext(DbContextOptions<RiftVeilDbContext> options) : Db
     public DbSet<Match> Matches => Set<Match>();
     public DbSet<Tournament> Tournaments => Set<Tournament>();
     public DbSet<Game> Games => Set<Game>();
+    public DbSet<Team> Teams => Set<Team>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -50,12 +51,19 @@ public class RiftVeilDbContext(DbContextOptions<RiftVeilDbContext> options) : Db
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
+        modelBuilder.Entity<Team>(entity =>
+        {
+            entity.Property(team => team.Name).IsRequired().HasMaxLength(100);
+            entity.Property(team => team.ShortName).IsRequired().HasMaxLength(20);
+            entity.Property(team => team.Region).HasMaxLength(100);
+            entity.Property(team => team.LogoUrl).HasMaxLength(2048);
+            entity.Property(team => team.ExternalId).HasMaxLength(100);
+
+            entity.HasIndex(team => team.ShortName).IsUnique();
+        });
+        
         modelBuilder.Entity<Match>(entity =>
         {
-            entity.Property(match => match.Team1Name).IsRequired().HasMaxLength(100);
-            entity.Property(match => match.Team2Name).IsRequired().HasMaxLength(100);
-            entity.Property(match => match.Team1ShortName).IsRequired().HasMaxLength(20);
-            entity.Property(match => match.Team2ShortName).IsRequired().HasMaxLength(20);
             entity.Property(match => match.StartsAtUtc).IsRequired();
             entity.Property(match => match.VodUrl).HasMaxLength(2048);
             entity.Property(match => match.ExternalId).HasMaxLength(100);
@@ -63,6 +71,16 @@ public class RiftVeilDbContext(DbContextOptions<RiftVeilDbContext> options) : Db
             entity.HasIndex(match => match.StartsAtUtc);
             entity.HasIndex(match => new { match.TournamentId, match.Status });
 
+            entity.HasOne(match => match.Team1)
+                .WithMany(team => team.MatchesAsTeam1)
+                .HasForeignKey(match => match.Team1Id)
+                .OnDelete(DeleteBehavior.Restrict);
+            
+            entity.HasOne(match => match.Team2)
+                .WithMany(team => team.MatchesAsTeam2)
+                .HasForeignKey(match => match.Team2Id)
+                .OnDelete(DeleteBehavior.Restrict);
+            
             entity.HasMany(match => match.Games)
                 .WithOne(game => game.Match)
                 .HasForeignKey(game => game.MatchId)
