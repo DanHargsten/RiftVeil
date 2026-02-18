@@ -1,4 +1,4 @@
-﻿import { matchesApi, type MatchListItem } from "@/lib/api.ts";
+import { matchesApi, type MatchListItem } from "@/lib/api.ts";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
 import { MatchCard } from "./MatchCard";
@@ -94,7 +94,7 @@ export function MatchList() {
             <div className="match-list__header">
                 <h2 className="match-list__title">Matches</h2>
 
-                <label className="spoiler-toggle">
+                <label className="match-list__spoiler-toggle">
                     <input
                         type="checkbox"
                         checked={spoilers.globalEnabled}

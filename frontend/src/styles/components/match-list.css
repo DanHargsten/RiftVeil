@@ -1,4 +1,4 @@
-﻿.match-list {
+.match-list {
     /*border: 1px solid darkgreen;*/
 }
 
@@ -10,6 +10,12 @@
     /*background: #e4bc59;*/
 }
 
+.match-list__spoiler-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
 
 
 .match-list__groups {
@@ -41,6 +47,4 @@
 .match-list__group-title
 .match-list__group-empty
 .match-list__items
-
-.spoiler-toggle
 */

@@ -1,4 +1,4 @@
-﻿/* ================================================================================================
+/* ================================================================================================
    MATCH CARD - Main container
    ================================================================================================ */
 .match-card {
@@ -32,10 +32,19 @@
 }
 
 .match-card__tournament,
-.match-card__best-of {
+.match-card__tournament-league,
+.match-card__tournament-separator,
+.match-card__tournament-stage,
+.match-card__best-of,
+.match-card__status-badge {
     font-size: 0.875rem;
     font-weight: 400;
     color: var(--clr-text-muted);
+}
+
+.match-card__status-badge--live {
+    color: var(--clr-accent);
+    font-weight: 600;
 }
 
 
@@ -96,13 +105,13 @@
     flex-direction: column;
 }
 
-.match-card__team-info .team-short {
+.match-card__team-info .match-card__team-short {
     font-size: 1.1rem;
     font-weight: 600;
     line-height: 1.4;
 }
 
-.match-card__team-info .team-full {
+.match-card__team-info .match-card__team-full {
     display: none;
     white-space: nowrap;
     font-size: 0.9rem;
@@ -234,6 +243,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    flex-shrink: 0;
     width: 2.5rem;
     height: 2.5rem;
     border: 1px solid var(--clr-border);
@@ -243,6 +253,8 @@
 }
 
 .match-card__game-spoiler {
+    flex: 1;
+    text-align: center;
     font-size: 0.85rem;
     opacity: 0.75;
 }
@@ -250,6 +262,8 @@
 .match-card__game-vod {
     color: var(--clr-accent);
     transition: all 0.3s ease;
+    width: 2.5rem;
+    flex-shrink: 0;
 }
 
 .match-card__game-vod:hover {
@@ -294,4 +308,21 @@
 
 .match-card__chevron--open:hover svg {
     transform: rotate(180deg) scale(1.2);
+}
+
+/* ================================================================================================
+   SHOW MATCH DETAILS
+   ================================================================================================ */
+.match-card__details-link {
+    display: block;
+    text-align: center;
+    padding-top: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--clr-accent);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.match-card__details-link:hover {
+    color: var(--clr-accent-hover);
 }

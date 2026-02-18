@@ -4,6 +4,7 @@ import {Tournaments} from "@/routes/Tournaments.tsx";
 import {Navbar} from "@/components/Navbar.tsx";
 import {Leagues} from "@/routes/Leagues.tsx";
 import {Matches} from "@/routes/Matches.tsx";
+import {MatchDetail} from "@/routes/MatchDetail.tsx";
 
 const queryClient = new QueryClient();
 
@@ -18,6 +19,7 @@ function App() {
                     <div className="container">                                                    
                         <Routes>
                             <Route path="/" element={<Matches />} />
+                            <Route path="/matches/:id" element={<MatchDetail />} />
                             <Route path="/tournaments" element={<Tournaments />} />
                             <Route path="/leagues" element={<Leagues />} />
                         </Routes>                            

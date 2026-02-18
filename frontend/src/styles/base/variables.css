@@ -1,6 +1,9 @@
 :root {
+    --font-standard: "Inter", system-ui, sans-serif;
+    
     --clr-background: #1C1C1C;
-    --clr-border: #272c35;
+    --clr-border: white;
+    /*--clr-border: #272c35;*/
     
     --clr-accent: #18a387;
     --clr-accent-hover: #56ecce;
@@ -10,4 +13,8 @@
     --clr-card-bg: #1b1e25;
     --clr-card-header: #15181e;
     --clr-card-game: #15181e;
+
+    --clr-font: #E0E0E0;
+
+    --clr-bg: #222222;
 }

@@ -1,6 +1,7 @@
 @import "./base/variables.css";
+@import "./base/reset.css";
+@import "./base/typography.css";
 
-@import "./base.css";
 @import "./layout.css";
 
 @import "./components/match-card.css";
@@ -12,3 +13,4 @@
 @import "./layout/container.css";
 
 @import "./pages/league.css";
+@import "./pages/match-detail.css";

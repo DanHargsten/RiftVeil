@@ -1,6 +1,7 @@
-﻿import { type MatchListItem } from "@/lib/api.ts";
+import { type MatchListItem } from "@/lib/api.ts";
 import React, { useState } from "react";
 import {ArrowDropdownIcon, PlayIcon, VisibilityOffIcon} from "@/components/common/Icons.tsx";
+import {Link} from "react-router-dom";
 
 type SpoilerPrefs = {
     globalEnabled: boolean;
@@ -98,17 +99,17 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
             {/* Header: Tournament + Status */}
             <div className="match-card__header">
                 <div className="match-card__tournament">
-                    <span className="tournament-league">{match.leagueShortName}</span>
+                    <span className="match-card__tournament-league">{match.leagueShortName}</span>
                     {match.tournamentStage && (
                         <>
-                            <span className="tournament-separator">/</span>
-                            <span className="tournament-stage">{match.tournamentStage}</span>
+                            <span className="match-card__tournament-separator">/</span>
+                            <span className="match-card__tournament-stage">{match.tournamentStage}</span>
                         </>
                     )}
                 </div>
                 <div className="match-card__status">
                     {isLive ? (
-                        <span className="status-badge status-badge--live">LIVE</span>
+                        <span className="match-card__status-badge match-card__status-badge--live">LIVE</span>
                     ) : (
                         <span className="match-card__best-of">Bo{match.bestOf}</span>
                     )}
@@ -136,8 +137,8 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
                             />
                         </div>
                         <div className="match-card__team-info">
-                            <span className="team-short">{match.team1ShortName}</span>
-                            <span className="team-full">{match.team1Name}</span>
+                            <span className="match-card__team-short">{match.team1ShortName}</span>
+                            <span className="match-card__team-full">{match.team1Name}</span>
                         </div>
                     </div>
 
@@ -190,8 +191,8 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
                             />
                         </div>
                         <div className="match-card__team-info">
-                            <span className="team-short">{match.team2ShortName}</span>
-                            <span className="team-full">{match.team2Name}</span>
+                            <span className="match-card__team-short">{match.team2ShortName}</span>
+                            <span className="match-card__team-full">{match.team2Name}</span>
                         </div>
                     </div>
                 </div>            
@@ -255,6 +256,13 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
                                     </div>
                                 );
                             })}
+                            
+                            <Link
+                                to={`/matches/${match.id}`}
+                                className="match-card__details-link"
+                            >
+                                View full details                                
+                            </Link>
                         </div>
                         
                     </div>
