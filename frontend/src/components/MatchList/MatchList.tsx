@@ -16,6 +16,7 @@ type GroupedMatches = {
     matches: MatchListItem[];
 };
 
+/** Lists matches grouped by date with global spoiler toggle. */
 export function MatchList() {
     const [spoilers, setSpoilers] = useState<SpoilerPrefs>({
         globalEnabled: false,
@@ -137,16 +138,16 @@ export function MatchList() {
     );
 }
 
+/** Groups matches by date and sorts within each day. */
 function groupMatchesByDate(matches: MatchListItem[]): GroupedMatches[] {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const grouped = new Map<string, MatchListItem[]>();
 
-    // Group matches by date
     matches.forEach((match) => {
         const matchDate = new Date(match.startsAtUtc);
-        const dateKey = matchDate.toISOString().split("T")[0]; // YYYY-MM-DD
+        const dateKey = matchDate.toISOString().split("T")[0];
 
         if (!grouped.has(dateKey)) {
             grouped.set(dateKey, []);
@@ -154,14 +155,12 @@ function groupMatchesByDate(matches: MatchListItem[]): GroupedMatches[] {
         grouped.get(dateKey)!.push(match);
     });
 
-    // Convert to array and sort by date
     const sortedDates = Array.from(grouped.keys()).sort();
 
     return sortedDates.map((dateKey) => {
         const matchDate = new Date(dateKey);
         const matchesForDay = grouped.get(dateKey)!;
 
-        // Sort matches within the day by start time
         matchesForDay.sort(
             (a, b) =>
                 new Date(a.startsAtUtc).getTime() - new Date(b.startsAtUtc).getTime()
@@ -180,6 +179,7 @@ function groupMatchesByDate(matches: MatchListItem[]): GroupedMatches[] {
     });
 }
 
+/** Returns "Today", "Yesterday", "Tomorrow", or formatted date. */
 function formatDateLabel(date: Date, today: Date): string {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
@@ -194,14 +194,12 @@ function formatDateLabel(date: Date, today: Date): string {
     } else if (date.getTime() === tomorrow.getTime()) {
         return "Tomorrow";
     } else if (date < today) {
-        // Past dates: "Monday Feb 16"
         return date.toLocaleDateString("en-US", {
             weekday: "long",
             month: "short",
             day: "numeric",
         });
     } else {
-        // Future dates: "Monday Feb 16"
         return date.toLocaleDateString("en-US", {
             weekday: "long",
             month: "short",

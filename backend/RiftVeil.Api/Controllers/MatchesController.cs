@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using RiftVeil.Application.Dtos.Matches;
 using RiftVeil.Application.Interfaces.Read;
 using RiftVeil.Domain.Enums;
@@ -32,7 +32,7 @@ public class MatchesController : ControllerBase
     /// <summary>
     /// Get upcoming matches.
     /// </summary>
-    /// <param name"days">Number of days to look ahead (default 7)</param>
+    /// <param name="days">Number of days to look ahead (default 7).</param>
     [HttpGet("upcoming")]
     [ProducesResponseType(typeof(List<MatchListItemDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<MatchListItemDto>>> GetUpcoming(

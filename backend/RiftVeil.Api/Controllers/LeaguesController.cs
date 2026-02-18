@@ -1,4 +1,3 @@
-﻿// RiftVeil.Api/Controllers/LeaguesController.cs
 using Microsoft.AspNetCore.Mvc;
 using RiftVeil.Application.Dtos.Leagues;
 using RiftVeil.Application.Interfaces.Read;

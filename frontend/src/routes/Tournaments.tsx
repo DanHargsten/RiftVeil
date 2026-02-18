@@ -1,6 +1,7 @@
-﻿import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { tournamentsApi } from "@/lib/api";
 
+/** Tournaments page: lists all tournaments. */
 export function Tournaments() {
     const { data: tournaments, isLoading, error } = useQuery({
         queryKey: ["tournaments"],

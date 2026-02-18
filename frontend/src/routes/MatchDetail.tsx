@@ -4,6 +4,7 @@ import {matchesApi} from "@/lib/api.ts";
 import { useState } from "react";
 import {TeamLogo} from "@/components/common/TeamLogo.tsx";
 
+/** Match detail page: full match info with game-by-game breakdown. */
 export function MatchDetail() {
     const { id } = useParams<{ id: string }>();
     const [selectedGame, setSelectedGame] = useState<number>(1);

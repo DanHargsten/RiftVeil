@@ -1,5 +1,6 @@
+/** Fetches JSON from a relative API endpoint (e.g. /api/...). */
 export async function fetchApi<T>(endpoint: string): Promise<T> {
-  const response = await fetch(endpoint); // ← Just /api/...
+  const response = await fetch(endpoint);
 
   if (!response.ok) {
     throw new Error(`API error: ${response.status}`);
@@ -8,6 +9,7 @@ export async function fetchApi<T>(endpoint: string): Promise<T> {
   return response.json();
 }
 
+/** Single game within a match (e.g. Game 1 of a Bo3). */
 export interface GameListItem {
   id: number;
   gameNumber: number;
@@ -15,6 +17,7 @@ export interface GameListItem {
   vodUrl: string | null;
 }
 
+/** Match summary for list views. */
 export interface MatchListItem {
   id: number;
   tournamentId: number;
@@ -34,6 +37,7 @@ export interface MatchListItem {
   games: GameListItem[];
 }
 
+/** Full match details including tournament and extended metadata. */
 export interface MatchDetails extends MatchListItem {
   startedAtUtc?: string;
   finishedAtUtc?: string;
@@ -51,6 +55,7 @@ export interface MatchDetails extends MatchListItem {
   };
 }
 
+/** League summary for list views. */
 export interface LeagueListItem {
   id: number;
   name: string;
@@ -59,6 +64,7 @@ export interface LeagueListItem {
   logoUrl: string | null;
 }
 
+/** Full league details including tournaments. */
 export interface LeagueDetails extends LeagueListItem {
   tournaments?: Array<{
     id: number;
@@ -70,6 +76,7 @@ export interface LeagueDetails extends LeagueListItem {
   }>;
 }
 
+/** Tournament summary for list views. */
 export interface TournamentListItem {
   id: number;
   leagueId: number;
@@ -79,6 +86,7 @@ export interface TournamentListItem {
   status: "Upcoming" | "Ongoing" | "Finished";
 }
 
+/** Full tournament details including league and matches. */
 export interface TournamentDetails extends TournamentListItem {
   liquipediaSlug: string | null;
   league: LeagueListItem;

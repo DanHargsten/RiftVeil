@@ -31,7 +31,7 @@ public static class MatchProjections
             match.Team2Score,
             match.Games
                 .OrderBy(g => g.GameNumber)
-                .Select(g => new GameDto(g. Id, g.GameNumber, g.WinningTeam, g.VodUrl))
+                .Select(g => new GameDto(g.Id, g.GameNumber, g.WinningTeam, g.VodUrl))
                 .ToList()
         );
     }

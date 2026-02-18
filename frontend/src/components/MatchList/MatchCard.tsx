@@ -17,13 +17,8 @@ interface MatchCardProps {
 
 
 /**
- * MatchCard - Displays individual match information with spoiler protection
- * 
- * Features:
- * - Three-stage expansion: compact -> score revealed -> full details
- * - Dynamic time display based on match age
- * - Mirrored team layout for visual balance
- * - Status-based color coding in header
+ * Displays individual match information with spoiler protection.
+ * Three-stage expansion: compact → score revealed → full details.
  */
 export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps) {
     const [expanded, setExpanded] = useState(false);
@@ -42,8 +37,7 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
         match.team1Score != null &&
         match.team2Score != null;
 
-    // Dynamic time display based on match age
-    // Today: "14:00", This week: "2d ago", Older: "4 nov"
+    // Dynamic time display: today = "14:00", this week = "2d ago", older = "4 nov"
     const getTimeDisplay = () => {
         if (isFinished) {
             const now = new Date();
@@ -84,7 +78,6 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
         });
     };
 
-    // Apply status-specific styling classes
     const getStatusClass = () => {
         if (match.status === "Live") return "match-card--live";
         if (match.status === "Finished") return "match-card--finished";
@@ -272,6 +265,7 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
     );
 }
 
+/** Formats ISO UTC string to local time (e.g. "14:00"). */
 function formatTime(isoUtc: string) {
     return new Date(isoUtc).toLocaleTimeString(undefined, {
         hour: "2-digit",

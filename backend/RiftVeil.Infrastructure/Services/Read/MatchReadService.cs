@@ -40,7 +40,7 @@ public class MatchReadService(RiftVeilDbContext context) : IMatchReadService
     /// <summary>
     /// Retrieves a list of upcoming matches within a specified time frame.
     /// </summary>
-    /// <param name="hoursAhead">The number of hours ahead to look for upcoming matches.</param>
+    /// <param name="days">The number of days ahead to look for upcoming matches.</param>
     /// <returns>A list of match list items.</returns>
     public async Task<List<MatchListItemDto>> GetUpcomingAsync(int days = 7)
     {

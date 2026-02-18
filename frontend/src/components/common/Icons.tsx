@@ -1,16 +1,16 @@
-﻿type IconProps = {
+type IconProps = {
     size?: number;
     className?: string;
     title?: string;
 };
 
+/** Play icon for VOD links. */
 export function PlayIcon({ size = 30, className = "", title }: IconProps) {
     return (
         <svg
             width={size}
             height={size}
             viewBox="0 0 20 20"
-            // viewBox="0 -960 960 960"
             className={className}
             aria-hidden={title ? undefined : true}
             role={title ? "img" : "presentation"}
@@ -19,11 +19,11 @@ export function PlayIcon({ size = 30, className = "", title }: IconProps) {
         >
             {title ? <title>{title}</title> : null}
             <path d="M6.3 2.841A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.269l9.344-5.89a1.5 1.5 0 0 0 0-2.538L6.3 2.84Z" />
-            {/*<path d="M320-200v-560l440 280-440 280Zm80-280Zm0 134 210-134-210-134v268Z" />*/}
         </svg>
     );
 }
 
+/** Chevron/dropdown icon for expandable sections. */
 export function ArrowDropdownIcon({ size = 20, className = "", title }: IconProps) {
     return (
         <svg
@@ -43,6 +43,7 @@ export function ArrowDropdownIcon({ size = 20, className = "", title }: IconProp
     )
 }
 
+/** Eye-off icon for hidden spoiler state. */
 export function VisibilityOffIcon({ size = 32, className = "", title }: IconProps) {
     return (
         <svg
@@ -61,6 +62,7 @@ export function VisibilityOffIcon({ size = 32, className = "", title }: IconProp
     )
 }
 
+/** Eye icon for revealed spoiler state. */
 export function VisibilityOnIcon({ size = 24, className = "", title }: IconProps) {
     return (
         <svg

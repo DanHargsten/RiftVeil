@@ -1,7 +1,10 @@
-﻿using RiftVeil.Domain.Common;
+using RiftVeil.Domain.Common;
 
 namespace RiftVeil.Domain.Entities;
 
+/// <summary>
+/// Represents a team that participates in matches.
+/// </summary>
 public class Team : BaseEntity
 {
     public string Name { get; private set; } = null!;

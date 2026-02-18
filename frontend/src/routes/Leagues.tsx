@@ -1,6 +1,7 @@
-﻿import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { leaguesApi } from "@/lib/api";
 
+/** Leagues page: lists all leagues with region. */
 export function Leagues() {
     const { data: leagues, isLoading, error } = useQuery({
         queryKey: ["leagues"],

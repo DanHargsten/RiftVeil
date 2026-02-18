@@ -17,7 +17,7 @@ public interface IMatchReadService
     /// <summary>
     /// Retrieves a list of upcoming matches.
     /// </summary>
-    /// <param name="hoursAhead">The number of hours ahead to look for upcoming matches.</param>
+    /// <param name="days">The number of days ahead to look for upcoming matches.</param>
     /// <returns>A list of match items.</returns>
     Task<List<MatchListItemDto>> GetUpcomingAsync(int days = 7);
 

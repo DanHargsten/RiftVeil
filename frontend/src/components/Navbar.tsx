@@ -1,5 +1,6 @@
-﻿import { NavLink } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
+/** Primary navigation: Match, Tournaments, Leagues. */
 export function Navbar() {
     return (
         <nav className="navbar" aria-label="Primary">
