@@ -11,7 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        // Serialize enums as stings
+        // Serialize enums as strings
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
         
         // Make JSON more readable in development
@@ -20,7 +20,7 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Add services for reading data from the database.
+// Leaguepedia API client.
 builder.Services.AddHttpClient<LeaguepediaClient>(client =>
     {
         client.DefaultRequestHeaders.UserAgent.ParseAdd(
@@ -32,6 +32,7 @@ builder.Services.AddHttpClient<LeaguepediaClient>(client =>
         AutomaticDecompression = System.Net.DecompressionMethods.All
     });
 
+// Read services for database access.
 builder.Services.AddScoped<ILeagueReadService, LeagueReadService>();
 builder.Services.AddScoped<ITournamentReadService, TournamentReadService>();
 builder.Services.AddScoped<IMatchReadService, MatchReadService>();

@@ -1,12 +1,21 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using RiftVeil.Domain.Entities;
 using RiftVeil.Domain.Enums;
 using RiftVeil.Infrastructure.Data;
 
 namespace RiftVeil.Infrastructure.Services.Import;
 
+/// <summary>
+/// Imports tournament data from Leaguepedia into the local database.
+/// </summary>
 public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContext dbContext)
 {
+    /// <summary>
+    /// Imports tournaments for the given league from Leaguepedia.
+    /// Skips tournaments that already exist (matched by Liquipedia slug).
+    /// </summary>
+    /// <param name="leagueName">League name as used in Leaguepedia.</param>
+    /// <param name="leagueId">Local league ID to associate tournaments with.</param>
     public async Task ImportLeaguepediaAsync(string leagueName, int leagueId)
     {
         var results = await client.QueryAsync(
@@ -56,6 +65,9 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         await dbContext.SaveChangesAsync();
     }
 
+    /// <summary>
+    /// Determines tournament status from start and end dates.
+    /// </summary>
     private static TournamentStatus DetermineStatus(DateTimeOffset start, DateTimeOffset? end)
     {
         var now = DateTimeOffset.UtcNow;
@@ -67,10 +79,14 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
             : TournamentStatus.Upcoming;
     }
 
+    /// <summary>
+    /// Parses Leaguepedia date string (YYYY-MM-DD) to UTC.
+    /// Uses UtcNow as fallback when date is missing (avoids invalid data).
+    /// </summary>
     private static DateTimeOffset ParseDate(string? dateStr)
     {
         return string.IsNullOrEmpty(dateStr)
-            ? DateTimeOffset.UtcNow
+            ? DateTimeOffset.UtcNow  // Fallback when Leaguepedia returns empty date
             : DateTimeOffset.Parse(dateStr + "T00:00:00Z");
     }
 }
