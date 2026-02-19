@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using RiftVeil.Infrastructure.Services.Read;
 using RiftVeil.Application.Interfaces.Read;
 using RiftVeil.Infrastructure.Data;
+using RiftVeil.Infrastructure.Services.Import;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,9 +21,21 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Add services for reading data from the database.
+builder.Services.AddHttpClient<LeaguepediaClient>(client =>
+    {
+        client.DefaultRequestHeaders.UserAgent.ParseAdd(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36");
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+    })
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+    {
+        AutomaticDecompression = System.Net.DecompressionMethods.All
+    });
+
 builder.Services.AddScoped<ILeagueReadService, LeagueReadService>();
 builder.Services.AddScoped<ITournamentReadService, TournamentReadService>();
 builder.Services.AddScoped<IMatchReadService, MatchReadService>();
+builder.Services.AddScoped<LeaguepediaImportService>();
 
 // Central data access for the API layer.
 builder.Services.AddDbContext<RiftVeilDbContext>(options =>
