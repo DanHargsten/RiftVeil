@@ -1,26 +1,22 @@
 using System.Text.Json;
-using Microsoft.Extensions.Hosting;
 
 namespace RiftVeil.Infrastructure.Services.Import;
 
 /// <summary>
-/// Client for querying Leaguepedia Cargo API endpoints and returning raw JSON rows.
-/// Uses api.php instead of CargoExport because Leaguepedia had strict bot detection
-/// that blocked the CargoExport endpoint; api.php works correctly.
+/// Client for querying Leaguepedia data via the MediaWiki API.
 /// </summary>
-public class LeaguepediaClient(HttpClient httpClient, IHostEnvironment environment)
+public class LeaguepediaClient(HttpClient httpClient)
 {
     private const string BaseUrl = "https://lol.fandom.com/api.php";
 
     /// <summary>
-    /// Queries Leaguepedia Cargo export API with URL-encoded parameters.
+    /// Executes a query and returns the result rows as JSON elements.
     /// </summary>
-    /// <param name="tables">Cargo tables to query.</param>
-    /// <param name="fields">Field projection returned by Cargo.</param>
-    /// <param name="where">Optional Cargo where clause.</param>
-    /// <param name="orderBy">Optional Cargo order by clause.</param>
-    /// <param name="limit">Maximum number of rows to return.</param>
-    /// <returns>List of raw JSON elements from Cargo response.</returns>
+    /// <param name="tables">Table(s) to query.</param>
+    /// <param name="fields">Fields to return.</param>
+    /// <param name="where">Optional WHERE clause.</param>
+    /// <param name="orderBy">Optional ORDER BY clause.</param>
+    /// <param name="limit">Maximum number of rows (default 50).</param>
     public async Task<List<JsonElement>> QueryAsync(
         string tables,
         string fields,
@@ -41,32 +37,45 @@ public class LeaguepediaClient(HttpClient httpClient, IHostEnvironment environme
             query += $"&order_by={Uri.EscapeDataString(orderBy)}";
 
         var url = BaseUrl + query;
-        if (environment.IsDevelopment())
-        {
-            Console.WriteLine($"Fetching: {url}");
-        }
+        Console.WriteLine($"Fetching: {url}");
 
-        var response = await httpClient.GetAsync(url);
-        if (environment.IsDevelopment())
+        for (var attempt = 0; attempt < 5; attempt++)
         {
+            if (attempt > 0)
+            {
+                var delay = attempt * 5000;
+                Console.WriteLine($"  Rate limited, waiting {delay / 1000}s...");
+                await Task.Delay(delay);
+            }
+
+            var response = await httpClient.GetAsync(url);
             Console.WriteLine($"Status: {response.StatusCode}");
+            response.EnsureSuccessStatusCode();
+
+            var json = await response.Content.ReadAsStringAsync();
+            if (json.Length > 0 && json[0] == '\uFEFF')
+                json = json[1..];
+
+            using var doc = JsonDocument.Parse(json);
+
+            if (doc.RootElement.TryGetProperty("error", out var error))
+            {
+                var code = error.GetProperty("code").GetString();
+                if (code == "ratelimited")
+                    continue;
+
+                Console.WriteLine($"  API Error: {error.GetProperty("info").GetString()}");
+                return [];
+            }
+
+            return doc.RootElement
+                .GetProperty("cargoquery")
+                .EnumerateArray()
+                .Select(item => item.GetProperty("title").Clone())
+                .ToList();
         }
-        response.EnsureSuccessStatusCode();
 
-        var json = await response.Content.ReadAsStringAsync();
-
-        // Strip UTF-8 BOM if present
-        if (json.Length > 0 && json[0] == '\uFEFF')
-            json = json[1..];
-
-        using var doc = JsonDocument.Parse(json);
-
-        var results = doc.RootElement
-            .GetProperty("cargoquery")
-            .EnumerateArray()
-            .Select(item => item.GetProperty("title").Clone())
-            .ToList();
-
-        return results;
+        Console.WriteLine("  Max retries exceeded");
+        return [];
     }
 }

@@ -9,8 +9,6 @@ namespace RiftVeil.Infrastructure.Services.Read;
 
 public class TournamentReadService(RiftVeilDbContext context) : ITournamentReadService
 {
-    private readonly RiftVeilDbContext _context = context;
-
     /// <summary>
     /// Retrieves a list of tournaments based on optional filters.
     /// </summary>
@@ -21,7 +19,7 @@ public class TournamentReadService(RiftVeilDbContext context) : ITournamentReadS
         int? leagueId = null,
         TournamentStatus? status = null)
     {
-        var query = _context.Tournaments.AsQueryable();
+        var query = context.Tournaments.AsQueryable();
 
         if (leagueId.HasValue)
             query = query.Where(t => t.LeagueId == leagueId.Value);
@@ -43,9 +41,14 @@ public class TournamentReadService(RiftVeilDbContext context) : ITournamentReadS
     /// <returns>The tournament details or null if not found.</returns>
     public async Task<TournamentDetailsDto?> GetByIdAsync(int id)
     {
-        var tournament = await _context.Tournaments
+        var tournament = await context.Tournaments
             .Include(t => t.League)
             .Include(t => t.Matches)
+                .ThenInclude(m => m.Team1)
+            .Include(t => t.Matches)
+                .ThenInclude(m => m.Team2)
+            .Include(t => t.Matches)
+                .ThenInclude(m => m.Games)
             .FirstOrDefaultAsync(t => t.Id == id);
 
         return tournament?.ToDetailsDto();

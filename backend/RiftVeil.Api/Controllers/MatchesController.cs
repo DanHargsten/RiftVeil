@@ -7,14 +7,8 @@ namespace RiftVeil.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class MatchesController : ControllerBase
+public class MatchesController(IMatchReadService matchReadService) : ControllerBase
 {
-    private readonly IMatchReadService _matchReadService;
-
-    public MatchesController(IMatchReadService matchReadService)
-    {
-        _matchReadService = matchReadService;
-    }
 
     /// <summary>
     /// Get all matches with optional filters.
@@ -25,7 +19,7 @@ public class MatchesController : ControllerBase
         [FromQuery] int? tournamentId = null,
         [FromQuery] MatchStatus? status = null)
     {
-        var matches = await _matchReadService.GetAllAsync(tournamentId, status);
+        var matches = await matchReadService.GetAllAsync(tournamentId, status);
         return Ok(matches);
     }
 
@@ -38,7 +32,7 @@ public class MatchesController : ControllerBase
     public async Task<ActionResult<List<MatchListItemDto>>> GetUpcoming(
         [FromQuery] int days = 7)
     {
-        var matches = await _matchReadService.GetUpcomingAsync(days);
+        var matches = await matchReadService.GetUpcomingAsync(days);
         return Ok(matches);
     }
 
@@ -50,7 +44,7 @@ public class MatchesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<MatchDetailsDto>> GetById(int id)
     {
-        var match = await _matchReadService.GetByIdAsync(id);
+        var match = await matchReadService.GetByIdAsync(id);
         
         if (match == null)
             return NotFound();

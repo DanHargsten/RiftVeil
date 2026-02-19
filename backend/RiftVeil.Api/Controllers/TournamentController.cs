@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using RiftVeil.Application.Dtos.Tournaments;
 using RiftVeil.Application.Interfaces.Read;
 using RiftVeil.Domain.Enums;
@@ -7,14 +7,8 @@ namespace RiftVeil.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class TournamentsController : ControllerBase
+public class TournamentsController(ITournamentReadService tournamentReadService) : ControllerBase
 {
-    private readonly ITournamentReadService _tournamentReadService;
-
-    public TournamentsController(ITournamentReadService tournamentReadService)
-    {
-        _tournamentReadService = tournamentReadService;
-    }
 
     /// <summary>
     /// Get all tournaments with optional filters.
@@ -25,7 +19,7 @@ public class TournamentsController : ControllerBase
         [FromQuery] int? leagueId = null,
         [FromQuery] TournamentStatus? status = null)
     {
-        var tournaments = await _tournamentReadService.GetAllAsync(leagueId, status);
+        var tournaments = await tournamentReadService.GetAllAsync(leagueId, status);
         return Ok(tournaments);
     }
 
@@ -37,7 +31,7 @@ public class TournamentsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TournamentDetailsDto>> GetLeagueDetailsAsync(int id)
     {
-        var tournament = await _tournamentReadService.GetByIdAsync(id);
+        var tournament = await tournamentReadService.GetByIdAsync(id);
         
         if (tournament == null)
             return NotFound();

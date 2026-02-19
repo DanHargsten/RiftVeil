@@ -6,14 +6,8 @@ namespace RiftVeil.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class LeaguesController : ControllerBase
+public class LeaguesController(ILeagueReadService leagueReadService) : ControllerBase
 {
-    private readonly ILeagueReadService _leagueReadService;
-
-    public LeaguesController(ILeagueReadService leagueReadService)
-    {
-        _leagueReadService = leagueReadService;
-    }
 
     /// <summary>
     /// Get all leagues.
@@ -23,7 +17,7 @@ public class LeaguesController : ControllerBase
     [ProducesResponseType(typeof(List<LeagueListItemDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<LeagueListItemDto>>> GetAllLeaguesAsync()
     {
-        var leagues = await _leagueReadService.GetAllAsync();
+        var leagues = await leagueReadService.GetAllAsync();
         return Ok(leagues);
     }
 
@@ -37,7 +31,7 @@ public class LeaguesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<LeagueDetailsDto>> GetByIdAsync(int id)
     {
-        var league = await _leagueReadService.GetByIdAsync(id);
+        var league = await leagueReadService.GetByIdAsync(id);
         
         if (league == null)
             return NotFound();
