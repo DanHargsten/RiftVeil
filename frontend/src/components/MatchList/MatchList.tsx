@@ -16,30 +16,46 @@ type GroupedMatches = {
     matches: MatchListItem[];
 };
 
-/** Lists matches grouped by date with global spoiler toggle. */
-export function MatchList() {
+interface MatchListProps {
+    // Filter on a specific tournament. null = show latest matches (±7 days).
+    tournamentId: number | null;
+}
+
+// Lists matches grouped by date with spoiler toggle
+export function MatchList({ tournamentId }: MatchListProps) {
     const [spoilers, setSpoilers] = useState<SpoilerPrefs>({
         globalEnabled: false,
         revealedMatchIds: new Set<number>(),
     });
 
     const todayRef = useRef<HTMLDivElement>(null);
+    const hasScrolled = useRef(false);
 
     const {
-        data: matches,
+        data: allMatches,
         isLoading,
         error,
     } = useQuery({
-        queryKey: ["matches", "all"],
-        queryFn: () => matchesApi.getAll(),
+        queryKey: ["matches", tournamentId ?? "all"],
+        queryFn: () => matchesApi.getAll(tournamentId ?? undefined),
     });
 
-    // Auto-scroll to "Today" section on mount
+    // Filter client page: without tournament filter, only show ±7 days around today
+    const matches = allMatches ? filterByTimeWindow(allMatches, tournamentId) : undefined;
+
+    // Auto-scroll to "Today" only on first load
     useEffect(() => {
-        if (matches && todayRef.current) {
-            todayRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (matches && todayRef.current && !hasScrolled.current) {
+            hasScrolled.current = true;
+            setTimeout(() => {
+                todayRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }, 100);
         }
     }, [matches]);
+
+    useEffect(() => {
+        hasScrolled.current = false;
+    }, [tournamentId]);
 
     const toggleGlobal = () => {
         setSpoilers((prev) => ({
@@ -75,7 +91,7 @@ export function MatchList() {
     if (error) {
         return (
             <div className="match-list__state match-list__state--error">
-                Error loading matches: {error.message}
+                Could not load matches: {error.message}
             </div>
         );
     }
@@ -83,7 +99,9 @@ export function MatchList() {
     if (!matches || matches.length === 0) {
         return (
             <div className="match-list__state match-list__state--empty">
-                No matches found.
+                {tournamentId
+                    ? "No matches found for this tournament."
+                    : "No matches today."}
             </div>
         );
     }
@@ -93,7 +111,9 @@ export function MatchList() {
     return (
         <div className="match-list">
             <div className="match-list__header">
-                <h2 className="match-list__title">Matches</h2>
+                <h2 className="match-list__title">
+                    {tournamentId ? matches[0]?.tournamentName ?? "Matcher" : "Latest matches"}
+                </h2>
 
                 <label className="match-list__spoiler-toggle">
                     <input
@@ -101,7 +121,7 @@ export function MatchList() {
                         checked={spoilers.globalEnabled}
                         onChange={toggleGlobal}
                     />
-                    <span>Show spoilers globally</span>
+                    <span>Show spoilers</span>
                 </label>
             </div>
 
@@ -116,7 +136,7 @@ export function MatchList() {
 
                         {group.matches.length === 0 ? (
                             <div className="match-list__group-empty">
-                                No matches scheduled
+                                No matcher scheduled
                             </div>
                         ) : (
                             <div className="match-list__items">
@@ -138,7 +158,24 @@ export function MatchList() {
     );
 }
 
-/** Groups matches by date and sorts within each day. */
+// Without tournament filter: only show matches ±7 days around today.
+function filterByTimeWindow(matches: MatchListItem[], tournamentId: number | null): MatchListItem[] {
+    if (tournamentId) return matches; // Show all by tournament filter
+
+    const now = new Date();
+    const pastCutoff = new Date(now);
+    pastCutoff.setDate(pastCutoff.getDate() - 7);
+
+    const futureCutoff = new Date(now);
+    futureCutoff.setDate(futureCutoff.getDate() + 7);
+
+    return matches.filter(m => {
+        const date = new Date(m.startsAtUtc);
+        return date >= pastCutoff && date <= futureCutoff;
+    });
+}
+
+// Groups matches by date, sorted chronologically.
 function groupMatchesByDate(matches: MatchListItem[]): GroupedMatches[] {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -158,7 +195,7 @@ function groupMatchesByDate(matches: MatchListItem[]): GroupedMatches[] {
     const sortedDates = Array.from(grouped.keys()).sort();
 
     return sortedDates.map((dateKey) => {
-        const matchDate = new Date(dateKey);
+        const matchDate = new Date(dateKey + "T00:00:00");
         const matchesForDay = grouped.get(dateKey)!;
 
         matchesForDay.sort(
@@ -179,31 +216,35 @@ function groupMatchesByDate(matches: MatchListItem[]): GroupedMatches[] {
     });
 }
 
-/** Returns "Today", "Yesterday", "Tomorrow", or formatted date. */
+// Returns "Today", "Yesterday", "Tomorrow", or formatted date.
 function formatDateLabel(date: Date, today: Date): string {
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    // Normalize to midnight so the comparison always works (regardless of time of day)
+    const normalize = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime().toString();
 
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const normDate = normalize(date);
+    const normToday = normalize(today);
+    const normYesterday = normalize(new Date(today.getTime() - 86400000));
+    const normTomorrow = normalize(new Date(today.getTime() + 86400000));
 
-    if (date.getTime() === today.getTime()) {
+    if (normDate === normToday) {
         return "Today";
-    } else if (date.getTime() === yesterday.getTime()) {
+    } else if (normDate === normYesterday) {
         return "Yesterday";
-    } else if (date.getTime() === tomorrow.getTime()) {
+    } else if (normDate === normTomorrow) {
         return "Tomorrow";
-    } else if (date < today) {
-        return date.toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "short",
-            day: "numeric",
-        });
     } else {
-        return date.toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "short",
-            day: "numeric",
-        });
+        // Fetch the parts separately for full control over capitalization
+        const weekday = date.toLocaleDateString("sv-SE", { weekday: "long" });
+        const day = date.getDate();
+        let month = date.toLocaleDateString("sv-SE", { month: "short" });
+        
+        // Remove potential period after month ("feb." -> "feb"
+        month = month.replace(/\.$/, "");
+        
+        // Capitalize the first letter of both the day of the week and the month
+        const capWeekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+        const capMonth = month.charAt(0).toUpperCase() + month.slice(1);
+        
+        return `${capWeekday} ${day} ${capMonth}`;
     }
 }

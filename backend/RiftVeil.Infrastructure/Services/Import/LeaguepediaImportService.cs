@@ -184,22 +184,22 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
             if (!tournamentMatches.TryGetValue(matchId, out var match))
                 continue;
 
-            var gameNumberStr = row.GetProperty("N_GameInMatch").GetString();
+            var gameNumberStr = row.GetProperty("GameNumber").GetString();
             if (!int.TryParse(gameNumberStr, out var gameNumber) || gameNumber <= 0)
                 continue;
 
             var exists = await dbContext.Games
                 .AnyAsync(g => g.MatchId == match.Id && g.GameNumber == gameNumber);
             if (exists) continue;
-
-            var winnerStr = row.GetProperty("Winner").GetString();
-            int? winningTeam = int.TryParse(winnerStr, out var w) && w is 1 or 2 ? w : null;
-
+            
             var blueTeam = row.GetProperty("Blue").GetString();
             var redTeam = row.GetProperty("Red").GetString();
-
+            var winnerStr = row.GetProperty("Winner").GetString();
+            
             string? team1Side = null;
             string? team2Side = null;
+            int? winningTeam = null;
+            
             if (!string.IsNullOrWhiteSpace(blueTeam) && !string.IsNullOrWhiteSpace(redTeam))
             {
                 var t1 = await dbContext.Teams.FindAsync(match.Team1Id);
@@ -209,9 +209,19 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
                                       string.Equals(blueTeam, t1.ShortName, StringComparison.OrdinalIgnoreCase);
                     team1Side = isTeam1Blue ? "Blue" : "Red";
                     team2Side = isTeam1Blue ? "Red" : "Blue";
+
+                    // Winner from Leaguepedia: 1=Blue won, 2=Red won
+                    // Map to our model: 1=Team1 won, 2=Team2 won
+                    if (int.TryParse(winnerStr, out var w) && w is 1 or 2)
+                    {
+                        if (w == 1) // Blue won
+                            winningTeam = team1Side == "Blue" ? 1 : 2;
+                        else // Red won
+                            winningTeam = team1Side == "Red" ? 1 : 2;
+                    }
                 }
             }
-
+            
             var vodUrl = row.GetProperty("Vod").GetString();
 
             var game = new Game(

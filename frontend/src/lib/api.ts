@@ -80,6 +80,8 @@ export interface LeagueDetails extends LeagueListItem {
 export interface TournamentListItem {
   id: number;
   leagueId: number;
+  leagueName: string;
+  leagueShortName: string;
   name: string;
   startsAtUtc: string;
   endsAtUtc: string;
@@ -97,7 +99,12 @@ export const matchesApi = {
   getUpcoming: (days = 7) =>
     fetchApi<MatchListItem[]>(`/api/matches/upcoming?days=${days}`),
 
-  getAll: () => fetchApi<MatchListItem[]>("/api/matches"),
+  getAll: (tournamentId?: number) => {
+    const params = new URLSearchParams();
+    if (tournamentId) params.set("tournamentId", String(tournamentId));
+    const qs = params.toString();
+    return fetchApi<MatchListItem[]>(`/api/matches${qs ? `?${qs}` : ""}`);
+},
 
   getById: (id: number) => fetchApi<MatchDetails>(`/api/matches/${id}`),
 };

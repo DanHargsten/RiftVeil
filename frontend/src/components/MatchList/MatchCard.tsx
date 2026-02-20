@@ -37,6 +37,10 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
         match.team1Score != null &&
         match.team2Score != null;
 
+    const allPlayedRevealed = match.games
+        .filter(g => g.winningTeam != null)
+        .every(g => revealedGames.has(g.gameNumber));
+
     // Dynamic time display: today = "14:00", this week = "2d ago", older = "4 nov"
     const getTimeDisplay = () => {
         if (isFinished) {
@@ -206,17 +210,20 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
             {isFinished && (
                 <div className={`match-card__details ${expanded ? 'match-card__details--open' : ''}`}>
                     <div className="match-card__details-inner">
-                        
-                        {/* Placeholder for game-by-game breakdown */}
-                        <div className="match-card__games">
+                                                
+                        <div className="match-card__games">                            
                             {Array.from({ length: match.bestOf }, (_, i) => {
                                 const game = match.games.find(g => g.gameNumber === i + 1);
+                                const canShowGameResult = showingSpoilers || revealedGames.has(i +1);
+
+                                // Hide unplayed games when all played games are revealed
+                                if (!game?.winningTeam && (showingSpoilers || allPlayedRevealed)) return null;
+                                
                                 const gameWinnerName = game?.winningTeam === 1
                                     ? match.team1ShortName
                                     : game?.winningTeam === 2
                                         ? match.team2ShortName
                                         : null;
-                                const canShowGameResult = showingSpoilers || revealedGames.has(i +1);
                                 
                                 return (
                                     <div
@@ -226,8 +233,8 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
                                     >
                                         <span className="match-card__game-number">{i + 1}</span>
                                         <span className="match-card__game-spoiler">
-                                            {canShowGameResult && gameWinnerName
-                                                ? `${gameWinnerName} wins`
+                                            {canShowGameResult
+                                                ? (gameWinnerName ? `${gameWinnerName} wins` : "Not played")                                                
                                                 : "Show result"}
                                         </span>
                                         {game?.vodUrl ? (
