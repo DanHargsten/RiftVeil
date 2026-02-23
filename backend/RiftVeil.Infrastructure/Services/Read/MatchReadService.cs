@@ -20,12 +20,26 @@ public class MatchReadService(RiftVeilDbContext context) : IMatchReadService
     /// <returns>A list of match list items.</returns>
     public async Task<List<MatchListItemDto>> GetAllAsync(
         int? tournamentId = null,
-        MatchStatus? status = null)
+        MatchStatus? status = null,
+        DateTimeOffset? from = null,
+        DateTimeOffset? to = null)
     {
         var query = _context.Matches.AsQueryable();
 
         if (tournamentId.HasValue)
+        {
+            // Tournament filter: return all matches for that tournament
             query = query.Where(m => m.Tournament.Id == tournamentId.Value);
+        }
+        else
+        {
+            // Date range filter
+            if (from.HasValue)
+                query = query.Where(m => m.StartsAtUtc >= from.Value);
+            
+            if (to.HasValue)
+                query = query.Where(m => m.StartedAtUtc <= to.Value);
+        }
 
         if (status.HasValue)
             query = query.Where(m => m.Status == status.Value);

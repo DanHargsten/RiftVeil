@@ -10,8 +10,15 @@ public interface IMatchReadService
     /// </summary>
     /// <param name="tournamentId">The ID of the tournament to filter matches by.</param>
     /// <param name="status">The status of the matches to filter by.</param>
+    /// <param name="from">Start of the date/time range.</param>
+    /// <param name="to">End of the date/time range.</param>
     /// <returns>A list of match items.</returns>
-    Task<List<MatchListItemDto>> GetAllAsync(int? tournamentId = null, MatchStatus? status = null);
+    Task<List<MatchListItemDto>> GetAllAsync(
+        int? tournamentId = null,
+        MatchStatus? status = null,
+        DateTimeOffset? from = null,
+        DateTimeOffset? to = null
+    );
 
 
     /// <summary>

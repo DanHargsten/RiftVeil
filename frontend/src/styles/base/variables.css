@@ -1,20 +1,19 @@
 :root {
     --font-standard: "Inter", system-ui, sans-serif;
     
-    --clr-background: #1C1C1C;
-    --clr-border: white;
-    /*--clr-border: #272c35;*/
-    
-    --clr-accent: #18a387;
-    --clr-accent-hover: #56ecce;
-    
-    --clr-text-muted: #88929c;
-    
-    --clr-card-bg: #1b1e25;
-    --clr-card-header: #15181e;
-    --clr-card-game: #15181e;
-
-    --clr-font: #E0E0E0;
-
-    --clr-bg: #222222;
+    --bg: #131213;
+    --surface-1: #191819;
+    --surface-2: #242223;
+    --border: #3D393C;
+    --border-strong: #4B464A;
+    --text: #EFEEEF;
+    --text-muted: #B9B2B7;
+    --text-muted-extra: #80797F;
+    --primary: oklch(0.5855 0.2247 18.29);
+    --primary-hover: oklch(0.6257 0.2251 18.12);
+    --primary-soft: oklch(0.2881 0.1077 18.18);
+    --primary-interactive: oklch(0.3318 0.1212 18.49);
+    --primary-border: oklch(45% 0.1381 18.29);
+    --primary-text: oklch(78.4% 0.1874 18.29);
 }
+

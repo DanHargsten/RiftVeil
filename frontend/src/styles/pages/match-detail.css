@@ -11,7 +11,7 @@
     flex-direction: column;
     border-radius: 0.5rem;
     padding-top: 0.5rem;
-    border: 1px solid var(--clr-border);
+    border: 1px solid var(--border);
     background-color: var(--clr-card-header);
 }
 
@@ -88,7 +88,7 @@
 .match-detail__score {
     font-size: 1.25rem;
     min-width: 1.5ch;
-    color: var(--clr-text-muted);
+    color: var(--text-muted);
 }
 
 .match-detail__winner {
@@ -102,9 +102,9 @@
     align-items: center;
     justify-content: center;
     font-size: 0.8rem;
-    color: var(--clr-text-muted);
+    color: var(--text-muted);
     gap: 2rem;
-    border-top: 1px solid var(--clr-border);
+    border-top: 1px solid var(--border);
 }
 
 .match-detail__game-tabs {
@@ -170,7 +170,7 @@
 }
 
 .match-detail__section {
-    border: 1px solid var(--clr-border);
+    border: 1px solid var(--border);
     border-radius: 0.5rem;
     overflow: hidden;
     flex: 1;
@@ -189,7 +189,7 @@
 .match-detail__section-header {
     font-size: 1rem;
     padding: 0.5rem;
-    border-bottom: 1px solid var(--clr-border);
+    border-bottom: 1px solid var(--border);
     background-color: var(--clr-card-header);
 }
 

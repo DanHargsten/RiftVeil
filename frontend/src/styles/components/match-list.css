@@ -1,13 +1,13 @@
 .match-list {
-    /*border: 1px solid darkgreen;*/
 }
 
 .match-list__header {
-    /*background: #e4bc59;*/
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .match-list__title {
-    /*background: #e4bc59;*/
 }
 
 .match-list__spoiler-toggle {
@@ -17,34 +17,38 @@
     cursor: pointer;
 }
 
+.match-list__load-more {
+    display: block;
+    width: 100%;
+    padding: 0.6rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.match-list__load-more:hover {
+    background: var(--surface-2);
+    border-color: var(--primary);
+    color: var(--clr-font);
+}
+
+.match-list__load-more:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
 
 .match-list__groups {
     display: flex;
     flex-direction: column;
     gap: 2rem;
-    
-    /*border: 1px solid yellowgreen;*/
 }
 
 .match-list__group {
     display: flex;
-    flex-direction: column;    
-    
-    /*border: 1px solid yellow;*/
+    flex-direction: column;
 }
-
-
-/*
-.match-list
-.match-list__state
-.match-list__state--loading
-.match-list__state--error
-.match-list__state--empty
-
-
-.match-list__group--today
-.match-list__group--past
-.match-list__group-title
-.match-list__group-empty
-.match-list__items
-*/

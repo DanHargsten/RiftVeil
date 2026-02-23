@@ -4,12 +4,11 @@
 .match-card {
     display: flex;
     flex-direction: column;
-    /*justify-content: center;*/
     margin-block: 1rem;
     border-radius: 0.5rem;
-    border: 1px solid var(--clr-border);
+    border: 1px solid var(--border);
     overflow: hidden;
-    background: var(--clr-card-bg);    
+    background: var(--surface-1);
 }
 
 
@@ -21,8 +20,15 @@
     justify-content: space-between;
     align-items: center;    
     padding: 0.5rem 0.75rem;
-    background: var(--clr-card-header);    
-    border-bottom: 1px solid var(--clr-border);
+    background: var(--surface-2);    
+    border-bottom: 1px solid var(--border);
+}
+
+.match-card__league-logo {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    flex-shrink: 0;
 }
 
 .match-card__tournament {
@@ -39,11 +45,11 @@
 .match-card__status-badge {
     font-size: 0.875rem;
     font-weight: 400;
-    color: var(--clr-text-muted);
+    color: var(--text-muted);
 }
 
 .match-card__status-badge--live {
-    color: var(--clr-accent);
+    color: var(--primary);
     font-weight: 600;
 }
 
@@ -116,6 +122,7 @@
     white-space: nowrap;
     font-size: 0.9rem;
     line-height: 1.2;
+    color: var(--text-muted-extra);
     
     @media (width > 768px) {
         display: block;
@@ -128,7 +135,7 @@
     min-height: 2.5rem;
     font-weight: bold;
     text-align: center;
-    color: var(--clr-text-muted);
+    color: var(--text-muted);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -147,7 +154,7 @@
     width: 1px;
     height: 100%;
     margin: 0 auto;
-    background: var(--clr-text-muted);
+    background: var(--text-muted);
     transform: rotate(20deg);
 }
 
@@ -158,11 +165,11 @@
 .match-card__score-number {
     font-size: 1.25rem;
     min-width: 1.5ch; /* Reserve space for single digit */
-    color: var(--clr-text-muted);
+    color: var(--text-muted);
 }
     
 .match-card__score-number--winner {
-    color: var(--clr-accent);
+    color: var(--primary);
     font-weight: 600;
 }
 
@@ -177,7 +184,7 @@
     background: none;
     cursor: pointer;
     border: none;
-    color: var(--clr-text-muted);
+    color: var(--text-muted);
     font-size: 1.75rem;
     font-weight: bold;
     transition: color 0.3s ease;
@@ -185,11 +192,11 @@
 
 .match-card__spoiler-toggle:hover,
 .match-card__spoiler-toggle:focus-visible {
-    color: var(--clr-accent);
+    color: var(--primary);
 }
 
 .match-card__spoiler-toggle--revealed {
-    color: var(--clr-accent);
+    color: var(--primary);
 }
 
 
@@ -216,7 +223,7 @@
     flex-direction: column;
     gap: 0.5rem;
     padding: 0 1rem 1.4rem 1rem;
-    background: var(--clr-card-bg);
+    background: var(--surface-1);
 }
 
 .match-card__game {
@@ -225,9 +232,9 @@
     justify-content: space-between;
     padding-inline: 0.65rem;
     height: 58px;
-    border: 1px solid var(--clr-border);
+    border: 1px solid var(--border);
     border-radius: 0.5rem;
-    background: var(--clr-card-game);    
+    background: var(--surface-2);    
     cursor: pointer;
     transition:
         background 0.3s ease,
@@ -236,7 +243,7 @@
 
 .match-card__game:hover {
     background: rgba(255, 255, 255, 0.02);
-    border-color: var(--clr-accent);
+    border-color: var(--primary);
 }
 
 .match-card__game-number {
@@ -246,10 +253,10 @@
     flex-shrink: 0;
     width: 2.5rem;
     height: 2.5rem;
-    border: 1px solid var(--clr-border);
+    border: 1px solid var(--border);
     border-radius: 0.5rem;
     opacity: 0.8;
-    background: var(--clr-card-header);
+    background: var(--surface-2);
 }
 
 .match-card__game-spoiler {
@@ -260,14 +267,14 @@
 }
 
 .match-card__game-vod {
-    color: var(--clr-accent);
-    transition: all 0.3s ease;
+    color: var(--primary);
     width: 2.5rem;
     flex-shrink: 0;
+    transition: all 0.3s ease;
 }
 
 .match-card__game-vod:hover {
-    color: var(--clr-accent-hover);
+    color: var(--primary-hover);
     scale: 1.15;
 }
 
@@ -277,7 +284,7 @@
 }
 
 .match-card__game-vod--disabled:hover {
-    color: var(--clr-accent);
+    color: var(--primary);
     scale: 1;
 }
 
@@ -289,8 +296,9 @@
     justify-content: center;
     align-items: center;
     padding-block: 0.15rem;
-    color: var(--clr-text-muted);
-    border-top: 1px solid var(--clr-border);
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+    background: var(--surface-1);
 }
 
 .match-card__chevron svg {
@@ -298,7 +306,7 @@
 }
 
 .match-card__chevron:hover svg {
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--primary-hover);
     transform: scale(1.2);
 }
 
@@ -318,11 +326,11 @@
     text-align: center;
     padding-top: 0.5rem;
     font-size: 0.85rem;
-    color: var(--clr-accent);
+    color: var(--primary);
     text-decoration: none;
     transition: color 0.3s ease;
 }
 
 .match-card__details-link:hover {
-    color: var(--clr-accent-hover);
+    color: var(--primary-hover);
 }

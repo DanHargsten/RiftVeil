@@ -3,7 +3,7 @@
 }
 
 .navbar {
-    border-bottom: 1px solid var(--clr-border);
+    border-bottom: 1px solid var(--border);
     min-height: 3rem;
 }
 
@@ -39,7 +39,7 @@
         width: 1px;
         transform: translate(-50%, -50%);
         opacity: 0.45;
-        background: var(--clr-border);
+        background: var(--border);
     }
 }
 

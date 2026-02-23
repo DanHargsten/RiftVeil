@@ -12,14 +12,18 @@ public class MatchesController(IMatchReadService matchReadService) : ControllerB
 
     /// <summary>
     /// Get all matches with optional filters.
+    /// When tournamentId is provided, all matches for that tournament are returned (from/to ignored).
+    /// When no tournamentId, use from/to to filter by date range.
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(List<MatchListItemDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<MatchListItemDto>>> GetAll(
         [FromQuery] int? tournamentId = null,
-        [FromQuery] MatchStatus? status = null)
+        [FromQuery] MatchStatus? status = null,
+        [FromQuery] DateTimeOffset? from = null,
+        [FromQuery] DateTimeOffset? to = null)
     {
-        var matches = await matchReadService.GetAllAsync(tournamentId, status);
+        var matches = await matchReadService.GetAllAsync(tournamentId, status, from, to);
         return Ok(matches);
     }
 

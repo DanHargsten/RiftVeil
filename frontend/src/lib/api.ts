@@ -95,15 +95,24 @@ export interface TournamentDetails extends TournamentListItem {
   matches: MatchListItem[];
 }
 
+/* Parameters for fetching matches with date range. */
+export interface MatchQueryParams {
+  tournamentId?: number;
+  from?: string;
+  to?: string;
+}
+
 export const matchesApi = {
   getUpcoming: (days = 7) =>
     fetchApi<MatchListItem[]>(`/api/matches/upcoming?days=${days}`),
 
-  getAll: (tournamentId?: number) => {
-    const params = new URLSearchParams();
-    if (tournamentId) params.set("tournamentId", String(tournamentId));
-    const qs = params.toString();
-    return fetchApi<MatchListItem[]>(`/api/matches${qs ? `?${qs}` : ""}`);
+  getAll: (params?: MatchQueryParams) => {
+    const qs = new URLSearchParams();
+    if (params?.tournamentId) qs.set("tournamentId", String(params.tournamentId));
+    if (params?.from) qs.set("from", params.from);
+    if (params?.to) qs.set("to", params.to);
+    const query = qs.toString();
+    return fetchApi<MatchListItem[]>(`/api/matches${query ? `?${query}` : ""}`);
 },
 
   getById: (id: number) => fetchApi<MatchDetails>(`/api/matches/${id}`),

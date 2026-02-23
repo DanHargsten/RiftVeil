@@ -37,6 +37,7 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
         match.team1Score != null &&
         match.team2Score != null;
 
+    // Check if all played games have been individually revealed
     const allPlayedRevealed = match.games
         .filter(g => g.winningTeam != null)
         .every(g => revealedGames.has(g.gameNumber));
@@ -46,23 +47,23 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
         if (isFinished) {
             const now = new Date();
             const matchDate = new Date(match.startsAtUtc);
-            const diffMs = new Date(now.toDateString()).getTime() - new Date(matchDate.toDateString()).getTime();            
+            const diffMs = new Date(now.toDateString()).getTime() - new Date(matchDate.toDateString()).getTime();
             const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-            
+
             if (diffDays === 0) return formatTime(match.startsAtUtc);
             if (diffDays < 7) return `${diffDays}d ago`;
-            
+
             return new Date(match.startsAtUtc).toLocaleDateString(undefined, {
                 month: "short",
                 day: "numeric"
             });
         }
-        
+
         return formatTime(match.startsAtUtc);
     };
 
     const handleEyeClick = (e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent card expansion when toggling spoiler
+        e.stopPropagation();
         if (showingSpoilers) {
             onHide();
         } else {
@@ -89,13 +90,21 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
         return "match-card--upcoming";
     };
 
-    
+
     return (
         <article className={`match-card ${getStatusClass()} ${expanded ? "match-card--expanded" : ""}`}>
-            
-            {/* Header: Tournament + Status */}
+
+            {/* Header: League logo + Tournament + Status */}
             <div className="match-card__header">
                 <div className="match-card__tournament">
+                    <img
+                        src={`/logos/leagues/${match.leagueShortName.toLowerCase()}.png`}
+                        alt={match.leagueShortName}
+                        className="match-card__league-logo"
+                        onError={(e) => {
+                            e.currentTarget.src = `/logos/leagues/placeholder.png`;
+                        }}
+                    />
                     <span className="match-card__tournament-league">{match.leagueShortName}</span>
                     {match.tournamentStage && (
                         <>
@@ -115,7 +124,7 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
 
             {/* Main: Time + Teams */}
             <div className="match-card__main">
-               
+
                 <time className={`match-card__time ${isFinished ? "match-card__time--hidden" : ""}`} dateTime={match.startsAtUtc} aria-hidden={isFinished}>
                     {isFinished ? "\u00A0" : getTimeDisplay()}
                 </time>
@@ -146,14 +155,14 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
                                 <button
                                     className={`match-card__spoiler-toggle ${canShowScore ? 'match-card__spoiler-toggle--revealed' : ''}`}
                                     onClick={handleEyeClick}
-                                    aria-label="Hide result"    
+                                    aria-label="Hide result"
                                 >
                                     <span className={`match-card__score-number ${
                                         match.team1Score! > match.team2Score! ? 'match-card__score-number--winner' : ''
                                     }`}>
                                         {match.team1Score}
                                     </span>
-                                    
+
                                     {<span className="match-card__vs-separator" role="separator" />}
                                     <span className={`match-card__score-number ${
                                         match.team2Score! > match.team1Score! ? 'match-card__score-number--winner' : ''
@@ -162,20 +171,20 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
                                     </span>
                                 </button>
                             ) : (
-                                <button 
+                                <button
                                     className="match-card__spoiler-toggle"
                                     onClick={handleEyeClick}
                                     aria-label="Show result"
                                 >
                                     <VisibilityOffIcon />
                                 </button>
-                            )                            
+                            )
                         ) : (
                             <span className="match-card__vs-text">vs</span>
                         )}
                     </div>
 
-                    {/* Mirror team layouts so logos meet in center */}
+                    {/* Team 2 */}
                     <div className="match-card__team">
                         <div className="match-card__team-logo">
                             <img
@@ -192,9 +201,9 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
                             <span className="match-card__team-full">{match.team2Name}</span>
                         </div>
                     </div>
-                </div>            
+                </div>
             </div>
-            
+
             {isFinished && (
                 <button
                     className={`match-card__chevron ${expanded ? 'match-card__chevron--open' : ''}`}
@@ -205,26 +214,26 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
                 </button>
             )}
 
-            
+
             {/* Expanded details (only shown when expanded) */}
             {isFinished && (
                 <div className={`match-card__details ${expanded ? 'match-card__details--open' : ''}`}>
                     <div className="match-card__details-inner">
-                                                
-                        <div className="match-card__games">                            
+
+                        <div className="match-card__games">
                             {Array.from({ length: match.bestOf }, (_, i) => {
                                 const game = match.games.find(g => g.gameNumber === i + 1);
-                                const canShowGameResult = showingSpoilers || revealedGames.has(i +1);
+                                const canShowGameResult = showingSpoilers || revealedGames.has(i + 1);
 
                                 // Hide unplayed games when all played games are revealed
                                 if (!game?.winningTeam && (showingSpoilers || allPlayedRevealed)) return null;
-                                
+
                                 const gameWinnerName = game?.winningTeam === 1
                                     ? match.team1ShortName
                                     : game?.winningTeam === 2
                                         ? match.team2ShortName
                                         : null;
-                                
+
                                 return (
                                     <div
                                         className="match-card__game"
@@ -234,7 +243,7 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
                                         <span className="match-card__game-number">{i + 1}</span>
                                         <span className="match-card__game-spoiler">
                                             {canShowGameResult
-                                                ? (gameWinnerName ? `${gameWinnerName} wins` : "Not played")                                                
+                                                ? (gameWinnerName ? `${gameWinnerName} wins` : "Not played")
                                                 : "Show result"}
                                         </span>
                                         {game?.vodUrl ? (
@@ -256,15 +265,15 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
                                     </div>
                                 );
                             })}
-                            
+
                             <Link
                                 to={`/matches/${match.id}`}
                                 className="match-card__details-link"
                             >
-                                View full details                                
+                                View full details
                             </Link>
                         </div>
-                        
+
                     </div>
                 </div>
             )}

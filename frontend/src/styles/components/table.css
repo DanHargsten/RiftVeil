@@ -1,17 +1,17 @@
 ﻿.page-table {
     margin-block: 1rem;
     width: 100%;
-    border: 1px solid var(--clr-border);
+    border: 1px solid var(--border);
     border-radius: 1rem;
     overflow: hidden;
-    background-color: var(--clr-card-bg);
+    background-color: var(--surface-1);
 }
 
 .page-table th {
     text-align: left;
     padding: 0.75rem;
-    color: var(--clr-text-muted);
-    border-bottom: 1px solid var(--clr-border);
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
     font-weight: 400;
     font-size: 0.875rem;
     background: var(--clr-card-header);
@@ -19,7 +19,7 @@
 
 .page-table td {
     padding: 0.75rem;
-    border-bottom: 1px solid var(--clr-border);
+    border-bottom: 1px solid var(--border);
 }
 
 
