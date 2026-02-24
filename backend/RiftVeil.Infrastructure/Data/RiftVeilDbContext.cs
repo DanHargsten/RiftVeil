@@ -65,6 +65,7 @@ public class RiftVeilDbContext(DbContextOptions<RiftVeilDbContext> options) : Db
         modelBuilder.Entity<Match>(entity =>
         {
             entity.Property(match => match.StartsAtUtc).IsRequired();
+            entity.Property(match => match.Round).HasMaxLength(100);
             entity.Property(match => match.VodUrl).HasMaxLength(2048);
             entity.Property(match => match.ExternalId).HasMaxLength(100);
 

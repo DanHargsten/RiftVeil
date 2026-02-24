@@ -24,6 +24,7 @@ public class Match : BaseEntity
     public MatchStatus Status { get; private set; } = MatchStatus.Scheduled;
     public int? Team1Score { get; private set; }
     public int? Team2Score { get; private set; }
+    public string? Round { get; private set; }
     public string? VodUrl { get; private set; }
     public string? ExternalId { get; private set; }
     
@@ -40,6 +41,7 @@ public class Match : BaseEntity
         DateTimeOffset startsAtUtc,
         int bestOf,
         MatchStatus status = MatchStatus.Scheduled,
+        string? round = null,
         string? externalId = null,
         string? vodUrl = null)
     {
@@ -58,6 +60,7 @@ public class Match : BaseEntity
         StartsAtUtc = ValidationUtils.EnsureUtc(startsAtUtc);
         BestOf = bestOf;
         Status = status;
+        Round = ValidationUtils.NormalizeOptional(round);
         ExternalId = ValidationUtils.NormalizeOptional(externalId);
         VodUrl = ValidationUtils.NormalizeOptional(vodUrl);
     }

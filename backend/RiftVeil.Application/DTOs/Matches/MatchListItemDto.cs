@@ -22,5 +22,6 @@ public record MatchListItemDto(
     MatchStatus Status,
     int? Team1Score,
     int? Team2Score,
+    string? Round,
     List<GameDto> Games
 );

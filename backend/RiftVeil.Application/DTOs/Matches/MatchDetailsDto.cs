@@ -22,6 +22,7 @@ public record MatchDetailsDto(
     int? Team1Score,
     int? Team2Score,
 
+    string? Round,
     string? VodUrl,
 
     TournamentListItemDto Tournament,

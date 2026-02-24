@@ -29,6 +29,7 @@ public static class MatchProjections
             match.Status,
             match.Team1Score,
             match.Team2Score,
+            match.Round,
             match.Games
                 .OrderBy(g => g.GameNumber)
                 .Select(g => new GameDto(g.Id, g.GameNumber, g.WinningTeam, g.VodUrl))
@@ -55,6 +56,7 @@ public static class MatchProjections
             match.Status,
             match.Team1Score,
             match.Team2Score,
+            match.Round,
             match.VodUrl,
             new TournamentListItemDto(
                 match.Tournament.Id,

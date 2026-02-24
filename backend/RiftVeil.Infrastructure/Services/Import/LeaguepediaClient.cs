@@ -39,17 +39,27 @@ public class LeaguepediaClient(HttpClient httpClient)
         var url = BaseUrl + query;
         Console.WriteLine($"Fetching: {url}");
 
-        for (var attempt = 0; attempt < 5; attempt++)
+        for (var attempt = 0; attempt < 8; attempt++)
         {
             if (attempt > 0)
             {
-                var delay = attempt * 5000;
-                Console.WriteLine($"  Rate limited, waiting {delay / 1000}s...");
+                // Exponential backoff: 10s, 20s, 30s, 45s, 60s, 90s, 120s
+                var delay = attempt switch
+                {
+                    1 => 10_000,
+                    2 => 20_000,
+                    3 => 30_000,
+                    4 => 45_000,
+                    5 => 60_000,
+                    6 => 90_000,
+                    _ => 120_000
+                };
+                Console.WriteLine($"  Rate limited (attempt {attempt + 1}/8), waiting {delay / 1000}s...");
                 await Task.Delay(delay);
             }
 
             var response = await httpClient.GetAsync(url);
-            Console.WriteLine($"Status: {response.StatusCode}");
+            Console.WriteLine($"  Status: {response.StatusCode}");
             response.EnsureSuccessStatusCode();
 
             var json = await response.Content.ReadAsStringAsync();
@@ -61,18 +71,26 @@ public class LeaguepediaClient(HttpClient httpClient)
             if (doc.RootElement.TryGetProperty("error", out var error))
             {
                 var code = error.GetProperty("code").GetString();
+                var info = error.TryGetProperty("info", out var infoProp) ? infoProp.GetString() : "unknown";
+                
                 if (code == "ratelimited")
+                {
+                    Console.WriteLine($"  Rate limited by API (attempt {attempt + 1}/8)");
                     continue;
+                }
 
-                Console.WriteLine($"  API Error: {error.GetProperty("info").GetString()}");
+                Console.WriteLine($"  API Error [{code}]: {info}");
                 return [];
             }
 
-            return doc.RootElement
+            var results = doc.RootElement
                 .GetProperty("cargoquery")
                 .EnumerateArray()
                 .Select(item => item.GetProperty("title").Clone())
                 .ToList();
+            
+            Console.WriteLine($"  Got {results.Count} rows");
+            return results;
         }
 
         Console.WriteLine("  Max retries exceeded");

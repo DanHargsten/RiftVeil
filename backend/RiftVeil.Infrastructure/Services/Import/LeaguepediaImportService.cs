@@ -82,8 +82,21 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
 
         foreach (var tournament in tournaments)
         {
+            // Skip tournaments that already have matches imported
+            var existingMatchCount = await dbContext.Matches
+                .CountAsync(m => m.TournamentId == tournament.Id);
+            
+            if (existingMatchCount > 0)
+            {
+                Console.WriteLine($"Skipping {tournament.Name} — already has {existingMatchCount} matches");
+                continue;
+            }
+            
             await ImportMatchesForTournamentAsync(tournament);
-            await Task.Delay(3000);
+            
+            // Wait between tournaments to avoid rate limiting
+            Console.WriteLine($"  Waiting 10s before next tournament...");
+            await Task.Delay(10_000);
         }
     }
 
@@ -93,10 +106,10 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
 
         var results = await client.QueryAsync(
             tables: "MatchSchedule",
-            fields: "Team1,Team2,DateTime_UTC=DateTimeUTC,BestOf,Winner,Team1Score,Team2Score,OverviewPage,MatchId",
+            fields: "Team1,Team2,DateTime_UTC=DateTimeUTC,BestOf,Winner,Team1Score,Team2Score,OverviewPage,MatchId,Tab",
             where: $"OverviewPage=\"{tournament.LiquipediaSlug}\"",
             orderBy: "DateTime_UTC ASC",
-            limit: 100
+            limit: 500
         );
 
         Console.WriteLine($"  Found {results.Count} matches");
@@ -128,6 +141,9 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
             var winnerStr = row.GetProperty("Winner").GetString();
             var team1ScoreStr = row.GetProperty("Team1Score").GetString();
             var team2ScoreStr = row.GetProperty("Team2Score").GetString();
+            
+            // Round from Leaguepedia Tab field (e.g. "Quarterfinals", "Semifinals", "Grand Final")
+            var round = row.GetProperty("Tab").GetString();
 
             var isFinished = !string.IsNullOrWhiteSpace(winnerStr) && winnerStr != "0";
 
@@ -138,6 +154,7 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
                 startsAtUtc: startsAt,
                 bestOf: bestOf,
                 status: isFinished ? MatchStatus.Finished : MatchStatus.Scheduled,
+                round: round,
                 externalId: matchId
             );
 
@@ -152,6 +169,9 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         }
 
         await dbContext.SaveChangesAsync();
+        
+        // Wait before fetching games
+        await Task.Delay(5000);
         await ImportGamesForTournamentAsync(tournament);
     }
 

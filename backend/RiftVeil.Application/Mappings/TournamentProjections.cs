@@ -63,6 +63,7 @@ public static class TournamentProjections
                 m.Status,
                 m.Team1Score,
                 m.Team2Score,
+                m.Round,
                 m.Games
                     .OrderBy(g => g.GameNumber)
                     .Select(g => new GameDto(g.Id, g.GameNumber, g.WinningTeam, g.VodUrl))
