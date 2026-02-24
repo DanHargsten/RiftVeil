@@ -11,10 +11,14 @@ public static class ValidationUtils
     public static string ValidateName(string value, string paramName)
     {
         if (string.IsNullOrWhiteSpace(value))
+        {
             throw new ArgumentException("Name cannot be empty.", paramName);
+        }
 
         if (value.Length > 100)
+        {
             throw new ArgumentException("Name cannot exceed 100 characters.", paramName);
+        }
 
         return value.Trim();
     }
@@ -26,15 +30,21 @@ public static class ValidationUtils
     public static string ValidateShortName(string value, string paramName)
     {
         if (string.IsNullOrWhiteSpace(value))
+        {
             throw new ArgumentException("Short name cannot be empty.", paramName);
+        }
 
         var trimmed = value.Trim();
 
         if (trimmed.Length > 20)
+        {
             throw new ArgumentException("Short name cannot exceed 20 characters.", paramName);
+        }
 
         if (trimmed.Any(char.IsWhiteSpace))
+        {
             throw new ArgumentException("Short name cannot contain spaces", paramName);
+        }
 
         return trimmed.ToUpperInvariant();
     }

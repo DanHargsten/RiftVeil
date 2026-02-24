@@ -34,8 +34,10 @@ public class TournamentsController(ITournamentReadService tournamentReadService)
         var tournament = await tournamentReadService.GetByIdAsync(id);
         
         if (tournament == null)
+        {
             return NotFound();
-        
+        }
+
         return Ok(tournament);
     }
 }

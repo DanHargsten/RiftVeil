@@ -8,8 +8,14 @@ export function Tournaments() {
         queryFn: () => tournamentsApi.getAll()
     });
     
-    if (isLoading) return <div>Loading...</div>
-    if (error) return <div>Error loading tournaments</div>;
+    if (isLoading)
+    {
+        return <div>Loading...</div>;
+    }
+    if (error)
+    {
+        return <div>Error loading tournaments</div>;
+    }
     
     return (
         <div className="page">

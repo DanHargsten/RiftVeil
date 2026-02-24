@@ -51,8 +51,10 @@ public class MatchesController(IMatchReadService matchReadService) : ControllerB
         var match = await matchReadService.GetByIdAsync(id);
         
         if (match == null)
+        {
             return NotFound();
-        
+        }
+
         return Ok(match);
     }
 }

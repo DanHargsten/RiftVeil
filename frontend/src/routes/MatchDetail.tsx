@@ -14,8 +14,14 @@ export function MatchDetail() {
         queryFn: () => matchesApi.getById(Number(id)),
     });
     
-    if (isLoading) return <div>Loading...</div>
-    if (error || !match) return <div>Match not found</div>
+    if (isLoading)
+    {
+        return <div>Loading...</div>;
+    }
+    if (error || !match)
+    {
+        return <div>Match not found</div>;
+    }
     
     const winnerName = match.team1Score != null && match.team2Score != null
         ? match.team1Score > match.team2Score

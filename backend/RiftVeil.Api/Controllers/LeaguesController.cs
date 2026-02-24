@@ -34,8 +34,10 @@ public class LeaguesController(ILeagueReadService leagueReadService) : Controlle
         var league = await leagueReadService.GetByIdAsync(id);
         
         if (league == null)
+        {
             return NotFound();
-        
+        }
+
         return Ok(league);
     }
 }

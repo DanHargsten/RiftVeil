@@ -46,13 +46,19 @@ public class Match : BaseEntity
         string? vodUrl = null)
     {
         if (bestOf <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(bestOf), "BestOf must be a positive number.");
+        }
 
         if (bestOf is not (1 or 2 or 3 or 5))
+        {
             throw new ArgumentOutOfRangeException(nameof(bestOf), "BestOf must be 1, 2, 3, or 5.");
-        
+        }
+
         if (team1Id == team2Id)
+        {
             throw new ArgumentException("A team cannot play against itself");
+        }
 
         TournamentId = tournamentId;
         Team1Id = team1Id;
@@ -89,7 +95,9 @@ public class Match : BaseEntity
         FinishedAtUtc = ValidationUtils.EnsureUtc(finishedAtUtc);
 
         if (finishedAtUtc < startedAtUtc)
+        {
             throw new ArgumentException("FinishedAtUtc cannot be earlier than StartedAtUtc", nameof(finishedAtUtc));
+        }
 
         Team1Score = team1Score;
         Team2Score = team2Score;

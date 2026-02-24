@@ -1,4 +1,4 @@
-﻿using RiftVeil.Domain.Common;
+using RiftVeil.Domain.Common;
 
 namespace RiftVeil.Domain.Entities;
 
@@ -36,7 +36,9 @@ public class Game : BaseEntity
         string? externalId = null)
     {
         if (gameNumber <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(gameNumber), "Game number must be positive.");
+        }
 
         // Soft validation: warn about unusual game numbers but allow them
         if (gameNumber > 5)
@@ -47,7 +49,9 @@ public class Game : BaseEntity
         }
 
         if (winningTeam.HasValue && winningTeam.Value is not (1 or 2))
+        {
             throw new ArgumentOutOfRangeException(nameof(winningTeam), "Winning team must be 1 or 2.");
+        }
 
         // Validate sides if provided
         ValidateSide(team1Side, nameof(team1Side));
@@ -55,7 +59,9 @@ public class Game : BaseEntity
 
         // Ensure sides are different if both are specified
         if (team1Side != null && team2Side != null && team1Side == team2Side)
+        {
             throw new ArgumentException("Team1Side and Team2Side must be different.", nameof(team2Side));
+        }
 
         MatchId = matchId;
         GameNumber = gameNumber;
@@ -71,16 +77,24 @@ public class Game : BaseEntity
 
     private static void ValidateSide(string? side, string paramName)
     {
-        if (side == null) return;
+        if (side == null)
+        {
+            return;
+        }
 
         var normalized = side.Trim().ToUpperInvariant();
         if (normalized is not ("BLUE" or "RED"))
+        {
             throw new ArgumentException("Side must be 'Blue' or 'Red'.", paramName);
+        }
     }
 
     private static string? NormalizeSide(string? side)
     {
-        if (string.IsNullOrWhiteSpace(side)) return null;
+        if (string.IsNullOrWhiteSpace(side))
+        {
+            return null;
+        }
 
         var normalized = side.Trim().ToUpperInvariant();
         return normalized switch
@@ -101,13 +115,17 @@ public class Game : BaseEntity
         string? vodUrl = null)
     {
         if (winningTeam is not (1 or 2))
+        {
             throw new ArgumentOutOfRangeException(nameof(winningTeam), "Winning team must be 1 or 2.");
+        }
 
         StartedAtUtc = ValidationUtils.EnsureUtc(startedAtUtc);
         FinishedAtUtc = ValidationUtils.EnsureUtc(finishedAtUtc);
 
         if (finishedAtUtc < startedAtUtc)
+        {
             throw new ArgumentException("FinishedAtUtc cannot be earlier than StartedAtUtc", nameof(finishedAtUtc));
+        }
 
         Duration = finishedAtUtc - startedAtUtc;
         WinningTeam = winningTeam;

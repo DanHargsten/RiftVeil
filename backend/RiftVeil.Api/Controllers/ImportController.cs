@@ -24,11 +24,15 @@ public class ImportController(LeaguepediaImportService importService, RiftVeilDb
             .FirstOrDefaultAsync(l => l.ShortName == leagueShortName.ToUpperInvariant());
 
         if (league == null)
+        {
             return NotFound($"League '{leagueShortName}' not found.");
+        }
 
         var leaguepediaName = MapToLeaguepediaName(leagueShortName);
         if (leaguepediaName == null)
+        {
             return BadRequest($"No Leaguepedia mapping for '{leagueShortName}'.");
+        }
         
         await importService.ImportTournamentsAsync(leaguepediaName, league.Id);
         
@@ -46,7 +50,9 @@ public class ImportController(LeaguepediaImportService importService, RiftVeilDb
             .FirstOrDefaultAsync(l => l.ShortName == leagueShortName.ToUpperInvariant());
 
         if (league == null)
+        {
             return NotFound($"League '{leagueShortName}' not found.");
+        }
 
         await importService.ImportMatchesAsync(league.Id);
         return Ok("Match import complete.");

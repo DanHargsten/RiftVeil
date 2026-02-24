@@ -8,8 +8,14 @@ export function Leagues() {
         queryFn: () => leaguesApi.getAll()
     });
     
-    if (isLoading) return <div>Loading...</div>
-    if (error) return <div>Error loading leagues</div>;
+    if (isLoading)
+    {
+        return <div>Loading...</div>;
+    }
+    if (error)
+    {
+        return <div>Error loading leagues</div>;
+    }
     
     return (
         <div className="page">

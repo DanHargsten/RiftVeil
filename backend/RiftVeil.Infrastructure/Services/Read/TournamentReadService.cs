@@ -22,10 +22,14 @@ public class TournamentReadService(RiftVeilDbContext context) : ITournamentReadS
         var query = context.Tournaments.AsQueryable();
 
         if (leagueId.HasValue)
+        {
             query = query.Where(t => t.LeagueId == leagueId.Value);
+        }
 
         if (status.HasValue)
+        {
             query = query.Where(t => t.Status == status.Value);
+        }
 
         return await query
             .OrderByDescending(t => t.StartsAtUtc)

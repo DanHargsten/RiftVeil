@@ -50,8 +50,14 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
             const diffMs = new Date(now.toDateString()).getTime() - new Date(matchDate.toDateString()).getTime();
             const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-            if (diffDays === 0) return formatTime(match.startsAtUtc);
-            if (diffDays < 7) return `${diffDays}d ago`;
+            if (diffDays === 0)
+            {
+                return formatTime(match.startsAtUtc);
+            }
+            if (diffDays < 7)
+            {
+                return `${diffDays}d ago`;
+            }
 
             return new Date(match.startsAtUtc).toLocaleDateString(undefined, {
                 month: "short",
@@ -84,9 +90,18 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
     };
 
     const getStatusClass = () => {
-        if (match.status === "Live") return "match-card--live";
-        if (match.status === "Finished") return "match-card--finished";
-        if (match.status === "Cancelled") return "match-card--cancelled";
+        if (match.status === "Live")
+        {
+            return "match-card--live";
+        }
+        if (match.status === "Finished")
+        {
+            return "match-card--finished";
+        }
+        if (match.status === "Cancelled")
+        {
+            return "match-card--cancelled";
+        }
         return "match-card--upcoming";
     };
 

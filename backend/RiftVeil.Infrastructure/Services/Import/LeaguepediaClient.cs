@@ -31,10 +31,14 @@ public class LeaguepediaClient(HttpClient httpClient)
                     $"&limit={limit}";
 
         if (!string.IsNullOrEmpty(where))
+        {
             query += $"&where={Uri.EscapeDataString(where)}";
+        }
 
         if (!string.IsNullOrEmpty(orderBy))
+        {
             query += $"&order_by={Uri.EscapeDataString(orderBy)}";
+        }
 
         var url = BaseUrl + query;
         Console.WriteLine($"Fetching: {url}");
@@ -64,7 +68,9 @@ public class LeaguepediaClient(HttpClient httpClient)
 
             var json = await response.Content.ReadAsStringAsync();
             if (json.Length > 0 && json[0] == '\uFEFF')
+            {
                 json = json[1..];
+            }
 
             using var doc = JsonDocument.Parse(json);
 

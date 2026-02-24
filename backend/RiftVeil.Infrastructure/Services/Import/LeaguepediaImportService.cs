@@ -13,10 +13,6 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
 {
     private readonly Dictionary<string, string?> _shortNameCache = new();
 
-    // ──────────────────────────────────────────────
-    // Tournaments
-    // ──────────────────────────────────────────────
-
     /// <summary>
     /// Imports tournaments for the given league from Leaguepedia.
     /// </summary>
@@ -34,15 +30,22 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         {
             var name = row.GetProperty("Name").GetString();
             if (string.IsNullOrWhiteSpace(name))
+            {
                 continue;
+            }
 
             var overviewPage = row.GetProperty("OverviewPage").GetString();
             if (string.IsNullOrWhiteSpace(overviewPage))
+            {
                 continue;
+            }
 
             var exists = await dbContext.Tournaments
                 .AnyAsync(t => t.LiquipediaSlug == overviewPage);
-            if (exists) continue;
+            if (exists)
+            {
+                continue;
+            }
 
             var startDate = ParseDate(row.GetProperty("DateStart").GetString());
             var endDateStr = row.GetProperty("Date").GetString();
@@ -64,10 +67,6 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
 
         await dbContext.SaveChangesAsync();
     }
-
-    // ──────────────────────────────────────────────
-    // Matches
-    // ──────────────────────────────────────────────
 
     /// <summary>
     /// Imports matches for all tournaments in the given league.
@@ -118,20 +117,30 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         {
             var matchId = row.GetProperty("MatchId").GetString();
             if (string.IsNullOrWhiteSpace(matchId))
+            {
                 continue;
+            }
 
             var exists = await dbContext.Matches
                 .AnyAsync(m => m.ExternalId == matchId);
-            if (exists) continue;
+            if (exists)
+            {
+                continue;
+            }
 
             var team1Name = row.GetProperty("Team1").GetString();
             var team2Name = row.GetProperty("Team2").GetString();
             if (string.IsNullOrWhiteSpace(team1Name) || string.IsNullOrWhiteSpace(team2Name))
+            {
                 continue;
+            }
 
             var team1 = await GetOrCreateTeamAsync(team1Name);
             var team2 = await GetOrCreateTeamAsync(team2Name);
-            if (team1.Id == team2.Id) continue;
+            if (team1.Id == team2.Id)
+            {
+                continue;
+            }
 
             var startsAt = ParseDate(row.GetProperty("DateTimeUTC").GetString());
 
@@ -175,10 +184,6 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         await ImportGamesForTournamentAsync(tournament);
     }
 
-    // ──────────────────────────────────────────────
-    // Games
-    // ──────────────────────────────────────────────
-
     private async Task ImportGamesForTournamentAsync(Tournament tournament)
     {
         Console.WriteLine($"  Importing games for: {tournament.Name}");
@@ -199,18 +204,27 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         {
             var matchId = row.GetProperty("MatchId").GetString();
             if (string.IsNullOrWhiteSpace(matchId))
+            {
                 continue;
+            }
 
             if (!tournamentMatches.TryGetValue(matchId, out var match))
+            {
                 continue;
+            }
 
             var gameNumberStr = row.GetProperty("GameNumber").GetString();
             if (!int.TryParse(gameNumberStr, out var gameNumber) || gameNumber <= 0)
+            {
                 continue;
+            }
 
             var exists = await dbContext.Games
                 .AnyAsync(g => g.MatchId == match.Id && g.GameNumber == gameNumber);
-            if (exists) continue;
+            if (exists)
+            {
+                continue;
+            }
             
             var blueTeam = row.GetProperty("Blue").GetString();
             var redTeam = row.GetProperty("Red").GetString();
@@ -235,9 +249,13 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
                     if (int.TryParse(winnerStr, out var w) && w is 1 or 2)
                     {
                         if (w == 1) // Blue won
+                        {
                             winningTeam = team1Side == "Blue" ? 1 : 2;
+                        }
                         else // Red won
+                        {
                             winningTeam = team1Side == "Red" ? 1 : 2;
+                        }
                     }
                 }
             }
@@ -259,25 +277,34 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         await dbContext.SaveChangesAsync();
     }
 
-    // ──────────────────────────────────────────────
-    // Teams
-    // ──────────────────────────────────────────────
-
     private async Task PreloadTeamShortNamesAsync()
     {
-        var results = await client.QueryAsync(
-            tables: "Teams",
-            fields: "Name,Short",
-            where: "Region=\"Europe\"",
-            limit: 100
-        );
+        // Load teams from multiple regions to cover EMEA rosters
+        var regions = new[] { "Europe", "EMEA", "CIS", "Turkey" };
 
-        foreach (var row in results)
+        foreach (var region in regions)
         {
-            var name = row.GetProperty("Name").GetString();
-            var shortName = row.GetProperty("Short").GetString();
-            if (!string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(shortName))
-                _shortNameCache[name] = shortName.Trim().ToUpperInvariant();
+            var results = await client.QueryAsync(
+                tables: "Teams",
+                fields: "Name,Short",
+                where: $"Region=\"{region}\"",
+                limit: 100
+            );
+        
+            foreach (var row in results)
+            {
+                var name = row.GetProperty("Name").GetString();
+                var shortName = row.GetProperty("Short").GetString();
+                if (!string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(shortName))
+                {
+                    _shortNameCache[name] = shortName.Trim().ToUpperInvariant();
+                }
+            }
+            
+            if (results.Count > 0)
+            {
+                await Task.Delay(5000); // Breathe between region queries
+            }
         }
 
         Console.WriteLine($"  Preloaded {_shortNameCache.Count} team short names");
@@ -289,9 +316,12 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
 
         var team = await dbContext.Teams
             .FirstOrDefaultAsync(t => t.Name == teamName);
-        if (team != null) return team;
+        if (team != null)
+        {
+            return team;
+        }
 
-        // Check preloaded cache, then try API lookup
+        // Check preloaded cache, then try API lookup, then fall back to first 3 chars
         string shortName;
         if (_shortNameCache.TryGetValue(teamName, out var cached) && cached != null)
         {
@@ -300,13 +330,20 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         else
         {
             shortName = await LookupShortNameAsync(teamName)
-                ?? teamName.Replace(" ", "")[..Math.Min(teamName.Replace(" ", "").Length, 5)].ToUpperInvariant();
+                        ?? teamName.Replace(" ", "")[..Math.Min(teamName.Replace(" ", "").Length, 3)].ToUpperInvariant();
+            
+            if (shortName.Length <= 3)
+            {
+                Console.WriteLine($"  Warning: Using fallback short name '{shortName}' for '{teamName}' — fix manually");
+            }
         }
 
         // Handle collision
         var shortNameExists = await dbContext.Teams.AnyAsync(t => t.ShortName == shortName);
         if (shortNameExists)
+        {
             shortName = shortName[..Math.Min(shortName.Length, 17)] + dbContext.Teams.Local.Count;
+        }
 
         team = new Team(teamName, shortName);
         dbContext.Teams.Add(team);
@@ -351,21 +388,22 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         return null;
     }
 
-    // ──────────────────────────────────────────────
-    // Helpers
-    // ──────────────────────────────────────────────
-
     private static TournamentStatus DetermineStatus(DateTimeOffset start, DateTimeOffset? end)
     {
         var now = DateTimeOffset.UtcNow;
-        if (end.HasValue && end.Value < now) return TournamentStatus.Finished;
+        if (end.HasValue && end.Value < now)
+        {
+            return TournamentStatus.Finished;
+        }
         return start <= now ? TournamentStatus.Ongoing : TournamentStatus.Upcoming;
     }
 
     private static DateTimeOffset ParseDate(string? dateStr)
     {
         if (string.IsNullOrEmpty(dateStr))
+        {
             return DateTimeOffset.UtcNow;
+        }
 
         var normalized = dateStr.Contains(' ')
             ? dateStr.Replace(' ', 'T') + "Z"

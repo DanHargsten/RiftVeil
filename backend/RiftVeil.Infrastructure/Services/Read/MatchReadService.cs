@@ -35,14 +35,20 @@ public class MatchReadService(RiftVeilDbContext context) : IMatchReadService
         {
             // Date range filter
             if (from.HasValue)
+            {
                 query = query.Where(m => m.StartsAtUtc >= from.Value);
-            
+            }
+
             if (to.HasValue)
+            {
                 query = query.Where(m => m.StartedAtUtc <= to.Value);
+            }
         }
 
         if (status.HasValue)
+        {
             query = query.Where(m => m.Status == status.Value);
+        }
 
         return await query
             .OrderBy(m => m.StartsAtUtc)
