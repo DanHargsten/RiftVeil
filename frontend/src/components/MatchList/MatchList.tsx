@@ -1,6 +1,6 @@
 import { matchesApi, type MatchListItem } from "@/lib/api.ts";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { MatchCard } from "./MatchCard";
 
 type SpoilerPrefs = {
@@ -20,55 +20,31 @@ interface MatchListProps {
     tournamentId?: number | null;
 }
 
-/** How many days to load in each direction from today. */
-const INITIAL_DAYS = 7;
-/** How many days to load when clicking "Load earlier". */
-const LOAD_MORE_DAYS = 7;
-
-/** Lists matches grouped by date with date-based loading and spoiler toggle. */
+/** Lists matches grouped by date, with date-range loading and a spoiler toggle. */
 export function MatchList({ tournamentId }: MatchListProps) {
     const [spoilers, setSpoilers] = useState<SpoilerPrefs>({
         globalEnabled: false,
         revealedMatchIds: new Set<number>(),
     });
 
-    // How many days back we're currently showing
-    const [daysBefore, setDaysBefore] = useState(INITIAL_DAYS);
-
     const todayRef = useRef<HTMLDivElement>(null);
     const hasScrolled = useRef(false);
 
     // Determine if we're in tournament mode (show all) or date mode
     const isTournamentMode = tournamentId != null;
-
-    // Build query params
-    const queryParams = (() => {
-        if (isTournamentMode) {
-            return { tournamentId: tournamentId! };
-        }
-        const now = new Date();
-        const from = new Date(now);
-        from.setDate(from.getDate() - daysBefore);
-        from.setHours(0, 0, 0, 0);
-
-        const to = new Date(now);
-        to.setDate(to.getDate() + INITIAL_DAYS);
-        to.setHours(23, 59, 59, 999);
-
-        return { from: from.toISOString(), to: to.toISOString() };
-    })();
-
+    
     const {
         data: matches,
         isLoading,
         error,
-        isFetching,
     } = useQuery({
-        queryKey: ["matches", tournamentId, isTournamentMode ? null : daysBefore],
-        queryFn: () => matchesApi.getAll(queryParams),
+        queryKey: ["matches", tournamentId],
+        queryFn: () => isTournamentMode
+            ? matchesApi.getAll({ tournamentId: tournamentId! })
+            : matchesApi.getRecent(15),
     });
 
-    // Auto-scroll to "Today" on initial load (not on subsequent re-renders)
+    // Auto-scroll to "Today" on the first load (not on later re-renders)
     useEffect(() => {
         if (matches && todayRef.current && !hasScrolled.current) {
             hasScrolled.current = true;
@@ -81,13 +57,8 @@ export function MatchList({ tournamentId }: MatchListProps) {
     // Reset scroll tracking when switching tournament
     useEffect(() => {
         hasScrolled.current = false;
-        setDaysBefore(INITIAL_DAYS);
     }, [tournamentId]);
-
-    const loadEarlier = useCallback(() => {
-        setDaysBefore(prev => prev + LOAD_MORE_DAYS);
-    }, []);
-
+    
     const toggleGlobal = () => {
         setSpoilers((prev) => ({
             ...prev,
@@ -153,18 +124,7 @@ export function MatchList({ tournamentId }: MatchListProps) {
                     <span>Show spoilers</span>
                 </label>
             </div>
-
-            {/* Load earlier button (only in date mode) */}
-            {!isTournamentMode && (
-                <button
-                    className="match-list__load-more"
-                    onClick={loadEarlier}
-                    disabled={isFetching}
-                >
-                    {isFetching ? "Loading..." : "Load earlier matches"}
-                </button>
-            )}
-
+            
             <div className="match-list__groups">
                 {groupedMatches.map((group) => (
                     <div
@@ -239,7 +199,7 @@ function groupMatchesByDate(matches: MatchListItem[]): GroupedMatches[] {
     });
 }
 
-/** Returns "Today", "Yesterday", "Tomorrow", or "Måndag 17/2" style date. */
+/** Returns "Today", "Yesterday", "Tomorrow", or a date like "Måndag 17/2". */
 function formatDateLabel(date: Date, today: Date): string {
     const normalize = (d: Date) =>
         new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();

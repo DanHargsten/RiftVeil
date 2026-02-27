@@ -13,7 +13,7 @@ public class MatchesController(IMatchReadService matchReadService) : ControllerB
     /// <summary>
     /// Get all matches with optional filters.
     /// When tournamentId is provided, all matches for that tournament are returned (from/to ignored).
-    /// When no tournamentId, use from/to to filter by date range.
+    /// When no tournamentId, use from/to filter by date range.
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(List<MatchListItemDto>), StatusCodes.Status200OK)]
@@ -40,6 +40,32 @@ public class MatchesController(IMatchReadService matchReadService) : ControllerB
         return Ok(matches);
     }
 
+    /// <summary>
+    /// Get recent matches.
+    /// </summary>
+    /// <param name="count"></param>
+    /// <returns></returns>
+    [HttpGet("recent")]
+    [ProducesResponseType(typeof(List<MatchListItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<MatchListItemDto>>> GetRecent(
+        [FromQuery] int count = 10)
+    {
+        var matches = await matchReadService.GetRecentAsync(count);
+        return Ok(matches);
+    }
+
+    /// <summary>
+    /// Get live matches.
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("live")]
+    [ProducesResponseType(typeof(List<MatchListItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<MatchListItemDto>>> GetLive()
+    {
+        var matches = await matchReadService.GetLiveAsync();
+        return Ok(matches);   
+    }
+    
     /// <summary>
     /// Get a specific match by ID.
     /// </summary>

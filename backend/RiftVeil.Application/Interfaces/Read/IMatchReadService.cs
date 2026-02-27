@@ -20,14 +20,25 @@ public interface IMatchReadService
         DateTimeOffset? to = null
     );
 
-
     /// <summary>
     /// Retrieves a list of upcoming matches.
     /// </summary>
     /// <param name="days">The number of days ahead to look for upcoming matches.</param>
     /// <returns>A list of match items.</returns>
     Task<List<MatchListItemDto>> GetUpcomingAsync(int days = 7);
+    
+    /// <summary>
+    /// Retrieves a list of recent matches.
+    /// </summary>
+    /// <param name="count"></param>
+    /// <returns></returns>
+    Task<List<MatchListItemDto>> GetRecentAsync(int count = 10);
 
+    /// <summary>
+    /// Retrieves a list of live matches.
+    /// </summary>
+    /// <returns></returns>
+    Task<List<MatchListItemDto>> GetLiveAsync();
 
     /// <summary>
     /// Retrieves details of a specific match.

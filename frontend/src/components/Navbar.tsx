@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 
-/** Primary navigation: Match, Tournaments, Leagues. */
+/** Primary navigation: Home, Match, Tournaments, Leagues. */
 export function Navbar() {
     return (
         <nav className="navbar" aria-label="Primary">
@@ -10,7 +10,7 @@ export function Navbar() {
                 </NavLink>
                 
                 <div className="navbar__links">
-                    <NavLink to="/" className={({ isActive }) => isActive ? "navbar__link navbar__link--active" : "navbar__link"} end>
+                    <NavLink to="/matches" className={({ isActive }) => isActive ? "navbar__link navbar__link--active" : "navbar__link"}>
                         Matches
                     </NavLink>
 

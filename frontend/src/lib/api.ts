@@ -1,4 +1,4 @@
-/** Fetches JSON from a relative API endpoint (e.g. /api/...). */
+/** Fetches JSON from a relative API endpoint (e.g., /api/...). */
 export async function fetchApi<T>(endpoint: string): Promise<T> {
   const response = await fetch(endpoint);
 
@@ -9,7 +9,7 @@ export async function fetchApi<T>(endpoint: string): Promise<T> {
   return response.json();
 }
 
-/** Single game within a match (e.g. Game 1 of a Bo3). */
+/** Single game within a match (e.g., Game 1 of a Bo3). */
 export interface GameListItem {
   id: number;
   gameNumber: number;
@@ -34,6 +34,7 @@ export interface MatchListItem {
   status: "Scheduled" | "Live" | "Finished" | "Cancelled";
   team1Score?: number;
   team2Score?: number;
+  round?: string;
   games: GameListItem[];
 }
 
@@ -95,7 +96,7 @@ export interface TournamentDetails extends TournamentListItem {
   matches: MatchListItem[];
 }
 
-/* Parameters for fetching matches with date range. */
+/* Parameters for fetching matches with a date range. */
 export interface MatchQueryParams {
   tournamentId?: number;
   from?: string;
@@ -103,8 +104,14 @@ export interface MatchQueryParams {
 }
 
 export const matchesApi = {
-  getUpcoming: (days = 7) =>
-    fetchApi<MatchListItem[]>(`/api/matches/upcoming?days=${days}`),
+  getUpcoming: (days = 7) => 
+      fetchApi<MatchListItem[]>(`/api/matches/upcoming?days=${days}`),
+  
+  getRecent: (count = 10) =>
+      fetchApi<MatchListItem[]>(`/api/matches/recent?count=${count}`),
+  
+  getLive: () =>
+      fetchApi<MatchListItem[]>("/api/matches/live"),
 
   getAll: (params?: MatchQueryParams) => {
     const qs = new URLSearchParams();

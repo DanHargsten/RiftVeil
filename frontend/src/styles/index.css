@@ -10,8 +10,9 @@
 @import "./components/sidebar.css";
 
 @import "./layout/app.css";
-@import "./layout/page-layout.css";
 @import "./layout/container.css";
+@import "./layout/page-layout.css";
 
+@import "./pages/home.css";
 @import "./pages/league.css";
 @import "./pages/match-detail.css";
