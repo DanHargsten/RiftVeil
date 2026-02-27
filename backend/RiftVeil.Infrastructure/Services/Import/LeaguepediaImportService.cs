@@ -51,6 +51,13 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
 
         stats.Read = results.Count;
 
+        var existingSlugs = (await dbContext.Tournaments
+            .Where(t => t.LeagueId == leagueId)
+            .Select(t => t.LiquipediaSlug)
+            .Where(s => s != null)
+            .Select(s => s!)
+            .ToListAsync()).ToHashSet();
+
         foreach (var row in results)
         {
             var name = row.GetProperty("Name").GetString();
@@ -67,9 +74,7 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
                 continue;
             }
 
-            var exists = await dbContext.Tournaments
-                .AnyAsync(t => t.LiquipediaSlug == overviewPage);
-            if (exists)
+            if (existingSlugs.Contains(overviewPage))
             {
                 stats.AlreadyExisted++;
                 continue;
@@ -124,18 +129,25 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
                 continue;
             }
             
-            await ImportMatchesForTournamentAsync(tournament, matchStats, gameStats);
+            var importedCount = await ImportMatchesForTournamentAsync(tournament, matchStats, gameStats);
             
-            // Wait between tournaments to avoid rate limiting
-            Console.WriteLine($"  Waiting 10s before next tournament...");
-            await Task.Delay(10_000);
+            if (importedCount > 0)
+            {
+                // Wait between tournaments to avoid rate limiting
+                Console.WriteLine($"  Waiting 10s before next tournament...");
+                await Task.Delay(10_000);
+            }
+            else
+            {
+                Console.WriteLine($"  No new matches imported for {tournament.Name}, skipping delay.");
+            }
         }
 
         matchStats.Print("Matches");
         gameStats.Print("Games");
     }
 
-    private async Task ImportMatchesForTournamentAsync(Tournament tournament, ImportStats matchStats, ImportStats gameStats)
+    private async Task<int> ImportMatchesForTournamentAsync(Tournament tournament, ImportStats matchStats, ImportStats gameStats)
     {
         Console.WriteLine($"Importing matches for: {tournament.Name}");
 
@@ -150,6 +162,15 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         Console.WriteLine($"  Found {results.Count} matches");
         matchStats.Read += results.Count;
 
+        var existingMatchExternalIds = (await dbContext.Matches
+            .Where(m => m.TournamentId == tournament.Id)
+            .Select(m => m.ExternalId)
+            .Where(id => id != null)
+            .Select(id => id!)
+            .ToListAsync()).ToHashSet();
+
+        var startingImportedCount = matchStats.Imported;
+
         foreach (var row in results)
         {
             var matchId = row.GetProperty("MatchId").GetString();
@@ -159,9 +180,7 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
                 continue;
             }
 
-            var exists = await dbContext.Matches
-                .AnyAsync(m => m.ExternalId == matchId);
-            if (exists)
+            if (existingMatchExternalIds.Contains(matchId))
             {
                 matchStats.AlreadyExisted++;
                 continue;
@@ -221,9 +240,19 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
 
         await dbContext.SaveChangesAsync();
         
-        // Wait before fetching games
-        await Task.Delay(5000);
-        await ImportGamesForTournamentAsync(tournament, gameStats);
+        var importedInThisBatch = matchStats.Imported - startingImportedCount;
+
+        // Wait before fetching games if we actually imported something or if we have results to process
+        if (results.Count > 0)
+        {
+            if (importedInThisBatch > 0)
+            {
+                await Task.Delay(5000);
+            }
+            await ImportGamesForTournamentAsync(tournament, gameStats);
+        }
+
+        return importedInThisBatch;
     }
 
     private async Task ImportGamesForTournamentAsync(Tournament tournament, ImportStats stats)
@@ -243,6 +272,24 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         var tournamentMatches = await dbContext.Matches
             .Where(m => m.TournamentId == tournament.Id && m.ExternalId != null)
             .ToDictionaryAsync(m => m.ExternalId!);
+
+        // Batch: load all existing game keys for this tournament using string keys
+        var matchIds = tournamentMatches.Values.Select(m => m.Id).ToList();
+        var existingGameKeys = (await dbContext.Games
+            .Where(g => matchIds.Contains(g.MatchId))
+            .Select(g => new { g.MatchId, g.GameNumber })
+            .ToListAsync())
+            .Select(g => $"{g.MatchId}:{g.GameNumber}")
+            .ToHashSet();
+
+        // Batch: pre-load teams for side mapping (instead of FindAsync per game)
+        var teamIds = tournamentMatches.Values
+            .SelectMany(m => new[] { m.Team1Id, m.Team2Id })
+            .Distinct()
+            .ToList();
+        var teamsById = await dbContext.Teams
+            .Where(t => teamIds.Contains(t.Id))
+            .ToDictionaryAsync(t => t.Id);
 
         foreach (var row in results)
         {
@@ -266,9 +313,7 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
                 continue;
             }
 
-            var exists = await dbContext.Games
-                .AnyAsync(g => g.MatchId == match.Id && g.GameNumber == gameNumber);
-            if (exists)
+            if (existingGameKeys.Contains($"{match.Id}:{gameNumber}"))
             {
                 stats.AlreadyExisted++;
                 continue;
@@ -284,8 +329,7 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
             
             if (!string.IsNullOrWhiteSpace(blueTeam) && !string.IsNullOrWhiteSpace(redTeam))
             {
-                var t1 = await dbContext.Teams.FindAsync(match.Team1Id);
-                if (t1 != null)
+                if (teamsById.TryGetValue(match.Team1Id, out var t1))
                 {
                     var isTeam1Blue = string.Equals(blueTeam, t1.Name, StringComparison.OrdinalIgnoreCase) ||
                                       string.Equals(blueTeam, t1.ShortName, StringComparison.OrdinalIgnoreCase);
@@ -359,45 +403,52 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         Console.WriteLine($"  Preloaded {_shortNameCache.Count} team short names");
     }
 
+    private readonly Dictionary<string, Team> _teamCache = new();
+
     private async Task<Team> GetOrCreateTeamAsync(string teamName)
     {
         teamName = teamName.Trim();
 
+        if (_teamCache.TryGetValue(teamName, out var cachedTeam))
+        {
+            return cachedTeam;
+        }
+
         var team = await dbContext.Teams
             .FirstOrDefaultAsync(t => t.Name == teamName);
-        if (team != null)
+        
+        if (team == null)
         {
-            return team;
-        }
-
-        // Check preloaded cache, then try API lookup, then fall back to first 3 chars
-        string shortName;
-        if (_shortNameCache.TryGetValue(teamName, out var cached) && cached != null)
-        {
-            shortName = cached;
-        }
-        else
-        {
-            shortName = await LookupShortNameAsync(teamName)
-                        ?? teamName.Replace(" ", "")[..Math.Min(teamName.Replace(" ", "").Length, 3)].ToUpperInvariant();
-            
-            if (shortName.Length <= 3)
+            // Check preloaded cache, then try API lookup, then fall back to first 3 chars
+            string shortName;
+            if (_shortNameCache.TryGetValue(teamName, out var cached) && cached != null)
             {
-                Console.WriteLine($"  Warning: Using fallback short name '{shortName}' for '{teamName}' — fix manually");
+                shortName = cached;
             }
+            else
+            {
+                shortName = await LookupShortNameAsync(teamName)
+                            ?? teamName.Replace(" ", "")[..Math.Min(teamName.Replace(" ", "").Length, 3)].ToUpperInvariant();
+                
+                if (shortName.Length <= 3)
+                {
+                    Console.WriteLine($"  Warning: Using fallback short name '{shortName}' for '{teamName}' — fix manually");
+                }
+            }
+
+            // Handle collision
+            var shortNameExists = await dbContext.Teams.AnyAsync(t => t.ShortName == shortName);
+            if (shortNameExists)
+            {
+                shortName = shortName[..Math.Min(shortName.Length, 17)] + dbContext.Teams.Local.Count;
+            }
+
+            team = new Team(teamName, shortName);
+            dbContext.Teams.Add(team);
+            await dbContext.SaveChangesAsync();
         }
 
-        // Handle collision
-        var shortNameExists = await dbContext.Teams.AnyAsync(t => t.ShortName == shortName);
-        if (shortNameExists)
-        {
-            shortName = shortName[..Math.Min(shortName.Length, 17)] + dbContext.Teams.Local.Count;
-        }
-
-        team = new Team(teamName, shortName);
-        dbContext.Teams.Add(team);
-        await dbContext.SaveChangesAsync();
-
+        _teamCache[teamName] = team;
         return team;
     }
 
