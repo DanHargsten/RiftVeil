@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using RiftVeil.Domain.Entities;
 using RiftVeil.Domain.Enums;
@@ -17,9 +16,8 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
     {
         public int Read { get; set; }
         public int Imported { get; set; }
-        public int AlreadyExisted { get; set; }
+        public int Existing { get; set; }
         public int Ignored { get; set; }
-        public int Errors { get; set; }
 
         public void Print(string type)
         {
@@ -27,10 +25,13 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
             Console.WriteLine($"Done");
             Console.WriteLine($"{Read} entries read");
             Console.WriteLine($"{Imported} imported");
-            Console.WriteLine($"{AlreadyExisted + Ignored + Errors} ignored");
-            Console.WriteLine($"   {AlreadyExisted}: already existed");
-            if (Ignored > 0) Console.WriteLine($"   {Ignored}: missing required data");
-            if (Errors > 0) Console.WriteLine($"   {Errors}: errors");
+            Console.WriteLine($"{Existing} skipped");
+
+            if (Existing > 0)
+            {
+                Console.WriteLine($"   {Existing}: already existed");
+            }
+            
             Console.WriteLine("-----------------------------\n");
         }
     }
@@ -76,7 +77,7 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
 
             if (existingSlugs.Contains(overviewPage))
             {
-                stats.AlreadyExisted++;
+                stats.Existing++;
                 continue;
             }
 
@@ -120,12 +121,25 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         foreach (var tournament in tournaments)
         {
             // Skip tournaments that already have matches imported
-            var existingMatchCount = await dbContext.Matches
-                .CountAsync(m => m.TournamentId == tournament.Id);
-            
-            if (existingMatchCount > 0)
+            var existingMatches = await dbContext.Matches
+                .Where(m => m.TournamentId == tournament.Id)
+                .ToListAsync();
+
+            if (existingMatches.Count > 0)
             {
-                Console.WriteLine($"Skipping {tournament.Name} — already has {existingMatchCount} matches");
+                var existingMatchCount = existingMatches.Count;
+                var matchIds = existingMatches.Select(m => m.Id).ToList();
+                var existingGameCount = await dbContext.Games
+                    .CountAsync(g => matchIds.Contains(g.MatchId));
+
+                Console.WriteLine($"Skipping {tournament.Name} — already has {existingMatchCount} matches and {existingGameCount} games");
+
+                matchStats.Read += existingMatchCount;
+                matchStats.Existing += existingMatchCount;
+
+                gameStats.Read += existingGameCount;
+                gameStats.Existing += existingGameCount;
+
                 continue;
             }
             
@@ -182,7 +196,7 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
 
             if (existingMatchExternalIds.Contains(matchId))
             {
-                matchStats.AlreadyExisted++;
+                matchStats.Existing++;
                 continue;
             }
 
@@ -282,7 +296,7 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
             .Select(g => $"{g.MatchId}:{g.GameNumber}")
             .ToHashSet();
 
-        // Batch: pre-load teams for side mapping (instead of FindAsync per game)
+        // Batch: preload teams for side mapping (instead of FindAsync per game)
         var teamIds = tournamentMatches.Values
             .SelectMany(m => new[] { m.Team1Id, m.Team2Id })
             .Distinct()
@@ -315,7 +329,7 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
 
             if (existingGameKeys.Contains($"{match.Id}:{gameNumber}"))
             {
-                stats.AlreadyExisted++;
+                stats.Existing++;
                 continue;
             }
             
@@ -419,7 +433,7 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         
         if (team == null)
         {
-            // Check preloaded cache, then try API lookup, then fall back to first 3 chars
+            // Check the preloaded cache, then try API lookup, then fall back to the first 3 chars
             string shortName;
             if (_shortNameCache.TryGetValue(teamName, out var cached) && cached != null)
             {
