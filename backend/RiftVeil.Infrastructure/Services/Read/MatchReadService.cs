@@ -116,6 +116,7 @@ public class MatchReadService(RiftVeilDbContext context) : IMatchReadService
             .Include(m => m.Team1)
             .Include(m => m.Team2)
             .Include(m => m.Games)
+                .ThenInclude(g => g.Vods)
             .FirstOrDefaultAsync(m => m.Id == id);
 
         return match?.ToDetailsDto();

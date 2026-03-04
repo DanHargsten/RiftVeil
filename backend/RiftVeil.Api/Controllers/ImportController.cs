@@ -10,7 +10,10 @@ namespace RiftVeil.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-public class ImportController(LeaguepediaImportService importService, RiftVeilDbContext dbContext) : ControllerBase
+public class ImportController(
+    LeaguepediaImportService importService,
+    RiftVeilDbContext dbContext,
+    LolesportsVodEnricher vodEnricher) : ControllerBase
 {
     /// <summary>
     /// Imports tournaments for the given league.
@@ -65,4 +68,11 @@ public class ImportController(LeaguepediaImportService importService, RiftVeilDb
         "LCK" => "League of Legends Champions Korea",
         _ => null
     };
+    
+    [HttpPost("vods/{leagueShortName}")]
+    public async Task<IActionResult> ImportVods(string leagueShortName)
+    {
+        await vodEnricher.EnrichVodsAsync(leagueShortName);
+        return Ok($"VOD enrichment finished for {leagueShortName}");
+    }
 }

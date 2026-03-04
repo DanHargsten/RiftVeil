@@ -1,4 +1,5 @@
 using RiftVeil.Domain.Common;
+using RiftVeil.Domain.Enums;
 
 namespace RiftVeil.Domain.Entities;
 
@@ -18,6 +19,8 @@ public class Game : BaseEntity
     public DateTimeOffset? FinishedAtUtc { get; private set; }
     public string? VodUrl { get; private set; }
     public string? ExternalId { get; private set; }
+    
+    public ICollection<GameVod> Vods { get; private set; } = [];
 
 
     // Required for EF Core materialization without exposing public setters.
@@ -130,5 +133,34 @@ public class Game : BaseEntity
         Duration = finishedAtUtc - startedAtUtc;
         WinningTeam = winningTeam;
         VodUrl = ValidationUtils.NormalizeOptional(vodUrl);
+    }
+
+    /// <summary>
+    /// Used by the VOD enricher to set the YouTube link.
+    /// </summary>
+    /// <param name="vodUrl"></param>
+    public void SetVodUrl(string? vodUrl)
+    {
+        VodUrl = vodUrl;
+    }
+
+    public GameVod? AddGameVod(
+        VodProvider provider,
+        string url,
+        string? locale = null,
+        string? parameter = null,
+        int offsetSeconds = 0,
+        int priority = 0)
+    {
+        var normalizedLocale = ValidationUtils.NormalizeOptional(locale);
+
+        if (Vods.Any(v => v.Provider == provider && v.Locale == normalizedLocale))
+        {
+            return null;
+        }
+        
+        var vod = new GameVod(Id, provider, url, normalizedLocale, parameter, offsetSeconds, priority);
+        Vods.Add(vod);
+        return vod;
     }
 }

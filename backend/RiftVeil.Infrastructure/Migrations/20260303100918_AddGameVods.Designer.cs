@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RiftVeil.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using RiftVeil.Infrastructure.Data;
 namespace RiftVeil.Infrastructure.Migrations
 {
     [DbContext(typeof(RiftVeilDbContext))]
-    partial class RiftVeilDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260303100918_AddGameVods")]
+    partial class AddGameVods
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

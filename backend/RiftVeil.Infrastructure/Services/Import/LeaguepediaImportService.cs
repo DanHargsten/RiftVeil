@@ -216,7 +216,13 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
                 continue;
             }
 
-            var startsAt = ParseDate(row.GetProperty("DateTimeUTC").GetString());
+            var startsAt = TryParseDate(row.GetProperty("DateTimeUTC").GetString());
+            if (startsAt == null)
+            {
+                Console.WriteLine($"  Skipping match {matchId} — no valid date");
+                matchStats.Ignored++;
+                continue;
+            }
 
             var bestOfStr = row.GetProperty("BestOf").GetString();
             var bestOf = int.TryParse(bestOfStr, out var bo) && bo is 1 or 2 or 3 or 5 ? bo : 1;
@@ -234,7 +240,7 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
                 tournamentId: tournament.Id,
                 team1Id: team1.Id,
                 team2Id: team2.Id,
-                startsAtUtc: startsAt,
+                startsAtUtc: startsAt.Value,
                 bestOf: bestOf,
                 status: isFinished ? MatchStatus.Finished : MatchStatus.Scheduled,
                 round: round,
@@ -245,7 +251,7 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
                 && int.TryParse(team1ScoreStr, out var t1Score)
                 && int.TryParse(team2ScoreStr, out var t2Score))
             {
-                match.MarkFinished(startsAt, startsAt.AddHours(2), t1Score, t2Score);
+                match.MarkFinished(startsAt.Value, startsAt.Value.AddHours(2), t1Score, t2Score);
             }
 
             dbContext.Matches.Add(match);
@@ -512,17 +518,24 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         return start <= now ? TournamentStatus.Ongoing : TournamentStatus.Upcoming;
     }
 
-    private static DateTimeOffset ParseDate(string? dateStr)
+    private static DateTimeOffset? TryParseDate(string? dateStr)
     {
         if (string.IsNullOrEmpty(dateStr))
-        {
-            return DateTimeOffset.UtcNow;
-        }
+            return null;
 
         var normalized = dateStr.Contains(' ')
             ? dateStr.Replace(' ', 'T') + "Z"
             : dateStr + "T00:00:00Z";
 
-        return DateTimeOffset.Parse(normalized);
+        if (DateTimeOffset.TryParse(normalized, out var result))
+            return result;
+
+        return null;
+    }
+
+    // Kept for tournament start/end dates where UtcNow fallback is acceptable
+    private static DateTimeOffset ParseDate(string? dateStr)
+    {
+        return TryParseDate(dateStr) ?? DateTimeOffset.UtcNow;
     }
 }

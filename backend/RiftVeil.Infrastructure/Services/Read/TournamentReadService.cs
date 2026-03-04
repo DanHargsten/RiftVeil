@@ -53,6 +53,7 @@ public class TournamentReadService(RiftVeilDbContext context) : ITournamentReadS
                 .ThenInclude(m => m.Team2)
             .Include(t => t.Matches)
                 .ThenInclude(m => m.Games)
+                    .ThenInclude(g => g.Vods)
             .FirstOrDefaultAsync(t => t.Id == id);
 
         return tournament?.ToDetailsDto();

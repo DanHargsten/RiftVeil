@@ -32,6 +32,15 @@ builder.Services.AddHttpClient<LeaguepediaClient>(client =>
         AutomaticDecompression = System.Net.DecompressionMethods.All
     });
 
+// Lolesports VOD client
+builder.Services.AddHttpClient<LolesportsClient>(client =>
+{
+    client.DefaultRequestHeaders.UserAgent.ParseAdd(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36");
+});
+
+builder.Services.AddScoped<LolesportsVodEnricher>();
+
 // Read services for database access.
 builder.Services.AddScoped<ILeagueReadService, LeagueReadService>();
 builder.Services.AddScoped<ITournamentReadService, TournamentReadService>();

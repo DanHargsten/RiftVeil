@@ -32,7 +32,7 @@ public static class MatchProjections
             match.Round,
             match.Games
                 .OrderBy(g => g.GameNumber)
-                .Select(g => new GameDto(g.Id, g.GameNumber, g.WinningTeam, g.VodUrl))
+                .Select(g => new GameDto(g.Id, g.GameNumber, g.WinningTeam, g.VodUrl, null))
                 .ToList()
         );
     }
@@ -71,7 +71,13 @@ public static class MatchProjections
             ),
             match.Games
                 .OrderBy(g => g.GameNumber)
-                .Select(g => new GameDto(g.Id, g.GameNumber, g.WinningTeam, g.VodUrl))
+                .Select(g => new GameDto(
+                    g.Id,
+                    g.GameNumber,
+                    g.WinningTeam,
+                    g.VodUrl,
+                    g.Vods.Select(v => new GameVodDto(v.Id, v.Provider, v.Locale, v.Url)).ToList()
+                ))
                 .ToList()
         );
     }

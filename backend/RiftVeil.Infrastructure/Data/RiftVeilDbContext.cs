@@ -14,6 +14,7 @@ public class RiftVeilDbContext(DbContextOptions<RiftVeilDbContext> options) : Db
     public DbSet<Tournament> Tournaments => Set<Tournament>();
     public DbSet<Game> Games => Set<Game>();
     public DbSet<Team> Teams => Set<Team>();
+    public DbSet<GameVod> GameVods => Set<GameVod>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -121,6 +122,22 @@ public class RiftVeilDbContext(DbContextOptions<RiftVeilDbContext> options) : Db
                     "[Team2Side] IS NULL OR [Team2Side] IN ('Blue', 'Red')"
                 );
             });
+        });
+
+        modelBuilder.Entity<GameVod>(entity =>
+        {
+            entity.Property(v => v.Provider).IsRequired();
+            entity.Property(v => v.Locale).HasMaxLength(10);
+            entity.Property(v => v.Url).IsRequired().HasMaxLength(2048);
+            entity.Property(v => v.Parameter).HasMaxLength(200);
+            entity.Property(v => v.Priority).HasDefaultValue(0);
+
+            entity.HasIndex(v => new { v.GameId, v.Provider, v.Locale }).IsUnique();
+
+            entity.HasOne(v => v.Game)
+                .WithMany(g => g.Vods)
+                .HasForeignKey(v => v.GameId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 
