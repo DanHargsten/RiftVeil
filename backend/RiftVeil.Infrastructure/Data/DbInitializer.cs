@@ -18,12 +18,12 @@ public static class DbInitializer
             return;
 
         var now = DateTimeOffset.UtcNow;
-        
+
         // Leagues
         var lec = new League("EMEA Championship", "LEC", "EMEA", externalId: "lec");
-        var lcs = new League("North America Championship", "LCS", "NA",  externalId: "lcs");
-        var intl = new League("International Championship", "INTL", "Global",  externalId: "international");
-        
+        var lcs = new League("North America Championship", "LCS", "NA", externalId: "lcs");
+        var intl = new League("International Championship", "INTL", "Global", externalId: "international");
+
         context.Leagues.AddRange(lec, lcs, intl);
         context.SaveChanges();
     }

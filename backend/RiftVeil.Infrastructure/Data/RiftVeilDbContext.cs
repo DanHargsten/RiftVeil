@@ -62,7 +62,7 @@ public class RiftVeilDbContext(DbContextOptions<RiftVeilDbContext> options) : Db
 
             entity.HasIndex(team => team.ShortName).IsUnique();
         });
-        
+
         modelBuilder.Entity<Match>(entity =>
         {
             entity.Property(match => match.StartsAtUtc).IsRequired();
@@ -77,17 +77,17 @@ public class RiftVeilDbContext(DbContextOptions<RiftVeilDbContext> options) : Db
                 .WithMany(team => team.MatchesAsTeam1)
                 .HasForeignKey(match => match.Team1Id)
                 .OnDelete(DeleteBehavior.Restrict);
-            
+
             entity.HasOne(match => match.Team2)
                 .WithMany(team => team.MatchesAsTeam2)
                 .HasForeignKey(match => match.Team2Id)
                 .OnDelete(DeleteBehavior.Restrict);
-            
+
             entity.HasMany(match => match.Games)
                 .WithOne(game => game.Match)
                 .HasForeignKey(game => game.MatchId)
                 .OnDelete(DeleteBehavior.Cascade);
-            
+
             entity.ToTable(table =>
             {
                 table.HasCheckConstraint(
@@ -106,7 +106,7 @@ public class RiftVeilDbContext(DbContextOptions<RiftVeilDbContext> options) : Db
             entity.Property(game => game.ExternalId).HasMaxLength(100);
 
             entity.HasIndex(game => new { game.MatchId, game.GameNumber }).IsUnique();
-            
+
             entity.ToTable(table =>
             {
                 table.HasCheckConstraint(
