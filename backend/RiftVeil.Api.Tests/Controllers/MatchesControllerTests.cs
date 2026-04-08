@@ -1,5 +1,6 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Json;
+
 using RiftVeil.Api.Tests.Infrastructure;
 using RiftVeil.Application.Dtos.Matches;
 
@@ -23,7 +24,7 @@ public class MatchesControllerTests : IClassFixture<TestWebApplicationFactory>
 
         // Assert
         response.EnsureSuccessStatusCode();
-        
+
         var matches = await response.Content.ReadFromJsonAsync<List<MatchListItemDto>>(
             TestWebApplicationFactory.GetJsonSerializerOptions());
         Assert.NotNull(matches);
@@ -38,7 +39,7 @@ public class MatchesControllerTests : IClassFixture<TestWebApplicationFactory>
 
         // Assert
         response.EnsureSuccessStatusCode();
-        
+
         var matches = await response.Content.ReadFromJsonAsync<List<MatchListItemDto>>(
             TestWebApplicationFactory.GetJsonSerializerOptions());
         Assert.NotNull(matches);
@@ -54,7 +55,7 @@ public class MatchesControllerTests : IClassFixture<TestWebApplicationFactory>
 
         // Assert
         response.EnsureSuccessStatusCode();
-        
+
         var matches = await response.Content.ReadFromJsonAsync<List<MatchListItemDto>>(
             TestWebApplicationFactory.GetJsonSerializerOptions());
         Assert.NotNull(matches);
@@ -70,21 +71,21 @@ public class MatchesControllerTests : IClassFixture<TestWebApplicationFactory>
 
         // Assert
         response.EnsureSuccessStatusCode();
-        
+
         var matches = await response.Content.ReadFromJsonAsync<List<MatchListItemDto>>(
             TestWebApplicationFactory.GetJsonSerializerOptions());
         Assert.NotNull(matches);
-        
+
         // Should return today's match, tomorrow's match, and next week's match
         Assert.Equal(3, matches.Count);
-        
+
         // All should be in the future
         var now = DateTimeOffset.UtcNow;
-        Assert.All(matches, m => 
+        Assert.All(matches, m =>
         {
             Assert.True(m.StartsAtUtc >= now, $"Match should be in the future: {m.Team1Name} vs {m.Team2Name}");
         });
-        
+
         // Should be ordered by start time
         for (int i = 0; i < matches.Count - 1; i++)
         {
@@ -100,11 +101,11 @@ public class MatchesControllerTests : IClassFixture<TestWebApplicationFactory>
 
         // Assert
         response.EnsureSuccessStatusCode();
-        
+
         var matches = await response.Content.ReadFromJsonAsync<List<MatchListItemDto>>(
             TestWebApplicationFactory.GetJsonSerializerOptions());
         Assert.NotNull(matches);
-        
+
         // Should only return today's and tomorrow's matches (2 matches)
         Assert.Equal(2, matches.Count);
     }
@@ -117,7 +118,7 @@ public class MatchesControllerTests : IClassFixture<TestWebApplicationFactory>
 
         // Assert
         response.EnsureSuccessStatusCode();
-        
+
         var match = await response.Content.ReadFromJsonAsync<MatchDetailsDto>(
             TestWebApplicationFactory.GetJsonSerializerOptions());
         Assert.NotNull(match);

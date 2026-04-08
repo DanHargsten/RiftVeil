@@ -1,16 +1,17 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Json;
+
 using RiftVeil.Api.Tests.Infrastructure;
 using RiftVeil.Application.Dtos.Tournaments;
 
 namespace RiftVeil.Api.Tests.Controllers;
 
 [Collection("Database collection")]
-public class TournamentsControllersTests : IClassFixture<TestWebApplicationFactory>
+public class TournamentsControllerTests : IClassFixture<TestWebApplicationFactory>
 {
     private readonly HttpClient _client;
 
-    public TournamentsControllersTests(TestWebApplicationFactory factory)
+    public TournamentsControllerTests(TestWebApplicationFactory factory)
     {
         _client = factory.CreateClient();
     }
@@ -23,7 +24,7 @@ public class TournamentsControllersTests : IClassFixture<TestWebApplicationFacto
 
         // Assert
         response.EnsureSuccessStatusCode();
-        
+
         var tournaments = await response.Content.ReadFromJsonAsync<List<TournamentListItemDto>>(
             TestWebApplicationFactory.GetJsonSerializerOptions());
         Assert.NotNull(tournaments);
@@ -38,7 +39,7 @@ public class TournamentsControllersTests : IClassFixture<TestWebApplicationFacto
 
         // Assert
         response.EnsureSuccessStatusCode();
-        
+
         var tournaments = await response.Content.ReadFromJsonAsync<List<TournamentListItemDto>>(
             TestWebApplicationFactory.GetJsonSerializerOptions());
         Assert.NotNull(tournaments);
@@ -55,7 +56,7 @@ public class TournamentsControllersTests : IClassFixture<TestWebApplicationFacto
 
         // Assert
         response.EnsureSuccessStatusCode();
-        
+
         var tournaments = await response.Content.ReadFromJsonAsync<List<TournamentListItemDto>>(
             TestWebApplicationFactory.GetJsonSerializerOptions());
         Assert.NotNull(tournaments);
@@ -71,7 +72,7 @@ public class TournamentsControllersTests : IClassFixture<TestWebApplicationFacto
 
         // Assert
         response.EnsureSuccessStatusCode();
-        
+
         var tournaments = await response.Content.ReadFromJsonAsync<List<TournamentListItemDto>>(
             TestWebApplicationFactory.GetJsonSerializerOptions());
         Assert.NotNull(tournaments);
@@ -87,7 +88,7 @@ public class TournamentsControllersTests : IClassFixture<TestWebApplicationFacto
 
         // Assert
         response.EnsureSuccessStatusCode();
-        
+
         var tournament = await response.Content.ReadFromJsonAsync<TournamentDetailsDto>(
             TestWebApplicationFactory.GetJsonSerializerOptions());
         Assert.NotNull(tournament);
