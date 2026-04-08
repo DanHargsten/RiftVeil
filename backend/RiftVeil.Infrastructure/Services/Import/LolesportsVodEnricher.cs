@@ -1,7 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
+
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using RiftVeil.Domain.Entities;
 using RiftVeil.Domain.Enums;
-using System.Text.Json;
 using RiftVeil.Infrastructure.Data;
 
 namespace RiftVeil.Infrastructure.Services.Import;
@@ -11,7 +13,10 @@ namespace RiftVeil.Infrastructure.Services.Import;
 /// Uses getCompletedEvents per tournament for full coverage (getSchedule only returns recent pages).
 /// Stores all English YouTube and Twitch VODs, sets best as Game.VodUrl.
 /// </summary>
-public class LolesportsVodEnricher(RiftVeilDbContext dbContext, LolesportsClient client)
+public class LolesportsVodEnricher(
+    RiftVeilDbContext dbContext,
+    LolesportsClient client,
+    ILogger<LolesportsVodEnricher> logger)
 {
     private static readonly Dictionary<string, string> LeagueSlugMap = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -22,32 +27,32 @@ public class LolesportsVodEnricher(RiftVeilDbContext dbContext, LolesportsClient
 
     public async Task EnrichVodsAsync(string leagueShortName)
     {
-        Console.WriteLine($"Starting VOD enrichment for {leagueShortName}");
+        logger.LogInformation("Starting VOD enrichment for {LeagueShortName}", leagueShortName);
 
         var league = await dbContext.Leagues
             .FirstOrDefaultAsync(l => l.ShortName.ToUpper() == leagueShortName.ToUpper());
 
         if (league == null)
         {
-            Console.WriteLine($"League '{leagueShortName}' not found in DB");
+            logger.LogWarning("League {LeagueShortName} not found in database", leagueShortName);
             return;
         }
 
         var unenrichedCount = await dbContext.Games
             .CountAsync(g => g.Match.Tournament.LeagueId == league.Id && string.IsNullOrEmpty(g.VodUrl));
 
-        Console.WriteLine($"  {unenrichedCount} games without VOD");
+        logger.LogInformation("{Count} games without VOD for league {LeagueShortName}", unenrichedCount, leagueShortName);
         if (unenrichedCount == 0) return;
 
         var lolesportsLeagueId = await GetLolesportsLeagueIdAsync(leagueShortName);
         if (lolesportsLeagueId == null)
         {
-            Console.WriteLine($"  Could not find lolesports league ID for '{leagueShortName}'");
+            logger.LogWarning("Could not find lolesports league ID for {LeagueShortName}", leagueShortName);
             return;
         }
 
         var lolesportsTournaments = await GetLolesportsTournamentsAsync(lolesportsLeagueId);
-        Console.WriteLine($"  Found {lolesportsTournaments.Count} lolesports tournaments");
+        logger.LogInformation("Found {Count} lolesports tournaments for {LeagueShortName}", lolesportsTournaments.Count, leagueShortName);
 
         var ourTournaments = await dbContext.Tournaments
             .Where(t => t.LeagueId == league.Id)
@@ -64,7 +69,7 @@ public class LolesportsVodEnricher(RiftVeilDbContext dbContext, LolesportsClient
             var tournamentId = tournamentIdEl.GetString();
             if (string.IsNullOrEmpty(tournamentId)) continue;
 
-            Console.WriteLine($"  Fetching completed events for tournament {tournamentId}...");
+            logger.LogInformation("Fetching completed events for tournament {TournamentId}", tournamentId);
 
             List<JsonElement> events;
             try
@@ -78,35 +83,32 @@ public class LolesportsVodEnricher(RiftVeilDbContext dbContext, LolesportsClient
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"    Failed: {ex.Message}");
+                logger.LogWarning(ex, "Failed to get completed events for tournament {TournamentId}", tournamentId);
                 continue;
             }
 
-            Console.WriteLine($"    {events.Count} completed events");
-            
-            
-            
-            
+            logger.LogInformation("{Count} completed events for tournament {TournamentId}", events.Count, tournamentId);
+
             if (events.Count > 0)
             {
                 var first = events[0];
-                Console.WriteLine($"    [DEBUG] First event JSON: {first.GetRawText()[..Math.Min(500, first.GetRawText().Length)]}");
-    
-                // Also dump first DB match for this league
+                logger.LogDebug("First event JSON (truncated): {Snippet}",
+                    first.GetRawText()[..Math.Min(500, first.GetRawText().Length)]);
+
                 var firstMatch = ourTournaments.SelectMany(t => t.Matches).FirstOrDefault();
                 if (firstMatch != null)
                 {
-                    Console.WriteLine($"    [DEBUG] First DB match: {firstMatch.Team1?.ShortName} vs {firstMatch.Team2?.ShortName} @ {firstMatch.StartsAtUtc:yyyy-MM-dd HH:mm}");
+                    logger.LogDebug("First DB match: {Team1} vs {Team2} @ {StartsAt:yyyy-MM-dd HH:mm}",
+                        firstMatch.Team1.ShortName, firstMatch.Team2.ShortName, firstMatch.StartsAtUtc);
                 }
             }
-            
-            
-            
 
             int enrichedInTournament = 0;
 
-            foreach (var ev in events)
+            for (int i = 0; i < events.Count; i++)
             {
+                var ev = events[i];
+
                 if (!ev.TryGetProperty("startTime", out var startTimeEl)) continue;
                 if (!DateTimeOffset.TryParse(startTimeEl.GetString(), out var evTime)) continue;
 
@@ -115,41 +117,34 @@ public class LolesportsVodEnricher(RiftVeilDbContext dbContext, LolesportsClient
 
                 var codes = teamsEl.EnumerateArray()
                     .Select(t => t.TryGetProperty("code", out var c) ? c.GetString()?.ToUpperInvariant().Trim() : null)
-                    .Where(c => c != null)
+                    .OfType<string>()
                     .ToArray();
 
                 if (codes.Length < 2) continue;
-                
-                
-                
-                // Debug: log first few events to see what we're matching against
-                if (enrichedInTournament == 0 && events.IndexOf(ev) < 3)
+
+                if (enrichedInTournament == 0 && i < 3)
                 {
-                    Console.WriteLine($"    [DEBUG] Event: {codes[0]} vs {codes[1]} @ {evTime:yyyy-MM-dd HH:mm}");
-    
-                    // Show what's in our DB for comparison
+                    logger.LogDebug("Event: {Code1} vs {Code2} @ {Time:yyyy-MM-dd HH:mm}", codes[0], codes[1], evTime);
+
                     foreach (var tournament in ourTournaments)
                     {
                         foreach (var m in tournament.Matches.Take(3))
                         {
-                            var t1 = m.Team1?.ShortName?.ToUpperInvariant().Trim();
-                            var t2 = m.Team2?.ShortName?.ToUpperInvariant().Trim();
-                            Console.WriteLine($"    [DEBUG] DB match: {t1} vs {t2} @ {m.StartsAtUtc:yyyy-MM-dd HH:mm}");
+                            var t1 = m.Team1.ShortName.ToUpperInvariant().Trim();
+                            var t2 = m.Team2.ShortName.ToUpperInvariant().Trim();
+                            logger.LogDebug("DB match: {T1} vs {T2} @ {Time:yyyy-MM-dd HH:mm}", t1, t2, m.StartsAtUtc);
                         }
-                        break; // only first tournament
+                        break;
                     }
                 }
-                
-                
 
                 Match? ourMatch = null;
                 foreach (var tournament in ourTournaments)
                 {
                     ourMatch = tournament.Matches.FirstOrDefault(m =>
                     {
-                        var t1 = m.Team1?.ShortName?.ToUpperInvariant().Trim();
-                        var t2 = m.Team2?.ShortName?.ToUpperInvariant().Trim();
-                        if (t1 == null || t2 == null) return false;
+                        var t1 = m.Team1.ShortName.ToUpperInvariant().Trim();
+                        var t2 = m.Team2.ShortName.ToUpperInvariant().Trim();
 
                         var teamsMatch = codes.Contains(t1) && codes.Contains(t2);
                         var timeClose = Math.Abs((m.StartsAtUtc - evTime).TotalMinutes) < 120;
@@ -173,8 +168,9 @@ public class LolesportsVodEnricher(RiftVeilDbContext dbContext, LolesportsClient
                     details = await client.CallAsync("getEventDetails",
                         new Dictionary<string, string> { ["id"] = eventId });
                 }
-                catch
+                catch (Exception ex)
                 {
+                    logger.LogDebug(ex, "getEventDetails failed for event {EventId}", eventId);
                     continue;
                 }
 
@@ -195,7 +191,7 @@ public class LolesportsVodEnricher(RiftVeilDbContext dbContext, LolesportsClient
             }
 
             totalEnriched += enrichedInTournament;
-            Console.WriteLine($"    Enriched {enrichedInTournament} VODs");
+            logger.LogInformation("Enriched {Count} VODs for tournament {TournamentId}", enrichedInTournament, tournamentId);
 
             if (enrichedInTournament > 0)
                 await dbContext.SaveChangesAsync();
@@ -203,20 +199,20 @@ public class LolesportsVodEnricher(RiftVeilDbContext dbContext, LolesportsClient
             await Task.Delay(2000);
         }
 
-        Console.WriteLine($"\nDone! Enriched {totalEnriched} VODs total for {leagueShortName}");
+        logger.LogInformation("VOD enrichment finished: {Total} VODs total for {LeagueShortName}", totalEnriched, leagueShortName);
     }
 
     /// <summary>
     /// Extracts all English VODs for a game and sets the best one as default VodUrl.
     /// Returns true if at least one VOD was added.
     /// </summary>
-    private static bool EnrichGameVods(Game game, List<JsonElement> detailGames)
+    private bool EnrichGameVods(Game game, List<JsonElement> detailGames)
     {
         var targetGame = detailGames.FirstOrDefault(g =>
             g.TryGetProperty("number", out var numEl) && numEl.GetInt32() == game.GameNumber);
 
-        if (targetGame.ValueKind == JsonValueKind.Undefined) return false;
-        if (!targetGame.TryGetProperty("vods", out var vodsEl)) return false;
+        if (targetGame.ValueKind == JsonValueKind.Undefined || !targetGame.TryGetProperty("vods", out var vodsEl))
+            return false;
 
         var vods = vodsEl.EnumerateArray().ToList();
         if (vods.Count == 0) return false;
@@ -233,20 +229,16 @@ public class LolesportsVodEnricher(RiftVeilDbContext dbContext, LolesportsClient
 
             if (string.IsNullOrEmpty(providerStr) || string.IsNullOrEmpty(videoId)) continue;
 
-            // Map string to enum
             VodProvider provider;
             if (providerStr == "youtube") provider = VodProvider.YouTube;
             else if (providerStr == "twitch") provider = VodProvider.Twitch;
             else continue;
 
-            // Only official English (en-US) VODs — other en-* locales are often
-            // hobby/community streams with incorrect locale tags in Lolesports data.
             if (locale != "en-US") continue;
 
             var offset = vod.TryGetProperty("offset", out var o) && o.ValueKind == JsonValueKind.Number
                 ? o.GetInt32() : 0;
 
-            // Build URL
             string url;
             if (provider == VodProvider.YouTube)
             {
@@ -260,12 +252,11 @@ public class LolesportsVodEnricher(RiftVeilDbContext dbContext, LolesportsClient
             }
 
             var added = game.AddGameVod(provider, url, locale, videoId, offset);
-            if (added == null) continue; // duplicate
+            if (added == null) continue;
 
             any = true;
-            Console.WriteLine($"    └─ Game {game.GameNumber}: {provider} | {locale} | {videoId}");
+            logger.LogDebug("Game {GameNumber}: {Provider} | {Locale} | {VideoId}", game.GameNumber, provider, locale, videoId);
 
-            // Track best URL: YouTube preferred over Twitch
             if (bestUrl == null || (provider == VodProvider.YouTube && bestProvider != VodProvider.YouTube))
             {
                 bestUrl = url;
@@ -273,7 +264,6 @@ public class LolesportsVodEnricher(RiftVeilDbContext dbContext, LolesportsClient
             }
         }
 
-        // Set the preferred VOD as the quick-access VodUrl
         if (bestUrl != null && string.IsNullOrEmpty(game.VodUrl))
         {
             game.SetVodUrl(bestUrl);

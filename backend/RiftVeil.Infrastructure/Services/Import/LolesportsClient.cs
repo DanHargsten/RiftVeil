@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 
 namespace RiftVeil.Infrastructure.Services.Import;
 
@@ -10,7 +10,7 @@ public class LolesportsClient(HttpClient httpClient)
     public async Task<JsonDocument> CallAsync(string endpoint, Dictionary<string, string>? parameters = null)
     {
         var url = $"{BaseUrl}/{endpoint}?hl=en-US";
-        if (parameters?.Count > 0)
+        if (parameters is { Count: > 0 })
         {
             url += "&" + string.Join("&", parameters.Select(p =>
                 $"{Uri.EscapeDataString(p.Key)}={Uri.EscapeDataString(p.Value)}"));
@@ -26,11 +26,11 @@ public class LolesportsClient(HttpClient httpClient)
             var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Add("x-api-key", ApiKey);
 
-            
+
             Console.WriteLine($"[Lolesports] URL: {request.RequestUri}");
             Console.WriteLine($"[Lolesports] Headers: {string.Join(", ", request.Headers.Select(h => $"{h.Key}={string.Join(",", h.Value)}"))}");
-            
-            
+
+
             var response = await httpClient.SendAsync(request);
             var body = await response.Content.ReadAsStringAsync();
             Console.WriteLine($"[Lolesports] Response ({response.StatusCode}): {body[..Math.Min(200, body.Length)]}");
@@ -48,7 +48,7 @@ public class LolesportsClient(HttpClient httpClient)
                     Console.WriteLine($"[Lolesports] ✗ {endpoint} returned Forbidden (API key may be invalid)");
                     throw new Exception($"Lolesports API returned Forbidden for {endpoint}");
                 }
-                
+
                 return doc;
             }
 

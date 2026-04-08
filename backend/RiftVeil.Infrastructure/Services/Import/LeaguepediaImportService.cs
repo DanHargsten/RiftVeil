@@ -16,22 +16,18 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
     {
         public int Read { get; set; }
         public int Imported { get; set; }
+        public int Updated { get; set; }
         public int Existing { get; set; }
         public int Ignored { get; set; }
 
         public void Print(string type)
         {
             Console.WriteLine($"\n--- {type} Import Summary ---");
-            Console.WriteLine($"Done");
             Console.WriteLine($"{Read} entries read");
             Console.WriteLine($"{Imported} imported");
-            Console.WriteLine($"{Existing} skipped");
-
-            if (Existing > 0)
-            {
-                Console.WriteLine($"   {Existing}: already existed");
-            }
-            
+            if (Updated > 0)
+                Console.WriteLine($"{Updated} updated");
+            Console.WriteLine($"{Existing} skipped (already existed)");
             Console.WriteLine("-----------------------------\n");
         }
     }
@@ -93,6 +89,7 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
                 startsAtUtc: startDate,
                 endsAtUtc: endDate,
                 status: DetermineStatus(startDate, endDate),
+                stage: ExtractStage(name),
                 liquipediaSlug: overviewPage
             );
 
@@ -120,34 +117,10 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
 
         foreach (var tournament in tournaments)
         {
-            // Skip tournaments that already have matches imported
-            var existingMatches = await dbContext.Matches
-                .Where(m => m.TournamentId == tournament.Id)
-                .ToListAsync();
-
-            if (existingMatches.Count > 0)
-            {
-                var existingMatchCount = existingMatches.Count;
-                var matchIds = existingMatches.Select(m => m.Id).ToList();
-                var existingGameCount = await dbContext.Games
-                    .CountAsync(g => matchIds.Contains(g.MatchId));
-
-                Console.WriteLine($"Skipping {tournament.Name} — already has {existingMatchCount} matches and {existingGameCount} games");
-
-                matchStats.Read += existingMatchCount;
-                matchStats.Existing += existingMatchCount;
-
-                gameStats.Read += existingGameCount;
-                gameStats.Existing += existingGameCount;
-
-                continue;
-            }
-            
             var importedCount = await ImportMatchesForTournamentAsync(tournament, matchStats, gameStats);
-            
+
             if (importedCount > 0)
             {
-                // Wait between tournaments to avoid rate limiting
                 Console.WriteLine($"  Waiting 10s before next tournament...");
                 await Task.Delay(10_000);
             }
@@ -176,12 +149,10 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         Console.WriteLine($"  Found {results.Count} matches");
         matchStats.Read += results.Count;
 
-        var existingMatchExternalIds = (await dbContext.Matches
-            .Where(m => m.TournamentId == tournament.Id)
-            .Select(m => m.ExternalId)
-            .Where(id => id != null)
-            .Select(id => id!)
-            .ToListAsync()).ToHashSet();
+        // Load full match objects so we can update existing ones
+        var existingMatches = await dbContext.Matches
+            .Where(m => m.TournamentId == tournament.Id && m.ExternalId != null)
+            .ToDictionaryAsync(m => m.ExternalId!);
 
         var startingImportedCount = matchStats.Imported;
 
@@ -194,12 +165,30 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
                 continue;
             }
 
-            if (existingMatchExternalIds.Contains(matchId))
+            var winnerStr = row.GetProperty("Winner").GetString();
+            var team1ScoreStr = row.GetProperty("Team1Score").GetString();
+            var team2ScoreStr = row.GetProperty("Team2Score").GetString();
+            var isFinished = !string.IsNullOrWhiteSpace(winnerStr) && winnerStr != "0";
+
+            // Update existing match if it was Scheduled but now has a result
+            if (existingMatches.TryGetValue(matchId, out var existingMatch))
             {
-                matchStats.Existing++;
+                if (existingMatch.Status == MatchStatus.Scheduled && isFinished
+                    && int.TryParse(team1ScoreStr, out var t1ScoreUpd)
+                    && int.TryParse(team2ScoreStr, out var t2ScoreUpd))
+                {
+                    existingMatch.MarkFinished(existingMatch.StartsAtUtc, existingMatch.StartsAtUtc.AddHours(2), t1ScoreUpd, t2ScoreUpd);
+                    matchStats.Updated++;
+                    Console.WriteLine($"  Updated match {matchId} to Finished ({t1ScoreUpd}-{t2ScoreUpd})");
+                }
+                else
+                {
+                    matchStats.Existing++;
+                }
                 continue;
             }
 
+            // New match — create it
             var team1Name = row.GetProperty("Team1").GetString();
             var team2Name = row.GetProperty("Team2").GetString();
             if (string.IsNullOrWhiteSpace(team1Name) || string.IsNullOrWhiteSpace(team2Name))
@@ -227,14 +216,7 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
             var bestOfStr = row.GetProperty("BestOf").GetString();
             var bestOf = int.TryParse(bestOfStr, out var bo) && bo is 1 or 2 or 3 or 5 ? bo : 1;
 
-            var winnerStr = row.GetProperty("Winner").GetString();
-            var team1ScoreStr = row.GetProperty("Team1Score").GetString();
-            var team2ScoreStr = row.GetProperty("Team2Score").GetString();
-            
-            // Round from Leaguepedia Tab field (e.g. "Quarterfinals", "Semifinals", "Grand Final")
             var round = row.GetProperty("Tab").GetString();
-
-            var isFinished = !string.IsNullOrWhiteSpace(winnerStr) && winnerStr != "0";
 
             var match = new Match(
                 tournamentId: tournament.Id,
@@ -259,10 +241,9 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         }
 
         await dbContext.SaveChangesAsync();
-        
+
         var importedInThisBatch = matchStats.Imported - startingImportedCount;
 
-        // Wait before fetching games if we actually imported something or if we have results to process
         if (results.Count > 0)
         {
             if (importedInThisBatch > 0)
@@ -293,16 +274,15 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
             .Where(m => m.TournamentId == tournament.Id && m.ExternalId != null)
             .ToDictionaryAsync(m => m.ExternalId!);
 
-        // Batch: load all existing game keys for this tournament using string keys
         var matchIds = tournamentMatches.Values.Select(m => m.Id).ToList();
-        var existingGameKeys = (await dbContext.Games
-            .Where(g => matchIds.Contains(g.MatchId))
-            .Select(g => new { g.MatchId, g.GameNumber })
-            .ToListAsync())
-            .Select(g => $"{g.MatchId}:{g.GameNumber}")
-            .ToHashSet();
 
-        // Batch: preload teams for side mapping (instead of FindAsync per game)
+        // Load full game objects so we can update existing ones
+        var existingGames = await dbContext.Games
+            .Where(g => matchIds.Contains(g.MatchId))
+            .ToListAsync();
+        var existingGameKeys = existingGames
+            .ToDictionary(g => $"{g.MatchId}:{g.GameNumber}");
+
         var teamIds = tournamentMatches.Values
             .SelectMany(m => new[] { m.Team1Id, m.Team2Id })
             .Distinct()
@@ -333,20 +313,36 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
                 continue;
             }
 
-            if (existingGameKeys.Contains($"{match.Id}:{gameNumber}"))
+            // Update existing game if WinningTeam is missing
+            if (existingGameKeys.TryGetValue($"{match.Id}:{gameNumber}", out var existingGame))
             {
-                stats.Existing++;
+                var winnerStrGame = row.GetProperty("Winner").GetString();
+                if (existingGame.WinningTeam == null && int.TryParse(winnerStrGame, out var wg) && wg is 1 or 2)
+                {
+                    var blueG = row.GetProperty("Blue").GetString();
+                    if (!string.IsNullOrWhiteSpace(blueG) && teamsById.TryGetValue(match.Team1Id, out var t1g))
+                    {
+                        var isTeam1BlueG = string.Equals(blueG, t1g.Name, StringComparison.OrdinalIgnoreCase) ||
+                                           string.Equals(blueG, t1g.ShortName, StringComparison.OrdinalIgnoreCase);
+                        int winningTeamG = wg == 1 ? (isTeam1BlueG ? 1 : 2) : (isTeam1BlueG ? 2 : 1);
+                        existingGame.SetWinningTeam(winningTeamG);
+                        stats.Updated++;
+                    }
+                    else { stats.Existing++; }
+                }
+                else { stats.Existing++; }
                 continue;
             }
-            
+
+            // New game — create it
             var blueTeam = row.GetProperty("Blue").GetString();
             var redTeam = row.GetProperty("Red").GetString();
             var winnerStr = row.GetProperty("Winner").GetString();
-            
+
             string? team1Side = null;
             string? team2Side = null;
             int? winningTeam = null;
-            
+
             if (!string.IsNullOrWhiteSpace(blueTeam) && !string.IsNullOrWhiteSpace(redTeam))
             {
                 if (teamsById.TryGetValue(match.Team1Id, out var t1))
@@ -356,22 +352,15 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
                     team1Side = isTeam1Blue ? "Blue" : "Red";
                     team2Side = isTeam1Blue ? "Red" : "Blue";
 
-                    // Winner from Leaguepedia: 1=Blue won, 2=Red won
-                    // Map to our model: 1=Team1 won, 2=Team2 won
                     if (int.TryParse(winnerStr, out var w) && w is 1 or 2)
                     {
-                        if (w == 1) // Blue won
-                        {
-                            winningTeam = team1Side == "Blue" ? 1 : 2;
-                        }
-                        else // Red won
-                        {
-                            winningTeam = team1Side == "Red" ? 1 : 2;
-                        }
+                        winningTeam = w == 1
+                            ? (team1Side == "Blue" ? 1 : 2)
+                            : (team1Side == "Red" ? 1 : 2);
                     }
                 }
             }
-            
+
             var vodUrl = row.GetProperty("Vod").GetString();
 
             var game = new Game(
@@ -392,8 +381,7 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
 
     private async Task PreloadTeamShortNamesAsync()
     {
-        // Load teams from multiple regions to cover EMEA rosters
-        var regions = new[] { "Europe", "EMEA", "CIS", "Turkey" };
+        var regions = new[] { "Europe", "EMEA", "CIS", "Turkey", "Korea", "North America" };
 
         foreach (var region in regions)
         {
@@ -403,7 +391,7 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
                 where: $"Region=\"{region}\"",
                 limit: 100
             );
-        
+
             foreach (var row in results)
             {
                 var name = row.GetProperty("Name").GetString();
@@ -413,10 +401,10 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
                     _shortNameCache[name] = shortName.Trim().ToUpperInvariant();
                 }
             }
-            
+
             if (results.Count > 0)
             {
-                await Task.Delay(5000); // Breathe between region queries
+                await Task.Delay(5000);
             }
         }
 
@@ -430,16 +418,12 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         teamName = teamName.Trim();
 
         if (_teamCache.TryGetValue(teamName, out var cachedTeam))
-        {
             return cachedTeam;
-        }
 
-        var team = await dbContext.Teams
-            .FirstOrDefaultAsync(t => t.Name == teamName);
-        
+        var team = await dbContext.Teams.FirstOrDefaultAsync(t => t.Name == teamName);
+
         if (team == null)
         {
-            // Check the preloaded cache, then try API lookup, then fall back to the first 3 chars
             string shortName;
             if (_shortNameCache.TryGetValue(teamName, out var cached) && cached != null)
             {
@@ -449,19 +433,14 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
             {
                 shortName = await LookupShortNameAsync(teamName)
                             ?? teamName.Replace(" ", "")[..Math.Min(teamName.Replace(" ", "").Length, 3)].ToUpperInvariant();
-                
+
                 if (shortName.Length <= 3)
-                {
                     Console.WriteLine($"  Warning: Using fallback short name '{shortName}' for '{teamName}' — fix manually");
-                }
             }
 
-            // Handle collision
             var shortNameExists = await dbContext.Teams.AnyAsync(t => t.ShortName == shortName);
             if (shortNameExists)
-            {
                 shortName = shortName[..Math.Min(shortName.Length, 17)] + dbContext.Teams.Local.Count;
-            }
 
             team = new Team(teamName, shortName);
             dbContext.Teams.Add(team);
@@ -508,13 +487,31 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         return null;
     }
 
+    /// <summary>
+    /// Extracts a stage label from a tournament name.
+    /// E.g. "LEC 2026 Spring Season" -> "Spring 2026"
+    ///      "LEC 2026 Spring Playoffs" -> "Spring Playoffs 2026"
+    /// </summary>
+    private static string? ExtractStage(string tournamentName)
+    {
+        var parts = tournamentName.Split(' ');
+        var yearPart = parts.FirstOrDefault(p => p.Length == 4 && int.TryParse(p, out _));
+        if (yearPart == null) return null;
+
+        var yearIndex = Array.IndexOf(parts, yearPart);
+        var afterYear = parts.Skip(yearIndex + 1)
+            .Where(p => p != "Season")
+            .ToArray();
+
+        if (afterYear.Length == 0) return null;
+        return $"{string.Join(" ", afterYear)} {yearPart}";
+    }
+
     private static TournamentStatus DetermineStatus(DateTimeOffset start, DateTimeOffset? end)
     {
         var now = DateTimeOffset.UtcNow;
         if (end.HasValue && end.Value < now)
-        {
             return TournamentStatus.Finished;
-        }
         return start <= now ? TournamentStatus.Ongoing : TournamentStatus.Upcoming;
     }
 
@@ -533,7 +530,6 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         return null;
     }
 
-    // Kept for tournament start/end dates where UtcNow fallback is acceptable
     private static DateTimeOffset ParseDate(string? dateStr)
     {
         return TryParseDate(dateStr) ?? DateTimeOffset.UtcNow;

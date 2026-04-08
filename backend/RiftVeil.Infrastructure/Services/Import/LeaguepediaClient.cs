@@ -78,7 +78,7 @@ public class LeaguepediaClient(HttpClient httpClient)
             {
                 var code = error.GetProperty("code").GetString();
                 var info = error.TryGetProperty("info", out var infoProp) ? infoProp.GetString() : "unknown";
-                
+
                 if (code == "ratelimited")
                 {
                     Console.WriteLine($"  Rate limited by API (attempt {attempt + 1}/8)");
@@ -94,7 +94,7 @@ public class LeaguepediaClient(HttpClient httpClient)
                 .EnumerateArray()
                 .Select(item => item.GetProperty("title").Clone())
                 .ToList();
-            
+
             Console.WriteLine($"  Got {results.Count} rows");
             return results;
         }
