@@ -1,12 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using RiftVeil.Domain.Entities;
 using RiftVeil.Infrastructure.Data;
 using RiftVeil.Infrastructure.Services.Import;
 
 namespace RiftVeil.Api.Controllers;
 
 /// <summary>
-/// Handles import of tournaments and matches from Leaguepedia.
+/// HTTP API for data import and VOD enrichment (Leaguepedia, lolesports).
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -20,12 +21,12 @@ public class ImportController(
     /// </summary>
     /// <param name="leagueShortName">League short name (e.g. LEC, LCS, LCK).</param>
     [HttpPost("tournaments/{leagueShortName}")]
-    public async Task<IActionResult> ImportTournament(string leagueShortName)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ImportTournamentsAsync(string leagueShortName)
     {
-        
-        var league = await dbContext.Leagues
-            .FirstOrDefaultAsync(l => l.ShortName == leagueShortName.ToUpperInvariant());
-
+        var league = await FindLeagueByShortNameAsync(leagueShortName);
         if (league == null)
         {
             return NotFound($"League '{leagueShortName}' not found.");
@@ -36,9 +37,9 @@ public class ImportController(
         {
             return BadRequest($"No Leaguepedia mapping for '{leagueShortName}'.");
         }
-        
+
         await importService.ImportTournamentsAsync(leaguepediaName, league.Id);
-        
+
         return Ok("Import complete.");
     }
 
@@ -47,11 +48,11 @@ public class ImportController(
     /// </summary>
     /// <param name="leagueShortName">League short name (e.g. LEC, LCS, LCK).</param>
     [HttpPost("matches/{leagueShortName}")]
-    public async Task<IActionResult> ImportMatch(string leagueShortName)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ImportMatchesAsync(string leagueShortName)
     {
-        var league = await dbContext.Leagues
-            .FirstOrDefaultAsync(l => l.ShortName == leagueShortName.ToUpperInvariant());
-
+        var league = await FindLeagueByShortNameAsync(leagueShortName);
         if (league == null)
         {
             return NotFound($"League '{leagueShortName}' not found.");
@@ -61,18 +62,37 @@ public class ImportController(
         return Ok("Match import complete.");
     }
 
+    /// <summary>
+    /// Enriches games with VOD links from the lolesports API for the given league.
+    /// </summary>
+    /// <param name="leagueShortName">League short name (e.g. LEC, LCS, LCK).</param>
+    [HttpPost("vods/{leagueShortName}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ImportVodsAsync(string leagueShortName)
+    {
+        var league = await FindLeagueByShortNameAsync(leagueShortName);
+        if (league == null)
+        {
+            return NotFound($"League '{leagueShortName}' not found.");
+        }
+
+        await vodEnricher.EnrichVodsAsync(league.ShortName);
+        return Ok($"VOD enrichment finished for {league.ShortName}");
+    }
+
+    private async Task<League?> FindLeagueByShortNameAsync(string leagueShortName)
+    {
+        var key = leagueShortName.ToUpperInvariant();
+        return await dbContext.Leagues
+            .FirstOrDefaultAsync(l => l.ShortName == key);
+    }
+
     private static string? MapToLeaguepediaName(string shortName) => shortName.ToUpperInvariant() switch
     {
         "LEC" => "LoL EMEA Championship",
-        "LCS" => "League Championship Series",
-        "LCK" => "League of Legends Champions Korea",
+        "LCS" => "League of Legends Championship Series",
+        "LCK" => "LoL Champions Korea",
         _ => null
     };
-    
-    [HttpPost("vods/{leagueShortName}")]
-    public async Task<IActionResult> ImportVods(string leagueShortName)
-    {
-        await vodEnricher.EnrichVodsAsync(leagueShortName);
-        return Ok($"VOD enrichment finished for {leagueShortName}");
-    }
 }

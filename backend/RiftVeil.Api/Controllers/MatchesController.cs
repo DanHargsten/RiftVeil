@@ -5,11 +5,13 @@ using RiftVeil.Domain.Enums;
 
 namespace RiftVeil.Api.Controllers;
 
+/// <summary>
+/// HTTP API for matches (list, filters, and by id).
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class MatchesController(IMatchReadService matchReadService) : ControllerBase
 {
-
     /// <summary>
     /// Get all matches with optional filters.
     /// When tournamentId is provided, all matches for that tournament are returned (from/to ignored).
@@ -17,7 +19,7 @@ public class MatchesController(IMatchReadService matchReadService) : ControllerB
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(List<MatchListItemDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<List<MatchListItemDto>>> GetAll(
+    public async Task<ActionResult<List<MatchListItemDto>>> GetAllAsync(
         [FromQuery] int? tournamentId = null,
         [FromQuery] MatchStatus? status = null,
         [FromQuery] DateTimeOffset? from = null,
@@ -33,7 +35,7 @@ public class MatchesController(IMatchReadService matchReadService) : ControllerB
     /// <param name="days">Number of days to look ahead (default 7).</param>
     [HttpGet("upcoming")]
     [ProducesResponseType(typeof(List<MatchListItemDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<List<MatchListItemDto>>> GetUpcoming(
+    public async Task<ActionResult<List<MatchListItemDto>>> GetUpcomingAsync(
         [FromQuery] int days = 7)
     {
         var matches = await matchReadService.GetUpcomingAsync(days);
@@ -43,11 +45,10 @@ public class MatchesController(IMatchReadService matchReadService) : ControllerB
     /// <summary>
     /// Get recent matches.
     /// </summary>
-    /// <param name="count"></param>
-    /// <returns></returns>
+    /// <param name="count">Maximum number of matches to return (default 10).</param>
     [HttpGet("recent")]
     [ProducesResponseType(typeof(List<MatchListItemDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<List<MatchListItemDto>>> GetRecent(
+    public async Task<ActionResult<List<MatchListItemDto>>> GetRecentAsync(
         [FromQuery] int count = 10)
     {
         var matches = await matchReadService.GetRecentAsync(count);
@@ -57,25 +58,25 @@ public class MatchesController(IMatchReadService matchReadService) : ControllerB
     /// <summary>
     /// Get live matches.
     /// </summary>
-    /// <returns></returns>
     [HttpGet("live")]
     [ProducesResponseType(typeof(List<MatchListItemDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<List<MatchListItemDto>>> GetLive()
+    public async Task<ActionResult<List<MatchListItemDto>>> GetLiveAsync()
     {
         var matches = await matchReadService.GetLiveAsync();
-        return Ok(matches);   
+        return Ok(matches);
     }
-    
+
     /// <summary>
     /// Get a specific match by ID.
     /// </summary>
+    /// <param name="id">The match ID.</param>
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(MatchDetailsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<MatchDetailsDto>> GetById(int id)
+    public async Task<ActionResult<MatchDetailsDto>> GetByIdAsync(int id)
     {
         var match = await matchReadService.GetByIdAsync(id);
-        
+
         if (match == null)
         {
             return NotFound();
