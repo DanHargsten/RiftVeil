@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using RiftVeil.Application.Interfaces.Read;
 using RiftVeil.Application.Dtos.Matches;
+using RiftVeil.Application.Interfaces.Read;
 using RiftVeil.Application.Mappings;
-using RiftVeil.Infrastructure.Data;
 using RiftVeil.Domain.Enums;
+using RiftVeil.Infrastructure.Data;
 
 namespace RiftVeil.Infrastructure.Services.Read;
 
@@ -11,14 +11,7 @@ public class MatchReadService(RiftVeilDbContext context) : IMatchReadService
 {
     private readonly RiftVeilDbContext _context = context;
 
-    /// <summary>
-    /// Retrieves a list of matches based on optional filters.
-    /// </summary>
-    /// <param name="tournamentId"></param>
-    /// <param name="status"></param>
-    /// <param name="from"></param>
-    /// <param name="to"></param>
-    /// <returns></returns>
+    /// <inheritdoc />
     public async Task<List<MatchListItemDto>> GetAllAsync(
         int? tournamentId = null,
         MatchStatus? status = null,
@@ -57,11 +50,7 @@ public class MatchReadService(RiftVeilDbContext context) : IMatchReadService
             .ToListAsync();
     }
 
-    /// <summary>
-    /// Retrieves a list of upcoming matches within a specified time frame.
-    /// </summary>
-    /// <param name="days">The number of days ahead to look for upcoming matches.</param>
-    /// <returns>A list of match list items.</returns>
+    /// <inheritdoc />
     public async Task<List<MatchListItemDto>> GetUpcomingAsync(int days = 7)
     {
         var cutoffTime = DateTimeOffset.UtcNow.AddDays(days);
@@ -75,11 +64,7 @@ public class MatchReadService(RiftVeilDbContext context) : IMatchReadService
             .ToListAsync();
     }
 
-    /// <summary>
-    /// Retrieves a list of recent matches.
-    /// </summary>
-    /// <param name="count"></param>
-    /// <returns></returns>
+    /// <inheritdoc />
     public async Task<List<MatchListItemDto>> GetRecentAsync(int count = 10)
     {
         return await _context.Matches
@@ -90,10 +75,7 @@ public class MatchReadService(RiftVeilDbContext context) : IMatchReadService
             .ToListAsync();
     }
 
-    /// <summary>
-    /// Retrieves a list of live matches.
-    /// </summary>
-    /// <returns></returns>
+    /// <inheritdoc />
     public async Task<List<MatchListItemDto>> GetLiveAsync()
     {
         return await _context.Matches
@@ -102,12 +84,8 @@ public class MatchReadService(RiftVeilDbContext context) : IMatchReadService
             .Select(MatchProjections.ToListItemDto())
             .ToListAsync();
     }
-    
-    /// <summary>
-    /// Retrieves a match detail by its ID.
-    /// </summary>
-    /// <param name="id">The ID of the match to retrieve.</param>
-    /// <returns>A match detail DTO.</returns>
+
+    /// <inheritdoc />
     public async Task<MatchDetailsDto?> GetByIdAsync(int id)
     {
         var match = await _context.Matches

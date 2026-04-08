@@ -9,17 +9,14 @@ namespace RiftVeil.Infrastructure.Services.Read;
 
 public class TournamentReadService(RiftVeilDbContext context) : ITournamentReadService
 {
-    /// <summary>
-    /// Retrieves a list of tournaments based on optional filters.
-    /// </summary>
-    /// <param name="leagueId">The ID of the league to filter by.</param>
-    /// <param name="status">The status of the tournaments to filter by.</param>
-    /// <returns>A list of tournament details.</returns>
+    private readonly RiftVeilDbContext _context = context;
+
+    /// <inheritdoc />
     public async Task<List<TournamentListItemDto>> GetAllAsync(
         int? leagueId = null,
         TournamentStatus? status = null)
     {
-        var query = context.Tournaments.AsQueryable();
+        var query = _context.Tournaments.AsQueryable();
 
         if (leagueId.HasValue)
         {
@@ -37,15 +34,10 @@ public class TournamentReadService(RiftVeilDbContext context) : ITournamentReadS
             .ToListAsync();
     }
 
-
-    /// <summary>
-    /// Retrieves a tournament by its ID.
-    /// </summary>
-    /// <param name="id">The ID of the tournament to retrieve.</param>
-    /// <returns>The tournament details or null if not found.</returns>
+    /// <inheritdoc />
     public async Task<TournamentDetailsDto?> GetByIdAsync(int id)
     {
-        var tournament = await context.Tournaments
+        var tournament = await _context.Tournaments
             .Include(t => t.League)
             .Include(t => t.Matches)
                 .ThenInclude(m => m.Team1)
