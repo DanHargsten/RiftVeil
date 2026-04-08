@@ -19,7 +19,7 @@ public class Game : BaseEntity
     public DateTimeOffset? FinishedAtUtc { get; private set; }
     public string? VodUrl { get; private set; }
     public string? ExternalId { get; private set; }
-    
+
     public ICollection<GameVod> Vods { get; private set; } = [];
 
 
@@ -109,6 +109,16 @@ public class Game : BaseEntity
     }
 
     /// <summary>
+    /// Sets only the winning team (used when updating existing games with missing result).
+    /// </summary>
+    public void SetWinningTeam(int winningTeam)
+    {
+        if (winningTeam is not (1 or 2))
+            throw new ArgumentOutOfRangeException(nameof(winningTeam), "Winning team must be 1 or 2.");
+        WinningTeam = winningTeam;
+    }
+
+    /// <summary>
     /// Marks the game as finished with a winner.
     /// </summary>
     public void MarkFinished(
@@ -138,7 +148,7 @@ public class Game : BaseEntity
     /// <summary>
     /// Used by the VOD enricher to set the YouTube link.
     /// </summary>
-    /// <param name="vodUrl"></param>
+    /// <param name="vodUrl">Primary VOD URL for quick access; null clears the value.</param>
     public void SetVodUrl(string? vodUrl)
     {
         VodUrl = vodUrl;
@@ -158,7 +168,7 @@ public class Game : BaseEntity
         {
             return null;
         }
-        
+
         var vod = new GameVod(Id, provider, url, normalizedLocale, parameter, offsetSeconds, priority);
         Vods.Add(vod);
         return vod;

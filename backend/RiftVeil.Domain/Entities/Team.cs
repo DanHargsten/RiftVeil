@@ -12,10 +12,10 @@ public class Team : BaseEntity
     public string? Region { get; private set; }
     public string? LogoUrl { get; private set; }
     public string? ExternalId { get; private set; }
-    
+
     public ICollection<Match> MatchesAsTeam1 { get; private set; } = [];
     public ICollection<Match> MatchesAsTeam2 { get; private set; } = [];
-    
+
     private Team() { }
 
     public Team(string name, string shortName, string? region = null, string? logoUrl = null, string? externalId = null)

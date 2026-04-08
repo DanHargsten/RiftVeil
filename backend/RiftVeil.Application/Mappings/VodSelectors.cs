@@ -1,4 +1,4 @@
-﻿using RiftVeil.Domain.Entities;
+using RiftVeil.Domain.Entities;
 using RiftVeil.Domain.Enums;
 
 namespace RiftVeil.Application.Mappings;
@@ -13,10 +13,11 @@ public static class VodSelectors
     /// Selects the best VOD URL from a collection of GameVods.
     /// Priority: lowest Priority value -> preferred locale match -> YouTube VODs first
     /// </summary>
-    /// <param name="vods"></param>
-    /// <param name="preferredLocale"></param>
-    /// <returns></returns>
-    public static string? GetBestVodUrl(IEnumerable<GameVod> vods, string? preferredLocale = null){
+    /// <param name="vods">VOD records to choose from.</param>
+    /// <param name="preferredLocale">When set, prefers VODs with this locale (e.g. en-US).</param>
+    /// <returns>The best URL, or null if the collection is empty.</returns>
+    public static string? GetBestVodUrl(IEnumerable<GameVod> vods, string? preferredLocale = null)
+    {
         return vods
             .OrderBy(v => v.Priority)
             .ThenBy(v => preferredLocale != null && v.Locale != preferredLocale ? 1 : 0)

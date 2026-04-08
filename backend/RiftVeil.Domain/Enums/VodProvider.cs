@@ -1,4 +1,4 @@
-﻿namespace RiftVeil.Domain.Enums;
+namespace RiftVeil.Domain.Enums;
 
 /// <summary>
 /// Supported VOD streaming providers.

@@ -10,13 +10,13 @@ public class Match : BaseEntity
 {
     public int TournamentId { get; private set; }
     public Tournament Tournament { get; private set; } = null!;
-    
+
     public int Team1Id { get; private set; }
     public Team Team1 { get; private set; } = null!;
-    
+
     public int Team2Id { get; private set; }
     public Team Team2 { get; private set; } = null!;
-    
+
     public DateTimeOffset StartsAtUtc { get; private set; }
     public DateTimeOffset? StartedAtUtc { get; private set; }
     public DateTimeOffset? FinishedAtUtc { get; private set; }
@@ -27,8 +27,8 @@ public class Match : BaseEntity
     public string? Round { get; private set; }
     public string? VodUrl { get; private set; }
     public string? ExternalId { get; private set; }
-    
-    public ICollection<Game> Games { get; private set;  } = [];
+
+    public ICollection<Game> Games { get; private set; } = [];
 
 
     // Required for EF Core materialization without exposing public setters.
