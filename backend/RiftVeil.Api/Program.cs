@@ -1,9 +1,10 @@
 using System.Text.Json.Serialization;
+
 using Microsoft.EntityFrameworkCore;
-using RiftVeil.Infrastructure.Services.Read;
 using RiftVeil.Application.Interfaces.Read;
 using RiftVeil.Infrastructure.Data;
 using RiftVeil.Infrastructure.Services.Import;
+using RiftVeil.Infrastructure.Services.Read;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,10 +12,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        // Serialize enums as strings
+        // Serialize enums as strings.
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-        
-        // Make JSON more readable in development
+
+        // Make JSON more readable in development.
         options.JsonSerializerOptions.WriteIndented = builder.Environment.IsDevelopment();
     });
 builder.Services.AddEndpointsApiExplorer();
@@ -22,30 +23,31 @@ builder.Services.AddSwaggerGen();
 
 // Leaguepedia API client.
 builder.Services.AddHttpClient<LeaguepediaClient>(client =>
-    {
-        client.DefaultRequestHeaders.UserAgent.ParseAdd(
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36");
-        client.DefaultRequestHeaders.Add("Accept", "application/json");
-    })
+{
+    client.DefaultRequestHeaders.UserAgent.ParseAdd(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36");
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+})
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
     {
         AutomaticDecompression = System.Net.DecompressionMethods.All
     });
 
-// Lolesports VOD client
+// Lolesports VOD client.
 builder.Services.AddHttpClient<LolesportsClient>(client =>
 {
     client.DefaultRequestHeaders.UserAgent.ParseAdd(
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36");
 });
 
+// Import and VOD enrichment (uses HTTP clients above).
 builder.Services.AddScoped<LolesportsVodEnricher>();
+builder.Services.AddScoped<LeaguepediaImportService>();
 
 // Read services for database access.
 builder.Services.AddScoped<ILeagueReadService, LeagueReadService>();
 builder.Services.AddScoped<ITournamentReadService, TournamentReadService>();
 builder.Services.AddScoped<IMatchReadService, MatchReadService>();
-builder.Services.AddScoped<LeaguepediaImportService>();
 
 // Central data access for the API layer.
 builder.Services.AddDbContext<RiftVeilDbContext>(options =>
@@ -67,7 +69,6 @@ builder.Services.AddCors(options =>
     });
 });
 
-
 var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
@@ -75,16 +76,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
     app.UseCors();
 
-    // Initialize database
+    // Initialize database.
     using var scope = app.Services.CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<RiftVeilDbContext>();
 
-    // Only run migrations if using SQL Server
+    // Only run migrations if using SQL Server.
     if (context.Database.ProviderName != "Microsoft.EntityFrameworkCore.InMemory")
     {
         context.Database.Migrate();
     }
-    
+
     DbInitializer.Initialize(context);
 }
 
