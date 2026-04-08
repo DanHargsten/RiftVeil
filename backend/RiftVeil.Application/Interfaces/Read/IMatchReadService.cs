@@ -26,18 +26,18 @@ public interface IMatchReadService
     /// <param name="days">The number of days ahead to look for upcoming matches.</param>
     /// <returns>A list of match items.</returns>
     Task<List<MatchListItemDto>> GetUpcomingAsync(int days = 7);
-    
+
     /// <summary>
     /// Retrieves a list of recent matches.
     /// </summary>
-    /// <param name="count"></param>
-    /// <returns></returns>
+    /// <param name="count">Maximum number of matches to return (default 10).</param>
+    /// <returns>A list of match items.</returns>
     Task<List<MatchListItemDto>> GetRecentAsync(int count = 10);
 
     /// <summary>
     /// Retrieves a list of live matches.
     /// </summary>
-    /// <returns></returns>
+    /// <returns>A list of match items.</returns>
     Task<List<MatchListItemDto>> GetLiveAsync();
 
     /// <summary>
