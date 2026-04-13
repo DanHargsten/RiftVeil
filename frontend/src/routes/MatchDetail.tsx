@@ -2,7 +2,7 @@ import {useParams} from "react-router-dom";
 import {useQuery} from "@tanstack/react-query";
 import {matchesApi} from "@/lib/api.ts";
 import { useState } from "react";
-import {TeamLogo} from "@/components/common/TeamLogo.tsx";
+import { TeamLogo } from "@/components/common/Logos.tsx";
 
 /** Match detail page: full match info with game-by-game breakdown. */
 export function MatchDetail() {
