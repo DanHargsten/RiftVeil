@@ -109,8 +109,6 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         var matchStats = new ImportStats();
         var gameStats = new ImportStats();
 
-        await PreloadTeamShortNamesAsync();
-
         var tournaments = await dbContext.Tournaments
             .Where(t => t.LeagueId == leagueId && t.LiquipediaSlug != null)
             .ToListAsync();
@@ -121,8 +119,8 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
 
             if (importedCount > 0)
             {
-                Console.WriteLine($"  Waiting 10s before next tournament...");
-                await Task.Delay(10_000);
+                Console.WriteLine($"  Waiting 3s before next tournament...");
+                await Task.Delay(3_000);
             }
             else
             {
@@ -132,6 +130,39 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
 
         matchStats.Print("Matches");
         gameStats.Print("Games");
+    }
+    
+    /// <summary>
+    /// Imports matches only for currently ongoing tournaments.
+    /// </summary>
+    public async Task ImportOngoingMatchesAsync(int leagueId)
+    {
+        var matchStats = new ImportStats();
+        var gameStats = new ImportStats();
+
+        var now = DateTimeOffset.UtcNow;
+        var tournaments = await dbContext.Tournaments
+            .Where(t => t.LeagueId == leagueId
+                        && t.LiquipediaSlug != null
+                        && t.StartsAtUtc <= now
+                        && (t.EndsAtUtc == null || t.EndsAtUtc >= now))
+            .ToListAsync();
+
+        Console.WriteLine($"  Found {tournaments.Count} ongoing tournament(s)");
+
+        foreach (var tournament in tournaments)
+        {
+            var importedCount = await ImportMatchesForTournamentAsync(tournament, matchStats, gameStats);
+
+            if (importedCount > 0)
+            {
+                Console.WriteLine($"  Waiting 3s before next tournament...");
+                await Task.Delay(3000);
+            }
+        }
+
+        matchStats.Print("Matches (ongoing)");
+        gameStats.Print("Games (ongoing)");
     }
 
     private async Task<int> ImportMatchesForTournamentAsync(Tournament tournament, ImportStats matchStats, ImportStats gameStats)
@@ -248,7 +279,7 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         {
             if (importedInThisBatch > 0)
             {
-                await Task.Delay(5000);
+                await Task.Delay(2000);
             }
             await ImportGamesForTournamentAsync(tournament, gameStats);
         }

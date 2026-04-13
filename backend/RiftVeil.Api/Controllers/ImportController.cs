@@ -61,6 +61,22 @@ public class ImportController(
         await importService.ImportMatchesAsync(league.Id);
         return Ok("Match import complete.");
     }
+    
+    /// <summary>
+    /// Imports matches only for ongoing tournaments in the given league.
+    /// </summary>
+    [HttpPost("matches/{leagueShortName}/ongoing")]
+    public async Task<IActionResult> ImportOngoingMatches(string leagueShortName)
+    {
+        var league = await dbContext.Leagues
+            .FirstOrDefaultAsync(l => l.ShortName == leagueShortName.ToUpperInvariant());
+
+        if (league == null)
+            return NotFound($"League '{leagueShortName}' not found.");
+
+        await importService.ImportOngoingMatchesAsync(league.Id);
+        return Ok("Ongoing match import complete.");
+    }
 
     /// <summary>
     /// Enriches games with VOD links from the lolesports API for the given league.
