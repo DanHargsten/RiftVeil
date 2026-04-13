@@ -1,0 +1,33 @@
+﻿.badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    gap: 0.25rem;
+}
+
+.badge--final {
+    background: transparent;
+    /*border: 1px solid var(--border);*/
+    color: var(--text-muted-extra);
+}
+
+.badge--live {
+    background: var(--live-soft);
+    color: var(--live-text);
+    border: 1px solid rgba(232, 64, 87, 0.3);
+}
+
+.badge--scheduled {
+    background: transparent;
+    /*border: 1px solid var(--text-muted);*/
+    color: var(--text-muted);
+}
+
+.badge__icon {
+    display: block;
+    flex-shrink: 0;
+}

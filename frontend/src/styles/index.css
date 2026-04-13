@@ -4,9 +4,11 @@
 
 @import "./layout.css";
 
+@import "./components/badge.css";
 @import "./components/match-card.css";
 @import "./components/match-list.css";
 @import "./components/table.css";
+@import "./components/navbar.css";
 @import "./components/sidebar.css";
 
 @import "./layout/app.css";
