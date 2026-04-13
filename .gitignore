@@ -17,6 +17,9 @@ obj/
 # --- VS Code ---
 .vscode/
 
+# -- VS Code Frontend
+vsfrontend
+
 # --- Node / Vite ---
 node_modules/
 dist/

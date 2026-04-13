@@ -1,0 +1,9 @@
+root = true
+
+# C# only — avoids touching frontend or other file types when running formatters.
+[*.cs]
+charset = utf-8
+insert_final_newline = true
+dotnet_sort_system_directives_first = true
+# false = one blank line after System.*, then all other usings together (sorted).
+dotnet_separate_import_directive_groups = false
