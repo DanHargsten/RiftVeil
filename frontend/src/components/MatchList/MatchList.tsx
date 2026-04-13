@@ -1,12 +1,10 @@
-import { matchesApi, type MatchListItem } from "@/lib/api.ts";
+import { matchesApi, tournamentsApi, type MatchListItem } from "@/lib/api.ts";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MatchCard } from "./MatchCard";
+import type { SpoilerPrefs } from "@/hooks/useSpoilerPrefs.ts";
+import { VisibilityOffIcon, VisibilityOnIcon } from "@/components/common/Icons.tsx";
 
-type SpoilerPrefs = {
-    globalEnabled: boolean;
-    revealedMatchIds: Set<number>;
-};
 
 type GroupedMatches = {
     date: string;
@@ -18,127 +16,143 @@ type GroupedMatches = {
 
 interface MatchListProps {
     tournamentId?: number | null;
+    spoilerProps: {
+        spoilers: SpoilerPrefs;
+        toggleGlobal: () => void;
+        revealMatch: (id: number) => void;
+        hideMatch: (id: number) => void;
+    };
 }
 
-/** Lists matches grouped by date, with date-range loading and a spoiler toggle. */
-export function MatchList({ tournamentId }: MatchListProps) {
-    const [spoilers, setSpoilers] = useState<SpoilerPrefs>({
-        globalEnabled: false,
-        revealedMatchIds: new Set<number>(),
-    });
-
+export function MatchList({ spoilerProps }: MatchListProps) {
+    const { spoilers, toggleGlobal, revealMatch, hideMatch } = spoilerProps;
+    const [search, setSearch] = useState("");
+    const [selectedTournamentId, setSelectedTournamentId] = useState<number | "all">("all");
     const todayRef = useRef<HTMLDivElement>(null);
     const hasScrolled = useRef(false);
 
-    // Determine if we're in tournament mode (show all) or date mode
-    const isTournamentMode = tournamentId != null;
-    
-    const {
-        data: matches,
-        isLoading,
-        error,
-    } = useQuery({
-        queryKey: ["matches", tournamentId],
-        queryFn: () => isTournamentMode
-            ? matchesApi.getAll({ tournamentId: tournamentId! })
-            : matchesApi.getRecent(15),
+    const { data: tournaments } = useQuery({
+        queryKey: ["tournaments"],
+        queryFn: () => tournamentsApi.getAll(),
     });
 
-    // Auto-scroll to "Today" on the first load (not on later re-renders)
+    const { data: matches, isLoading, error } = useQuery({
+        queryKey: ["matches", selectedTournamentId, "window"],
+        queryFn: () =>
+            selectedTournamentId !== "all"
+                ? matchesApi.getAll({ tournamentId: selectedTournamentId })
+                : (() => {
+                    const from = new Date();
+                    from.setDate(from.getDate() - 7);
+                    const to = new Date();
+                    to.setDate(to.getDate() + 7);
+                    return matchesApi.getAll({ from: from.toISOString(), to: to.toISOString() });
+                })(),
+    });
+
     useEffect(() => {
         if (matches && todayRef.current && !hasScrolled.current) {
             hasScrolled.current = true;
             setTimeout(() => {
-                todayRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                todayRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
             }, 100);
         }
     }, [matches]);
 
-    // Reset scroll tracking when switching tournament
     useEffect(() => {
         hasScrolled.current = false;
-    }, [tournamentId]);
-    
-    const toggleGlobal = () => {
-        setSpoilers((prev) => ({
-            ...prev,
-            globalEnabled: !prev.globalEnabled,
-        }));
-    };
+    }, [selectedTournamentId]);
 
-    const revealMatch = (matchId: number) => {
-        setSpoilers((prev) => {
-            const next = new Set(prev.revealedMatchIds);
-            next.add(matchId);
-            return { ...prev, revealedMatchIds: next };
-        });
-    };
-
-    const hideMatch = (matchId: number) => {
-        setSpoilers((prev) => {
-            const next = new Set(prev.revealedMatchIds);
-            next.delete(matchId);
-            return { ...prev, revealedMatchIds: next };
-        });
-    };
-
-    if (isLoading) {
+    const filteredMatches = (matches ?? []).filter((m) => {
+        if (!search.trim()) return true;
+        const q = search.toLowerCase();
         return (
-            <div className="match-list__state match-list__state--loading">
-                Loading matches...
-            </div>
+            m.team1Name.toLowerCase().includes(q) ||
+            m.team2Name.toLowerCase().includes(q) ||
+            m.team1ShortName.toLowerCase().includes(q) ||
+            m.team2ShortName.toLowerCase().includes(q)
         );
-    }
+    });
 
-    if (error) {
-        return (
-            <div className="match-list__state match-list__state--error">
-                Error loading matches: {error.message}
-            </div>
-        );
-    }
+    if (isLoading) return <div className="match-list__state">Loading matches...</div>;
+    if (error) return <div className="match-list__state match-list__state--error">Error loading matches.</div>;
 
-    if (!matches || matches.length === 0) {
-        return (
-            <div className="match-list__state match-list__state--empty">
-                No matches found.
-            </div>
-        );
-    }
-
-    const groupedMatches = groupMatchesByDate(matches);
+    const groupedMatches = groupMatchesByDate(filteredMatches);
 
     return (
         <div className="match-list">
-            <div className="match-list__header">
-                <h2 className="match-list__title">
-                    {isTournamentMode ? "Tournament matches" : "Latest matches"}
-                </h2>
+
+            {/* Toolbar */}
+            <div className="match-list__toolbar">
+                <div className="match-list__toolbar-left">
+                    <div className="match-list__search">
+                        <svg className="match-list__search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                        </svg>
+                        <input
+                            className="match-list__search-input"
+                            type="text"
+                            placeholder="Search teams..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </div>
+
+                    <select
+                        className="match-list__filter-select"
+                        value={selectedTournamentId}
+                        onChange={(e) =>
+                            setSelectedTournamentId(
+                                e.target.value === "all" ? "all" : Number(e.target.value)
+                            )
+                        }
+                    >
+                        <option value="all">All Tournaments</option>
+                        {tournaments?.map((t) => (
+                            <option key={t.id} value={t.id}>
+                                {t.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
 
                 <label className="match-list__spoiler-toggle">
-                    <input
-                        type="checkbox"
-                        checked={spoilers.globalEnabled}
-                        onChange={toggleGlobal}
-                    />
-                    <span>Show spoilers</span>
+                    <div className="match-list__spoiler-text">
+                        <span className="match-list__spoiler-label">
+                            {spoilers.globalEnabled
+                                ? <VisibilityOffIcon size={20} />
+                                : <VisibilityOnIcon size={20} />
+                            }
+                            Hide spoilers
+                        </span>
+                        <span className="match-list__spoiler-status">
+                            {spoilers.globalEnabled ? "Scores hidden across matches" : "Scores visible across matches"}
+                        </span>                        
+                    </div>
+                    <div className={`match-list__toggle-track ${spoilers.globalEnabled ? "match-list__toggle-track--on" : ""}`}>
+                        <input
+                            type="checkbox"
+                            checked={spoilers.globalEnabled}
+                            onChange={toggleGlobal}
+                            className="match-list__toggle-input"
+                        />
+                        <div className="match-list__toggle-thumb" />
+                    </div>
                 </label>
             </div>
-            
-            <div className="match-list__groups">
-                {groupedMatches.map((group) => (
-                    <div
-                        key={group.date}
-                        className={`match-list__group ${group.isToday ? "match-list__group--today" : ""} ${group.isPast ? "match-list__group--past" : ""}`}
-                        ref={group.isToday ? todayRef : null}
-                    >
-                        <h3 className="match-list__group-title">{group.label}</h3>
 
-                        {group.matches.length === 0 ? (
-                            <div className="match-list__group-empty">
-                                No matches scheduled
-                            </div>
-                        ) : (
+            {/* Match-grupper */}
+            {groupedMatches.length === 0 ? (
+                <div className="match-list__state">No matches found.</div>
+            ) : (
+                <div className="match-list__groups">
+                    {groupedMatches.map((group) => (
+                        <div
+                            key={group.date}
+                            className={`match-list__group ${group.isToday ? "match-list__group--today" : ""} ${group.isPast ? "match-list__group--past" : ""}`}
+                            ref={group.isToday || (!groupedMatches.some(g => g.isToday) && group === groupedMatches.find(g => !g.isPast)) ? todayRef : null}
+                        >
+                            <h3 className="match-list__group-title">{group.label}</h3>
                             <div className="match-list__items">
                                 {group.matches.map((match) => (
                                     <MatchCard
@@ -150,76 +164,49 @@ export function MatchList({ tournamentId }: MatchListProps) {
                                     />
                                 ))}
                             </div>
-                        )}
-                    </div>
-                ))}
-            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
 
-/** Groups matches by date and sorts within each day. */
 function groupMatchesByDate(matches: MatchListItem[]): GroupedMatches[] {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
     const grouped = new Map<string, MatchListItem[]>();
 
     matches.forEach((match) => {
-        const matchDate = new Date(match.startsAtUtc);
-        const dateKey = matchDate.toISOString().split("T")[0];
-
-        if (!grouped.has(dateKey)) {
-            grouped.set(dateKey, []);
-        }
+        const dateKey = new Date(match.startsAtUtc).toISOString().split("T")[0];
+        if (!grouped.has(dateKey)) grouped.set(dateKey, []);
         grouped.get(dateKey)!.push(match);
     });
 
-    const sortedDates = Array.from(grouped.keys()).sort();
-
-    return sortedDates.map((dateKey) => {
-        const matchDate = new Date(dateKey);
-        const matchesForDay = grouped.get(dateKey)!;
-
-        matchesForDay.sort(
-            (a, b) =>
-                new Date(a.startsAtUtc).getTime() - new Date(b.startsAtUtc).getTime()
-        );
-
-        const isToday = matchDate.getTime() === today.getTime();
-        const isPast = matchDate < today;
-
-        return {
-            date: dateKey,
-            label: formatDateLabel(matchDate, today),
-            isToday,
-            isPast,
-            matches: matchesForDay,
-        };
-    });
+    return Array.from(grouped.keys())
+        .sort()
+        .map((dateKey) => {
+            const matchDate = new Date(dateKey);
+            const matchesForDay = grouped.get(dateKey)!.sort(
+                (a, b) => new Date(a.startsAtUtc).getTime() - new Date(b.startsAtUtc).getTime()
+            );
+            const isToday = matchDate.getTime() === today.getTime();
+            return {
+                date: dateKey,
+                label: formatDateLabel(matchDate, today),
+                isToday,
+                isPast: matchDate < today,
+                matches: matchesForDay,
+            };
+        });
 }
 
-/** Returns "Today", "Yesterday", "Tomorrow", or a date like "Måndag 17/2". */
 function formatDateLabel(date: Date, today: Date): string {
-    const normalize = (d: Date) =>
-        new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-
-    const normDate = normalize(date);
-    const normToday = normalize(today);
-    const normYesterday = normalize(new Date(today.getTime() - 86400000));
-    const normTomorrow = normalize(new Date(today.getTime() + 86400000));
-
-    if (normDate === normToday) {
-        return "Today";
-    } else if (normDate === normYesterday) {
-        return "Yesterday";
-    } else if (normDate === normTomorrow) {
-        return "Tomorrow";
-    } else {
-        const weekday = date.toLocaleDateString("sv-SE", { weekday: "long" });
-        const day = date.getDate();
-        const month = date.getMonth() + 1;
-        const capWeekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
-        return `${capWeekday} ${day}/${month}`;
-    }
+    const norm = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const diff = norm(date) - norm(today);
+    if (diff === 0) return "Today";
+    if (diff === -86400000) return "Yesterday";
+    if (diff === 86400000) return "Tomorrow";
+    const weekday = date.toLocaleDateString("sv-SE", { weekday: "long" });
+    return `${weekday.charAt(0).toUpperCase() + weekday.slice(1)} ${date.getDate()}/${date.getMonth() + 1}`;
 }
