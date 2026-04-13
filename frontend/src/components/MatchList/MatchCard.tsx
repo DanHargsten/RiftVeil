@@ -1,7 +1,8 @@
 import { type MatchListItem } from "@/lib/api.ts";
-import React, { useState } from "react";
-import {ArrowDropdownIcon, PlayIcon, VisibilityOffIcon} from "@/components/common/Icons.tsx";
+import React from "react";
+import { PlayIcon, VisibilityOffIcon, TimeCircle } from "@/components/common/Icons.tsx";
 import {Link} from "react-router-dom";
+import { TeamLogo, LeagueLogo } from "@/components/common/Logos.tsx";
 
 type SpoilerPrefs = {
     globalEnabled: boolean;
@@ -15,21 +16,11 @@ interface MatchCardProps {
     onHide: () => void;
 }
 
-
-/**
- * Displays individual match information with spoiler protection.
- * Three-stage expansion: compact → score revealed → full details.
- */
 export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps) {
-    const [expanded, setExpanded] = useState(false);
-    const [revealedGames, setRevealedGames] = useState<Set<number>>(new Set());
-
     const isFinished = match.status === "Finished";
     const isLive = match.status === "Live";
 
-    // Global OR per-match reveal
-    const showingSpoilers =
-        spoilers.globalEnabled || spoilers.revealedMatchIds.has(match.id);
+    const showingSpoilers = spoilers.globalEnabled || spoilers.revealedMatchIds.has(match.id);
 
     const canShowScore =
         showingSpoilers &&
@@ -37,269 +28,209 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
         match.team1Score != null &&
         match.team2Score != null;
 
-    // Check if all played games have been individually revealed
-    const allPlayedRevealed = match.games
-        .filter(g => g.winningTeam != null)
-        .every(g => revealedGames.has(g.gameNumber));
-
-    // Dynamic time display: today = "14:00", this week = "2d ago", older = "4 nov"
-    const getTimeDisplay = () => {
-        if (isFinished) {
-            const now = new Date();
-            const matchDate = new Date(match.startsAtUtc);
-            const diffMs = new Date(now.toDateString()).getTime() - new Date(matchDate.toDateString()).getTime();
-            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-            if (diffDays === 0)
-            {
-                return formatTime(match.startsAtUtc);
-            }
-            if (diffDays < 7)
-            {
-                return `${diffDays}d ago`;
-            }
-
-            return new Date(match.startsAtUtc).toLocaleDateString(undefined, {
-                month: "short",
-                day: "numeric"
-            });
-        }
-
-        return formatTime(match.startsAtUtc);
-    };
-
     const handleEyeClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (showingSpoilers) {
-            onHide();
-        } else {
-            onReveal();
-        }
-    };
-
-    const toggleGameSpoiler = (gameNumber: number) => {
-        setRevealedGames(prev => {
-            const next = new Set(prev);
-            if (next.has(gameNumber)) {
-                next.delete(gameNumber);
-            } else {
-                next.add(gameNumber);
-            }
-            return next;
-        });
+        e.stopPropagation(); // Prevent click from bubbling to any parent link/card handler
+        if (showingSpoilers) onHide();
+        else onReveal();
     };
 
     const getStatusClass = () => {
-        if (match.status === "Live")
-        {
-            return "match-card--live";
-        }
-        if (match.status === "Finished")
-        {
-            return "match-card--finished";
-        }
-        if (match.status === "Cancelled")
-        {
-            return "match-card--cancelled";
-        }
+        if (isLive) return "match-card--live";
+        if (isFinished) return "match-card--finished";
+        if (match.status === "Cancelled") return "match-card--cancelled";
         return "match-card--upcoming";
     };
 
-
+    // Compare calendar dates (not timestamps) to get whole-day difference
+    const getTimeDisplay = () => {
+        if (!isFinished) return formatTime(match.startsAtUtc);
+        const now = new Date();
+        const matchDate = new Date(match.startsAtUtc);
+        const diffDays = Math.floor(
+            (new Date(now.toDateString()).getTime() - new Date(matchDate.toDateString()).getTime())
+            / (1000 * 60 * 60 * 24)
+        );
+        if (diffDays === 0) return formatTime(match.startsAtUtc);
+        if (diffDays < 7) return `${diffDays}d ago`;
+        return matchDate.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    };
+    
     return (
-        <article className={`match-card ${getStatusClass()} ${expanded ? "match-card--expanded" : ""}`}>
+        <article className={`match-card ${getStatusClass()}`} aria-labelledby={`match-title-${match.id}`}>
+            <h3 id={`match-title-${match.id}`} className="sr-only">
+                {match.team1ShortName} vs {match.team2ShortName} — {match.leagueShortName}
+            </h3>
+            
+            {/* ========== HEADER ========== */}
+            <header className="match-card__header">
 
-            {/* Header: League logo + Tournament + Status */}
-            <div className="match-card__header">
+                {/* TOURNAMENT */}
                 <div className="match-card__tournament">
-                    <img
-                        src={`/logos/leagues/${match.leagueShortName.toLowerCase()}.png`}
-                        alt={match.leagueShortName}
-                        className="match-card__league-logo"
-                        onError={(e) => {
-                            e.currentTarget.src = `/logos/leagues/placeholder.png`;
-                        }}
-                    />
+                    <LeagueLogo shortName={match.leagueShortName} />
                     <span className="match-card__tournament-league">{match.leagueShortName}</span>
                     {match.tournamentStage && (
                         <>
-                            <span className="match-card__tournament-separator">/</span>
+                            <span className="match-card__tournament-separator">·</span>
                             <span className="match-card__tournament-stage">{match.tournamentStage}</span>
                         </>
                     )}
                 </div>
+
+                {/* STATUS */}
                 <div className="match-card__status">
                     {isLive ? (
-                        <span className="match-card__status-badge match-card__status-badge--live">LIVE</span>
+                        <span className="badge badge--live" aria-live="polite" role="status">LIVE</span>
+                    ) : match.status === "Scheduled" ? (
+                        <span className="badge badge--scheduled">
+                            <TimeCircle className="badge__icon" size={18} aria-hidden="true" />
+                            Upcoming
+                        </span>
+                    ) : null}
+                </div>
+            </header>
+
+            {/* ========== TEAMS + SCORE ========== */}
+            <div className="match-card__main">   
+                
+                {/* TEAM 1 */}
+                <div className="match-card__team match-card__team--left">
+                    <TeamLogo shortName={match.team1ShortName} />
+                    <div className="match-card__team-info">
+                        <span className="match-card__team-short">{match.team1ShortName}</span>
+                        <span className="match-card__team-full">{match.team1Name}</span>
+                    </div>
+                </div>
+
+                {/* SCORE */}
+                <div className="match-card__vs">
+                    {isFinished ? (
+                        <button
+                            className={`match-card__spoiler-toggle ${canShowScore ? "match-card__spoiler-toggle--revealed" : ""}`}
+                            onClick={handleEyeClick}
+                            aria-expanded={canShowScore}
+                            type="button"
+                            aria-label={
+                                canShowScore
+                                    ? `Hide results`
+                                    : `Show results`
+                            }
+                        >
+                            {canShowScore ? (
+                                <>
+                                    <span className="sr-only">Result: </span>
+                                    <ScoreNumber score={match.team1Score!} otherScore={match.team2Score!} />
+                                    <span className="match-card__vs-separator" aria-hidden="true" />
+                                    <span className="sr-only"> to </span>
+                                    <ScoreNumber score={match.team2Score!} otherScore={match.team1Score!} />
+                                </>
+                            ) : (
+                                <>
+                                    <VisibilityOffIcon size={28} aria-hidden="true" />
+                                    <span className="match-card__spoiler-toggle-text">Show score</span>
+                                </>
+                            )}
+                        </button>
+                    ) : isLive ? (
+                        <span className="match-card__vs-live">LIVE</span>
                     ) : (
-                        <span className="match-card__best-of">Bo{match.bestOf}</span>
+                        <span className="match-card__vs-text">vs</span>
                     )}
                 </div>
-            </div>
 
-            {/* Main: Time + Teams */}
-            <div className="match-card__main">
-
-                <time className={`match-card__time ${isFinished ? "match-card__time--hidden" : ""}`} dateTime={match.startsAtUtc} aria-hidden={isFinished}>
-                    {isFinished ? "\u00A0" : getTimeDisplay()}
-                </time>
-
-                <div className="match-card__teams">
-                    {/* Team 1 */}
-                    <div className="match-card__team">
-                        <div className="match-card__team-logo">
-                            <img
-                                src={`/logos/teams/${match.team1ShortName.toLowerCase()}.png`}
-                                alt={match.team1ShortName}
-                                className="match-card__team-logo"
-                                onError={(e) => {
-                                    e.currentTarget.src = `/logos/teams/placeholder.png`;
-                                }}
-                            />
-                        </div>
-                        <div className="match-card__team-info">
-                            <span className="match-card__team-short">{match.team1ShortName}</span>
-                            <span className="match-card__team-full">{match.team1Name}</span>
-                        </div>
-                    </div>
-
-                    {/* Show score based on visibility */}
-                    <div className="match-card__vs">
-                        {isFinished ? (
-                            canShowScore ? (
-                                <button
-                                    className={`match-card__spoiler-toggle ${canShowScore ? 'match-card__spoiler-toggle--revealed' : ''}`}
-                                    onClick={handleEyeClick}
-                                    aria-label="Hide result"
-                                >
-                                    <span className={`match-card__score-number ${
-                                        match.team1Score! > match.team2Score! ? 'match-card__score-number--winner' : ''
-                                    }`}>
-                                        {match.team1Score}
-                                    </span>
-
-                                    {<span className="match-card__vs-separator" role="separator" />}
-                                    <span className={`match-card__score-number ${
-                                        match.team2Score! > match.team1Score! ? 'match-card__score-number--winner' : ''
-                                    }`}>
-                                        {match.team2Score}
-                                    </span>
-                                </button>
-                            ) : (
-                                <button
-                                    className="match-card__spoiler-toggle"
-                                    onClick={handleEyeClick}
-                                    aria-label="Show result"
-                                >
-                                    <VisibilityOffIcon />
-                                </button>
-                            )
-                        ) : (
-                            <span className="match-card__vs-text">vs</span>
-                        )}
-                    </div>
-
-                    {/* Team 2 */}
-                    <div className="match-card__team">
-                        <div className="match-card__team-logo">
-                            <img
-                                src={`/logos/teams/${match.team2ShortName.toLowerCase()}.png`}
-                                alt={match.team2ShortName}
-                                className="match-card__team-logo"
-                                onError={(e) => {
-                                    e.currentTarget.src = `/logos/teams/placeholder.png`;
-                                }}
-                            />
-                        </div>
-                        <div className="match-card__team-info">
-                            <span className="match-card__team-short">{match.team2ShortName}</span>
-                            <span className="match-card__team-full">{match.team2Name}</span>
-                        </div>
+                {/* TEAM 2 */}
+                <div className="match-card__team match-card__team--right">
+                    <TeamLogo shortName={match.team2ShortName} />
+                    <div className="match-card__team-info">
+                        <span className="match-card__team-short">{match.team2ShortName}</span>
+                        <span className="match-card__team-full">{match.team2Name}</span>
                     </div>
                 </div>
             </div>
 
-            {isFinished && (
-                <button
-                    className={`match-card__chevron ${expanded ? 'match-card__chevron--open' : ''}`}
-                    onClick={() => setExpanded(!expanded)}
-                    aria-label={expanded ? 'Collapse' : 'Expand'}
-                >
-                    <ArrowDropdownIcon size={28} />
-                </button>
-            )}
-
-
-            {/* Expanded details (only shown when expanded) */}
-            {isFinished && (
-                <div className={`match-card__details ${expanded ? 'match-card__details--open' : ''}`}>
-                    <div className="match-card__details-inner">
-
-                        <div className="match-card__games">
-                            {Array.from({ length: match.bestOf }, (_, i) => {
-                                const game = match.games.find(g => g.gameNumber === i + 1);
-                                const canShowGameResult = showingSpoilers || revealedGames.has(i + 1);
-
-                                // Hide unplayed games when all played games are revealed
-                                if (!game?.winningTeam && (showingSpoilers || allPlayedRevealed)) return null;
-
-                                const gameWinnerName = game?.winningTeam === 1
-                                    ? match.team1ShortName
-                                    : game?.winningTeam === 2
-                                        ? match.team2ShortName
-                                        : null;
-
-                                return (
-                                    <div
-                                        className="match-card__game"
-                                        key={i}
-                                        onClick={() => toggleGameSpoiler(i + 1)}
-                                    >
-                                        <span className="match-card__game-number">{i + 1}</span>
-                                        <span className="match-card__game-spoiler">
-                                            {canShowGameResult
-                                                ? (gameWinnerName ? `${gameWinnerName} wins` : "Not played")
-                                                : "Show result"}
-                                        </span>
-                                        {game?.vodUrl ? (
-                                            <a
-                                                href={game.vodUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="match-card__game-vod"
-                                                title="Watch VOD"
-                                                onClick={(e) => e.stopPropagation()}
-                                            >
-                                                <PlayIcon />
-                                            </a>
-                                        ) : (
-                                            <span className="match-card__game-vod match-card__game-vod--disabled">
-                                                <PlayIcon />
-                                            </span>
-                                        )}
-                                    </div>
-                                );
-                            })}
-
-                            <Link
-                                to={`/matches/${match.id}`}
-                                className="match-card__details-link"
-                            >
-                                View full details
-                            </Link>
-                        </div>
-
-                    </div>
+            {/* ========== FOOTER ========== */}
+            <footer className="match-card__footer">
+                
+                {/* VODS */}
+                <div className="match-card__vods">
+                    {isFinished ? (
+                        <VodButtons match={match} canShowScore={canShowScore} />
+                    ) : (
+                        <time dateTime={match.startsAtUtc} className="match-card__vods-empty">
+                            Starting {getTimeDisplay()}
+                        </time>
+                    )}
                 </div>
-            )}
+
+                {/* BEST-OF */}
+                <span className="match-card__best-of" aria-label={`Best of ${match.bestOf}`}>Bo{match.bestOf}</span>
+
+                {/* DETAILS LINK */}
+                {isFinished && (
+                    <Link to={`/matches/${match.id}`} className="match-card__details-link">
+                        View Match Details →
+                    </Link>
+                )}
+            </footer>
         </article>
     );
 }
 
-/** Formats ISO UTC string to local time (e.g. "14:00"). */
 function formatTime(isoUtc: string) {
     return new Date(isoUtc).toLocaleTimeString(undefined, {
         hour: "2-digit",
         minute: "2-digit",
     });
+}
+
+function ScoreNumber({ score, otherScore }: { score: number; otherScore: number }) {
+    const isWinner = score > otherScore;
+    return (
+        <span className={`match-card__score-number ${isWinner ? "match-card__score-number--winner" : ""}`}>
+            {score}
+            {isWinner && <span className="sr-only"> (winner)</span>}
+        </span>
+    );
+}
+
+function VodButtons({ match, canShowScore }: { match: MatchListItem; canShowScore: boolean }) {
+    const vodCount = match.games.filter(g => g.vodUrl).length;
+    if (vodCount === 0) {
+        return <span className="match-card__vods-empty">No VOD available yet</span>;
+    }
+    // Show only played games when score is visible, show bestOf number of buttons when hidden (avoids spoiling game count)
+    const count = canShowScore
+        ? match.games.filter(g => g.winningTeam != null).length
+        : match.bestOf;
+
+    return (
+        <>
+            {Array.from({ length: count }, (_, i) => {
+                const game = match.games.find(g => g.gameNumber === i + 1);
+                return game?.vodUrl ? (
+                    <a
+                        key={i}
+                        href={game.vodUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="match-card__vod-btn"
+                        title={`Game ${i + 1}`}
+                        aria-label={`Watch Game ${i + 1} VOD`}
+                    >
+                        <span className="match-card__vod-number">{i + 1}</span>
+                        <span className="match-card__vod-play"><PlayIcon size={20} /></span>
+                    </a>
+                ) : (
+                    <button
+                        key={i}
+                        className="match-card__vod-btn match-card__vod-btn--disabled"
+                        aria-label={`Game ${i + 1} – No VOD available yet`}
+                        aria-disabled="true"
+                    >
+                        <span className="match-card__vod-number">{i + 1}</span>
+                        <span className="match-card__vod-play"><PlayIcon size={20} aria-hidden="true" /></span>
+                    </button>
+                );
+            })}
+        </>
+    );
 }
