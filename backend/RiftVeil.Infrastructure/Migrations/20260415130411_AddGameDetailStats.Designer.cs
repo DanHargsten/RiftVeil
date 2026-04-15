@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RiftVeil.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using RiftVeil.Infrastructure.Data;
 namespace RiftVeil.Infrastructure.Migrations
 {
     [DbContext(typeof(RiftVeilDbContext))]
-    partial class RiftVeilDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260415130411_AddGameDetailStats")]
+    partial class AddGameDetailStats
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -95,8 +98,7 @@ namespace RiftVeil.Infrastructure.Migrations
 
                     b.Property<string>("Champion")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("datetimeoffset");
@@ -106,8 +108,7 @@ namespace RiftVeil.Infrastructure.Migrations
 
                     b.Property<string>("Phase")
                         .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("SequenceNumber")
                         .HasColumnType("int");
@@ -120,15 +121,9 @@ namespace RiftVeil.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GameId", "SequenceNumber")
-                        .IsUnique();
+                    b.HasIndex("GameId");
 
-                    b.ToTable("GameDraftEntries", t =>
-                        {
-                            t.HasCheckConstraint("CK_GameDraftEntries_Phase", "[Phase] IN ('Ban', 'Pick')");
-
-                            t.HasCheckConstraint("CK_GameDraftEntries_TeamNumber", "[TeamNumber] IN (1, 2)");
-                        });
+                    b.ToTable("GameDraftEntries");
                 });
 
             modelBuilder.Entity("RiftVeil.Domain.Entities.GamePlayerStats", b =>
@@ -144,8 +139,7 @@ namespace RiftVeil.Infrastructure.Migrations
 
                     b.Property<string>("Champion")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("datetimeoffset");
@@ -166,36 +160,30 @@ namespace RiftVeil.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("ItemIds")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Kills")
                         .HasColumnType("int");
 
                     b.Property<string>("PlayerName")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Role")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("SummonerSpell1Id")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("SummonerSpell2Id")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("TeamNumber")
                         .HasColumnType("int");
 
                     b.Property<string>("TrinketId")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTimeOffset?>("UpdatedAtUtc")
                         .HasColumnType("datetimeoffset");
@@ -205,13 +193,9 @@ namespace RiftVeil.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GameId", "PlayerName")
-                        .IsUnique();
+                    b.HasIndex("GameId");
 
-                    b.ToTable("GamePlayerStats", t =>
-                        {
-                            t.HasCheckConstraint("CK_GamePlayerStats_TeamNumber", "[TeamNumber] IN (1, 2)");
-                        });
+                    b.ToTable("GamePlayerStats");
                 });
 
             modelBuilder.Entity("RiftVeil.Domain.Entities.GameTeamStats", b =>
@@ -290,13 +274,9 @@ namespace RiftVeil.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GameId", "TeamNumber")
-                        .IsUnique();
+                    b.HasIndex("GameId");
 
-                    b.ToTable("GameTeamStats", t =>
-                        {
-                            t.HasCheckConstraint("CK_GameTeamStats_TeamNumber", "[TeamNumber] IN (1, 2)");
-                        });
+                    b.ToTable("GameTeamStats");
                 });
 
             modelBuilder.Entity("RiftVeil.Domain.Entities.GameVod", b =>
