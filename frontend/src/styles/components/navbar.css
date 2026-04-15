@@ -135,12 +135,20 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    border: none;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
 }
 
 .import-menu__label {
     font-size: 0.75rem;
     color: var(--text-muted);
     font-weight: 500;
+}
+
+.import-menu__field .import-menu__label {
+    padding: 0;
 }
 
 /* League buttons */
@@ -230,12 +238,10 @@
 .import-menu__result--done   { color: var(--status-finished); }
 .import-menu__result--error  { color: var(--live-text); }
 
-.import-menu__result-icon {
-    width: 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.import-menu__result-status {
+    min-width: 4.25rem;
     font-size: 0.75rem;
+    font-weight: 600;
     flex-shrink: 0;
 }
 
@@ -246,21 +252,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 120px;
-}
-
-/* Spinner */
-.import-menu__spinner {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    border: 1.5px solid var(--border-strong);
-    border-top-color: var(--primary);
-    border-radius: 50%;
-    animation: import-spin 0.7s linear infinite;
-}
-
-@keyframes import-spin {
-    to { transform: rotate(360deg); }
 }
 
 /* Run button */
@@ -285,4 +276,85 @@
 .import-menu__run-btn:disabled {
     opacity: 0.45;
     cursor: not-allowed;
+}
+
+/* ── Leagues dropdown ─────────────────────────────────────── */
+.navbar__league-menu {
+    position: relative;
+}
+
+.navbar__league-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.navbar__league-chevron {
+    opacity: 0.5;
+    transition: transform 0.15s;
+    margin-top: 1px;
+}
+
+.navbar__league-trigger[aria-expanded="true"] .navbar__league-chevron,
+.navbar__link--active .navbar__league-chevron {
+    transform: rotate(180deg);
+}
+
+.navbar__league-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.375rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    box-shadow: 0 8px 24px #00000060;
+    z-index: 200;
+    min-width: 200px;
+}
+
+.navbar__league-item {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.5rem 0.625rem;
+    border-radius: 6px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: background 0.15s;
+}
+
+.navbar__league-item:hover {
+    background: var(--surface-2);
+}
+
+.navbar__league-logo {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.navbar__league-short {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text);
+    min-width: 2.5rem;
+}
+
+.navbar__league-name {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
