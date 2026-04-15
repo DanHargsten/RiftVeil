@@ -1,10 +1,10 @@
 import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
-import {BrowserRouter, Route, Routes} from "react-router-dom";
-import {Tournaments} from "@/routes/Tournaments.tsx";
+import {BrowserRouter, Route, Routes, Navigate} from "react-router-dom";
 import {MatchDetail} from "@/routes/MatchDetail.tsx";
 import {Navbar} from "@/components/Navbar.tsx";
-import {Leagues} from "@/routes/Leagues.tsx";
+import {League} from "@/routes/League.tsx";
 import {Home} from "@/routes/Home.tsx";
+import {Admin} from "@/routes/Admin.tsx";
 
 const queryClient = new QueryClient();
 
@@ -18,9 +18,10 @@ function App() {
                 <main className="app-main">                                                 
                     <Routes>
                         <Route path="/" element={<Home />} />
-                        <Route path="/matches/:id" element={<MatchDetail />} />
-                        <Route path="/tournaments" element={<Tournaments />} />
-                        <Route path="/leagues" element={<Leagues />} />
+                        <Route path="/admin" element={<Admin />} />
+                        <Route path="/matches/:id" element={<MatchDetail />} />                        
+                        <Route path="/leagues" element={<Navigate to="/" replace />} />
+                        <Route path="/leagues/:shortName" element={<League />} />
                         <Route path="/standings" element={<div />} />
                         <Route path="/teams" element={<div />} />
                     </Routes>

@@ -1,27 +1,231 @@
-.league-table {
-    
+.league-page {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    padding-block: 2rem;
 }
 
-.league-table__league {
+/* ── Header ───────────────────────────────────────────────── */
+.league-page__header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.league-page__logo {
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.league-page__header-text {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.league-page__title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+}
+
+.league-page__subtitle {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.league-page__tournament-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    align-items: flex-start;
+}
+
+.league-page__tournament-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.league-page__tournament-select {
+    padding: 0.5rem 0.75rem;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    color: var(--text);
+    font-size: 0.875rem;
+    cursor: pointer;
+    font-family: var(--font-standard);
+}
+
+/* ── Content ──────────────────────────────────────────────── */
+.league-page__content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    padding-bottom: 3rem;
+}
+
+/* ── Round accordion ──────────────────────────────────────── */
+.league-page__round {
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: var(--surface-1);
+}
+
+.league-page__round--finished {
+    opacity: 0.7;
+}
+
+.league-page__round--upcoming .league-page__round-title {
+    color: var(--text-muted);
+}
+
+.league-page__round-heading {
+    margin: 0;
+    font: inherit;
+}
+
+.league-page__round-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s;
+}
+
+.league-page__round-header:hover {
+    background: var(--surface-2);
+}
+
+.league-page__round-header--current {
+    border-left: 3px solid var(--primary);
+}
+
+.league-page__round-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    min-width: 6rem;
+}
+
+.league-page__round-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    font-size: 0.8rem;
+    color: var(--text-muted-extra);
+}
+
+.league-page__round-dates {
+    font-size: 0.8rem;
+    color: var(--text-muted-extra);
+    text-transform: uppercase;
+}
+
+.league-page__round-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.league-page__round-badge--done {
+    background: var(--surface-2);
+    color: var(--text-muted);
+}
+
+.league-page__round-badge--upcoming {
+    background: color-mix(in srgb, var(--status-upcoming) 15%, transparent);
+    color: var(--status-upcoming);
+}
+
+.league-page__round-badge--current {
+    background: color-mix(in srgb, var(--primary) 15%, transparent);
+    color: var(--primary);
+}
+
+.league-page__round-chevron {
+    color: var(--text-muted-extra);
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.league-page__round-chevron--open {
+    transform: rotate(180deg);
+}
+
+/* ── Round body med daggrupper ────────────────────────────── */
+.league-page__round-body {
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+}
+
+.league-page__day {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.league-page__day:last-child {
+    border-bottom: none;
+}
+
+.league-page__day-header {
     display: flex;
     align-items: center;
     gap: 0.75rem;
 }
 
-.league-table__logo {
-    width: 38px;
-    height: 38px;
+.league-page__day-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
 }
 
-.league-table__names {
-    display: flex;
-    flex-direction: column;
+.league-page__day-today {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
 }
 
-.league-table__short {
-    
+/* ── Match grid ───────────────────────────────────────────── */
+.league-page__items {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
 }
 
-.league-table__full {
-    
+@media (max-width: 768px) {
+    .league-page__items {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ── States ───────────────────────────────────────────────── */
+.league-page__state {
+    padding: 3rem 0;
+    text-align: center;
+    color: var(--text-muted);
 }

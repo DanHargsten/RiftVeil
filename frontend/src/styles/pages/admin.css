@@ -1,0 +1,216 @@
+﻿/* ================================================================================================
+   ADMIN PAGE
+   ================================================================================================ */
+.admin {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    max-width: 600px;
+}
+
+.admin__title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+}
+
+/* ── Section ── */
+.admin__section {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 0.625rem;
+    overflow: hidden;
+}
+
+.admin__section-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-muted);
+    padding: 0.65rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+    margin: 0;
+}
+
+.admin__placeholder {
+    padding: 1.5rem 1.25rem;
+    color: var(--text-muted-extra);
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+/* ── Form ── */
+.admin__form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 1.25rem;
+}
+
+.admin__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+.admin__label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* League buttons */
+.admin__league-buttons {
+    display: flex;
+    gap: 0.375rem;
+    flex-wrap: wrap;
+}
+
+.admin__league-btn {
+    padding: 0.375rem 0.875rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface-2);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.admin__league-btn:hover:not(:disabled) {
+    border-color: var(--border-strong);
+    color: var(--text);
+}
+
+.admin__league-btn--active {
+    border-color: var(--primary-border);
+    background: var(--primary-soft);
+    color: var(--primary-text);
+}
+
+.admin__league-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Steps */
+.admin__steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.admin__step-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+}
+
+.admin__step-label input[type="checkbox"] {
+    accent-color: var(--primary);
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+}
+
+.admin__step-label input:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* Sub-option (Only ongoing) indented under Steps */
+.admin__step-label--sub {
+    margin-top: 0.25rem;
+    margin-left: 1.5rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+/* Run button */
+.admin__run-btn {
+    align-self: flex-start;
+    padding: 0.5rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border: 1px solid var(--primary-border);
+    border-radius: 6px;
+    background: var(--primary-interactive);
+    color: var(--primary-text);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.admin__run-btn:hover:not(:disabled) {
+    background: var(--primary-soft);
+}
+
+.admin__run-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* Results log */
+.admin__results {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    padding: 0.75rem 1rem;
+    background: var(--surface-2);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+}
+
+.admin__result {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-size: 0.875rem;
+}
+
+.admin__result--idle   { color: var(--text-muted-extra); }
+.admin__result--running { color: var(--text); }
+.admin__result--done   { color: var(--status-finished); }
+.admin__result--error  { color: var(--live-text); }
+
+.admin__result-icon {
+    width: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.admin__result-error {
+    font-size: 0.8rem;
+    color: var(--live-text);
+    margin-left: auto;
+}
+
+/* Spinner */
+.admin__spinner {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border: 1.5px solid var(--border-strong);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: admin-spin 0.7s linear infinite;
+}
+
+@keyframes admin-spin {
+    to { transform: rotate(360deg); }
+}

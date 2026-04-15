@@ -126,8 +126,8 @@ export const matchesApi = {
 };
 
 export const leaguesApi = {
-  getAll: () => fetchApi<LeagueListItem[]>("/api/leagues"),
-  getById: (id: number) => fetchApi<LeagueDetails>(`/api/leagues/${id}`),
+    getAll: () => fetchApi<LeagueListItem[]>("/api/leagues"),
+    getById: (id: number) => fetchApi<LeagueDetails>(`/api/leagues/${id}`),
 };
 
 export const tournamentsApi = {
