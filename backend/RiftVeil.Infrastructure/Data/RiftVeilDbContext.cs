@@ -15,6 +15,9 @@ public class RiftVeilDbContext(DbContextOptions<RiftVeilDbContext> options) : Db
     public DbSet<Game> Games => Set<Game>();
     public DbSet<Team> Teams => Set<Team>();
     public DbSet<GameVod> GameVods => Set<GameVod>();
+    public DbSet<GamePlayerStats> GamePlayerStats => Set<GamePlayerStats>();
+    public DbSet<GameTeamStats> GameTeamStats => Set<GameTeamStats>();
+    public DbSet<GameDraftEntry> GameDraftEntries => Set<GameDraftEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -138,6 +141,61 @@ public class RiftVeilDbContext(DbContextOptions<RiftVeilDbContext> options) : Db
                 .WithMany(g => g.Vods)
                 .HasForeignKey(v => v.GameId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+        
+        modelBuilder.Entity<GamePlayerStats>(entity =>
+        {
+            entity.Property(p => p.PlayerName).IsRequired().HasMaxLength(100);
+            entity.Property(p => p.Role).IsRequired().HasMaxLength(20);
+            entity.Property(p => p.Champion).IsRequired().HasMaxLength(100);
+            entity.Property(p => p.ItemIds).HasMaxLength(200);
+            entity.Property(p => p.TrinketId).HasMaxLength(20);
+            entity.Property(p => p.SummonerSpell1Id).HasMaxLength(50);
+            entity.Property(p => p.SummonerSpell2Id).HasMaxLength(50);
+
+            entity.HasIndex(p => new { p.GameId, p.PlayerName }).IsUnique();
+
+            entity.HasOne(p => p.Game)
+                .WithMany(g => g.PlayerStats)
+                .HasForeignKey(p => p.GameId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.ToTable(table =>
+                table.HasCheckConstraint("CK_GamePlayerStats_TeamNumber", "[TeamNumber] IN (1, 2)")
+            );
+        });
+
+        modelBuilder.Entity<GameTeamStats>(entity =>
+        {
+            entity.HasIndex(t => new { t.GameId, t.TeamNumber }).IsUnique();
+
+            entity.HasOne(t => t.Game)
+                .WithMany(g => g.TeamStats)
+                .HasForeignKey(t => t.GameId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.ToTable(table =>
+                table.HasCheckConstraint("CK_GameTeamStats_TeamNumber", "[TeamNumber] IN (1, 2)")
+            );
+        });
+
+        modelBuilder.Entity<GameDraftEntry>(entity =>
+        {
+            entity.Property(d => d.Phase).IsRequired().HasMaxLength(10);
+            entity.Property(d => d.Champion).IsRequired().HasMaxLength(100);
+
+            entity.HasIndex(d => new { d.GameId, d.SequenceNumber }).IsUnique();
+
+            entity.HasOne(d => d.Game)
+                .WithMany(g => g.DraftEntries)
+                .HasForeignKey(d => d.GameId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint("CK_GameDraftEntries_TeamNumber", "[TeamNumber] IN (1, 2)");
+                table.HasCheckConstraint("CK_GameDraftEntries_Phase", "[Phase] IN ('Ban', 'Pick')");
+            });
         });
     }
 
