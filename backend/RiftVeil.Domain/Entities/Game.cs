@@ -21,6 +21,9 @@ public class Game : BaseEntity
     public string? ExternalId { get; private set; }
 
     public ICollection<GameVod> Vods { get; private set; } = [];
+    public ICollection<GamePlayerStats> PlayerStats { get; private set; } = [];
+    public ICollection<GameTeamStats> TeamStats { get; private set; } = [];
+    public ICollection<GameDraftEntry> DraftEntries { get; private set; } = [];
 
 
     // Required for EF Core materialization without exposing public setters.
