@@ -40,6 +40,9 @@ button {
     border: none;
     cursor: pointer;
     background: none;
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
 }
 
 table {
