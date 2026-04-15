@@ -1,165 +1,210 @@
-import {useParams} from "react-router-dom";
-import {useQuery} from "@tanstack/react-query";
-import {matchesApi} from "@/lib/api.ts";
+import { useParams, Link, useLocation } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { matchesApi } from "@/lib/api.ts";
 import { useState } from "react";
-import { TeamLogo } from "@/components/common/Logos.tsx";
+import { TeamLogo, LeagueLogo } from "@/components/common/Logos.tsx";
+import { PlayIcon } from "@/components/common/Icons.tsx";
 
 /** Match detail page: full match info with game-by-game breakdown. */
 export function MatchDetail() {
     const { id } = useParams<{ id: string }>();
+    const location = useLocation();
     const [selectedGame, setSelectedGame] = useState<number>(1);
-    
+
+    // Läs av vart användaren kom ifrån — skickades med av MatchCard
+    const from = (location.state as { from?: string })?.from ?? "/";
+    const backLabel = from.startsWith("/leagues/") ? "← League" : "← Home";
+
     const { data: match, isLoading, error } = useQuery({
         queryKey: ["match", id],
         queryFn: () => matchesApi.getById(Number(id)),
     });
-    
-    if (isLoading)
-    {
-        return <div>Loading...</div>;
+
+    if (isLoading) {
+        return (
+            <div className="page">
+                <div className="match-detail-loading">
+                    <div className="match-detail-loading__spinner" />
+                    <span>Loading match...</span>
+                </div>
+            </div>
+        );
     }
-    if (error || !match)
-    {
-        return <div>Match not found</div>;
+
+    if (error || !match) {
+        return (
+            <div className="page">
+                <div className="match-detail-error">
+                    <span>Match not found.</span>
+                    <Link to={from} className="match-detail-error__back">← Back</Link>
+                </div>
+            </div>
+        );
     }
-    
-    const winnerName = match.team1Score != null && match.team2Score != null
-        ? match.team1Score > match.team2Score
-            ? match.team1ShortName
-            : match.team2ShortName
-        : null;
-    
-    const currentGame = match.games.find((g) => g.gameNumber === selectedGame);
-    
+
+    const team1Wins = match.team1Score ?? 0;
+    const team2Wins = match.team2Score ?? 0;
+    const team1IsWinner = team1Wins > team2Wins;
+    const team2IsWinner = team2Wins > team1Wins;
+
+    const leagueShortName = match.tournament.leagueShortName;
+    const tournamentStage = match.tournament.stage;
+
+    // Visa bara games som faktiskt spelades
+    const playedGames = match.games.filter(g => g.winningTeam != null);
+
+    const currentGame = playedGames.find((g) => g.gameNumber === selectedGame)
+        ?? playedGames[0];
+
+    const getGameWinnerShort = (winningTeam: number | null) => {
+        if (winningTeam === 1) return match.team1ShortName;
+        if (winningTeam === 2) return match.team2ShortName;
+        return null;
+    };
+
     return (
         <div className="page">
             <div className="match-detail">
-                
-                {/* Match header */}
-                <div className="match-detail__header">
-                    <div className="match-detail__header-body">
-                        <div className="match-detail__teams">
-                            <div className="match-detail__team">
-                                <div className="match-detail__team-logo">
-                                    <TeamLogo shortName={match.team1ShortName} className="match-detail__team-logo-img" />                                    
-                                </div>
-                                
-                                <div className="match-detail__team-info">
-                                    <span className="match-detail__team-short">{match.team1ShortName}</span>
-                                    <span className="match-detail__team-full">{match.team1Name}</span>                                    
-                                </div>
-                            </div> 
-                            
-                            <div className="match-detail__score-cell">
-                                <span className="match-detail__score">
-                                    {match.team1Score} / {match.team2Score}
-                                </span>                                
+
+                {/* ── HERO HEADER ── */}
+                <header className="match-detail__hero">
+
+                    <div className="match-detail__breadcrumb">
+                        <Link to={from} className="match-detail__back-link">
+                            {backLabel}
+                        </Link>
+                        <div className="match-detail__league-info">
+                            <LeagueLogo shortName={leagueShortName} className="match-detail__league-logo" />
+                            <span className="match-detail__league-name">{leagueShortName}</span>
+                            {tournamentStage && (
+                                <>
+                                    <span className="match-detail__meta-sep">·</span>
+                                    <span className="match-detail__tournament-stage">{tournamentStage}</span>
+                                </>
+                            )}
+                            <span className="match-detail__meta-sep">·</span>
+                            <span className="match-detail__best-of">Best of {match.bestOf}</span>
+                        </div>
+                    </div>
+
+                    {/* Teams + Score */}
+                    <div className="match-detail__scoreline">
+
+                        {/* Team 1 */}
+                        <div className={`match-detail__team match-detail__team--left ${team1IsWinner ? "match-detail__team--winner" : team2IsWinner ? "match-detail__team--loser" : ""}`}>
+                            <div className="match-detail__team-identity">
+                                <span className="match-detail__team-short">{match.team1ShortName}</span>
+                                <span className="match-detail__team-full">{match.team1Name}</span>
                             </div>
-
-                            <div className="match-detail__team">
-                                <div className="match-detail__team-logo">
-                                    <TeamLogo shortName={match.team2ShortName} className="match-detail__team-logo-img" />
-                                </div>
-
-                                <div className="match-detail__team-info">
-                                    <span className="match-detail__team-short">{match.team2ShortName}</span>
-                                    <span className="match-detail__team-full">{match.team2Name}</span>
-                                </div>
+                            <div className="match-detail__team-logo-wrap">
+                                <TeamLogo shortName={match.team1ShortName} className="match-detail__team-logo" />
                             </div>
                         </div>
-                      
-                        {winnerName && (
-                            <span className="match-detail__winner">{winnerName} wins</span>
-                        )}
-                    </div>
-                    
-                    <div className="match-detail__meta">
-                        <span>{match.tournament.name}</span>
-                        <span>Best of {match.bestOf}</span>
-                    </div>
-                </div>                
-                
-                {/* Game tabs */}
-                <div className="match-detail__game-tabs">
-                    {match.games.map((game) => {
-                        const isActive = selectedGame === game.gameNumber;
 
-                        const winnerShort =
-                            game.winningTeam === 1 ? match.team1ShortName :
-                            game.winningTeam === 2 ? match.team2ShortName :
-                            null;
+                        {/* Score */}
+                        <div className="match-detail__score-block">
+                            <div className="match-detail__score">
+                                <span className={`match-detail__score-num ${team1IsWinner ? "match-detail__score-num--winner" : ""}`}>
+                                    {team1Wins}
+                                </span>
+                                <span className="match-detail__score-divider">–</span>
+                                <span className={`match-detail__score-num ${team2IsWinner ? "match-detail__score-num--winner" : ""}`}>
+                                    {team2Wins}
+                                </span>
+                            </div>
+                            {(team1IsWinner || team2IsWinner) && (
+                                <span className="match-detail__winner-label">
+                                    {team1IsWinner ? match.team1ShortName : match.team2ShortName} wins
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Team 2 */}
+                        <div className={`match-detail__team match-detail__team--right ${team2IsWinner ? "match-detail__team--winner" : team1IsWinner ? "match-detail__team--loser" : ""}`}>
+                            <div className="match-detail__team-logo-wrap">
+                                <TeamLogo shortName={match.team2ShortName} className="match-detail__team-logo" />
+                            </div>
+                            <div className="match-detail__team-identity">
+                                <span className="match-detail__team-short">{match.team2ShortName}</span>
+                                <span className="match-detail__team-full">{match.team2Name}</span>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                {/* ── GAME TABS — bara spelade games ── */}
+                <div className="match-detail__tabs">
+                    {playedGames.map((game) => {
+                        const isActive = currentGame?.gameNumber === game.gameNumber;
+                        const winnerShort = getGameWinnerShort(game.winningTeam);
 
                         return (
                             <button
                                 key={game.id}
-                                className={`match-detail__game-tab ${isActive ? "match-detail__game-tab--active" : ""}`}
+                                className={`match-detail__tab ${isActive ? "match-detail__tab--active" : ""}`}
                                 onClick={() => setSelectedGame(game.gameNumber)}
                                 type="button"
+                                aria-selected={isActive}
                             >
-                                <span className="match-detail__tab-title">
-                                    Game {game.gameNumber}
-                                </span>
-
-                                <span className="match-detail__tab-winner">
-                                    {winnerShort} win
-                                </span>
+                                <span className="match-detail__tab-number">Game {game.gameNumber}</span>
+                                {winnerShort && (
+                                    <span className="match-detail__tab-winner">{winnerShort} win</span>
+                                )}
                             </button>
                         );
                     })}
                 </div>
 
-                {/* Selected game content */}
+                {/* ── GAME CONTENT ── */}
                 {currentGame && (
-                    <div className="match-detail__game-content">
-                        
-                        {/* VOD link */}
-                        {currentGame.vodUrl && (
+                    <div className="match-detail__content">
+
+                        {currentGame.vodUrl ? (
                             <a
                                 href={currentGame.vodUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="match-detail__vod-link"
+                                className="match-detail__vod-btn"
+                                aria-label={`Watch Game ${currentGame.gameNumber} VOD`}
                             >
-                                Watch VOD
+                                <PlayIcon size={16} aria-hidden="true" />
+                                Watch Game {currentGame.gameNumber} VOD
                             </a>
+                        ) : (
+                            <span className="match-detail__vod-unavailable">No VOD available for this game</span>
                         )}
-                        
-                        {/* Draft placeholder */}
-                        <div className="match-detail__section">
-                            <h2 className="match-detail__section-header">Draft Phase</h2>
-                            <p className="match-detail__placeholder">
-                                Draft data coming soon
-                            </p>
-                        </div>
-                        
-                        {/* Scoreboard placeholder */}
-                        <div className="match-detail__section">
-                            <h2 className="match-detail__section-header">Scoreboard</h2>
-                            <p className="match-detail__placeholder">
-                                Player stats coming soon
-                            </p>
-                        </div>
 
-                        <div className="match-detail__section-grid">
-                            {/* Gold graph placeholder */}
-                            <div className="match-detail__section">
-                                <h2 className="match-detail__section-header">Gold advantage</h2>
-                                <p className="match-detail__placeholder">
-                                    Gold graph coming soon
-                                </p>
+                        <section className="match-detail__section">
+                            <h2 className="match-detail__section-title">Draft</h2>
+                            <div className="match-detail__placeholder-body">
+                                <span>Draft data coming soon</span>
                             </div>
+                        </section>
 
-                            {/* Objectives placeholder */}
-                            <div className="match-detail__section">
-                                <h2 className="match-detail__section-header">Objectives</h2>
-                                <p className="match-detail__placeholder">
-                                    Objectives coming soon
-                                </p>
+                        <section className="match-detail__section">
+                            <h2 className="match-detail__section-title">Scoreboard</h2>
+                            <div className="match-detail__placeholder-body">
+                                <span>Player stats coming soon</span>
                             </div>
+                        </section>
+
+                        <div className="match-detail__two-col">
+                            <section className="match-detail__section">
+                                <h2 className="match-detail__section-title">Gold Advantage</h2>
+                                <div className="match-detail__placeholder-body">
+                                    <span>Gold graph coming soon</span>
+                                </div>
+                            </section>
+                            <section className="match-detail__section">
+                                <h2 className="match-detail__section-title">Objectives</h2>
+                                <div className="match-detail__placeholder-body">
+                                    <span>Objectives coming soon</span>
+                                </div>
+                            </section>
                         </div>
                     </div>
-                )}                
+                )}
             </div>
         </div>
-    )
+    );
 }

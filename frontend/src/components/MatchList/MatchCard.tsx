@@ -1,7 +1,7 @@
 import { type MatchListItem } from "@/lib/api.ts";
 import React from "react";
 import { PlayIcon, VisibilityOffIcon, TimeCircle } from "@/components/common/Icons.tsx";
-import {Link} from "react-router-dom";
+import {Link, useLocation} from "react-router-dom";
 import { TeamLogo, LeagueLogo } from "@/components/common/Logos.tsx";
 
 type SpoilerPrefs = {
@@ -17,6 +17,8 @@ interface MatchCardProps {
 }
 
 export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps) {
+    const location = useLocation();
+    
     const isFinished = match.status === "Finished";
     const isLive = match.status === "Live";
 
@@ -166,7 +168,11 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
 
                 {/* DETAILS LINK */}
                 {isFinished && (
-                    <Link to={`/matches/${match.id}`} className="match-card__details-link">
+                    <Link
+                        to={`/matches/${match.id}`}
+                        state={{ from: location.pathname }}
+                        className="match-card__details-link"
+                    >
                         View Match Details →
                     </Link>
                 )}
