@@ -1,16 +1,37 @@
-# Rift Veil
+# RiftVeil
 
-Rift Veil is a spoiler-free League of Legends esports web client that collects match schedules across leagues and seasons in one place.
+RiftVeil is a spoiler-aware League of Legends esports web app: one place to see schedules and series across leagues, with optional reveal of results and links to broadcasts and VODs.
 
-## What it does
-- Browse upcoming matches without seeing results by accident
-- Optional spoiler mode when you *do* want results
-- Quick links to live streams and VoDs
-- Follow teams/matches and get reminders before games (planned)
+## What it does today
 
-## Tech
-- Backend: ASP.NET Core Web API + EF Core + SQL Server
-- Frontend: React + Vite + TypeScript
+- **Home** — Live, upcoming, and recent matches with global and per-match spoiler controls (`useSpoilerPrefs`).
+- **Leagues** — Hub per league at `/leagues/:shortName`: pick a tournament, browse matches grouped by round, open a series without leaving the league context.
+- **Match detail** — Series scoreline, per-game tabs (played games only), VOD link when available; UI placeholders for draft, scoreboard, and objectives (backend models for detailed stats are in place).
+- **Admin** — At `/admin`, run import jobs (tournaments, matches, VOD enrichment) that fill the database from external sources.
+
+## Data flow
+
+- **Leaguepedia** — Primary source for tournaments, matches, games, and related metadata via the import API.
+- **Lolesports** — Used to enrich games with VOD URLs where possible.
+
+## Tech stack
+
+| Layer    | Choice |
+|----------|--------|
+| Backend | ASP.NET Core Web API, EF Core, SQL Server |
+| Frontend | React 19, TypeScript, Vite, React Router, TanStack Query |
+
+## Repository layout
+
+- `backend/` — .NET solution (`RiftVeil.sln`): API, domain, infrastructure, tests.
+- `frontend/` — Vite + React client; dev server proxies `/api` to the backend.
+
+## Development (local)
+
+1. **Database** — Ensure SQL Server is available. The API’s `appsettings.Development.json` defaults to LocalDB (`RiftVeil` database); adjust the connection string if you use another instance.
+2. **Backend** — From `backend/RiftVeil.Api` (or the solution root), apply migrations and run the API (HTTP profile listens on **5133** in development so it matches the Vite proxy).
+3. **Frontend** — From `frontend/`, run `npm install` once, then `npm run dev` (opens the app, typically on port **5173**).
 
 ## Status
-Work in progress / MVP-focused. The goal is a clean foundation first, features second.
+
+MVP-focused: solid import pipeline and browsing experience first; richer in-match stats UI and extras (for example reminders) come later. See [`CHANGELOG.md`](CHANGELOG.md) for a dated history of changes.
