@@ -176,4 +176,16 @@ public class Game : BaseEntity
         Vods.Add(vod);
         return vod;
     }
+
+    /// <summary>
+    /// Persists the Leaguepedia <c>GameId</c> when backfilling games imported before that field was stored.
+    /// </summary>
+    /// <exception cref="ArgumentException">If <paramref name="externalId"/> is null or whitespace.</exception>
+    public void SetExternalId(string externalId)
+    {
+        if (string.IsNullOrWhiteSpace(externalId))
+            throw new ArgumentException("External ID cannot be empty.", nameof(externalId));
+        
+        ExternalId = externalId;
+    }
 }

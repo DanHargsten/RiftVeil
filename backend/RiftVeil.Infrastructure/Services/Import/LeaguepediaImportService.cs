@@ -49,10 +49,10 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         stats.Read = results.Count;
 
         var existingSlugs = (await dbContext.Tournaments
-            .Where(t => t.LeagueId == leagueId)
-            .Select(t => t.LiquipediaSlug)
-            .Where(s => s != null)
-            .Select(s => s!)
+            .Where(tournament => tournament.LeagueId == leagueId)
+            .Select(tournament => tournament.LiquipediaSlug)
+            .Where(slug => slug != null)
+            .Select(slug => slug!)
             .ToListAsync()).ToHashSet();
 
         foreach (var row in results)
@@ -110,7 +110,7 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         var gameStats = new ImportStats();
 
         var tournaments = await dbContext.Tournaments
-            .Where(t => t.LeagueId == leagueId && t.LiquipediaSlug != null)
+            .Where(tournament => tournament.LeagueId == leagueId && tournament.LiquipediaSlug != null)
             .ToListAsync();
 
         foreach (var tournament in tournaments)
@@ -142,10 +142,10 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
 
         var now = DateTimeOffset.UtcNow;
         var tournaments = await dbContext.Tournaments
-            .Where(t => t.LeagueId == leagueId
-                        && t.LiquipediaSlug != null
-                        && t.StartsAtUtc <= now
-                        && (t.EndsAtUtc == null || t.EndsAtUtc >= now))
+            .Where(tournament => tournament.LeagueId == leagueId
+                        && tournament.LiquipediaSlug != null
+                        && tournament.StartsAtUtc <= now
+                        && (tournament.EndsAtUtc == null || tournament.EndsAtUtc >= now))
             .ToListAsync();
 
         Console.WriteLine($"  Found {tournaments.Count} ongoing tournament(s)");
@@ -182,8 +182,8 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
 
         // Load full match objects so we can update existing ones
         var existingMatches = await dbContext.Matches
-            .Where(m => m.TournamentId == tournament.Id && m.ExternalId != null)
-            .ToDictionaryAsync(m => m.ExternalId!);
+            .Where(match => match.TournamentId == tournament.Id && match.ExternalId != null)
+            .ToDictionaryAsync(match => match.ExternalId!);
 
         var startingImportedCount = matchStats.Imported;
 
@@ -302,25 +302,25 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         stats.Read += results.Count;
 
         var tournamentMatches = await dbContext.Matches
-            .Where(m => m.TournamentId == tournament.Id && m.ExternalId != null)
-            .ToDictionaryAsync(m => m.ExternalId!);
+            .Where(match => match.TournamentId == tournament.Id && match.ExternalId != null)
+            .ToDictionaryAsync(match => match.ExternalId!);
 
-        var matchIds = tournamentMatches.Values.Select(m => m.Id).ToList();
+        var matchIds = tournamentMatches.Values.Select(match => match.Id).ToList();
 
         // Load full game objects so we can update existing ones
         var existingGames = await dbContext.Games
-            .Where(g => matchIds.Contains(g.MatchId))
+            .Where(game => matchIds.Contains(game.MatchId))
             .ToListAsync();
         var existingGameKeys = existingGames
-            .ToDictionary(g => $"{g.MatchId}:{g.GameNumber}");
+            .ToDictionary(game => $"{game.MatchId}:{game.GameNumber}");
 
         var teamIds = tournamentMatches.Values
-            .SelectMany(m => new[] { m.Team1Id, m.Team2Id })
+            .SelectMany(match => new[] { match.Team1Id, match.Team2Id })
             .Distinct()
             .ToList();
         var teamsById = await dbContext.Teams
-            .Where(t => teamIds.Contains(t.Id))
-            .ToDictionaryAsync(t => t.Id);
+            .Where(team => teamIds.Contains(team.Id))
+            .ToDictionaryAsync(team => team.Id);
 
         foreach (var row in results)
         {
@@ -451,7 +451,7 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         if (_teamCache.TryGetValue(teamName, out var cachedTeam))
             return cachedTeam;
 
-        var team = await dbContext.Teams.FirstOrDefaultAsync(t => t.Name == teamName);
+        var team = await dbContext.Teams.FirstOrDefaultAsync(team => team.Name == teamName);
 
         if (team == null)
         {
@@ -469,7 +469,7 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
                     Console.WriteLine($"  Warning: Using fallback short name '{shortName}' for '{teamName}' — fix manually");
             }
 
-            var shortNameExists = await dbContext.Teams.AnyAsync(t => t.ShortName == shortName);
+            var shortNameExists = await dbContext.Teams.AnyAsync(team => team.ShortName == shortName);
             if (shortNameExists)
                 shortName = shortName[..Math.Min(shortName.Length, 17)] + dbContext.Teams.Local.Count;
 
@@ -526,12 +526,12 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
     private static string? ExtractStage(string tournamentName)
     {
         var parts = tournamentName.Split(' ');
-        var yearPart = parts.FirstOrDefault(p => p.Length == 4 && int.TryParse(p, out _));
+        var yearPart = parts.FirstOrDefault(part => part.Length == 4 && int.TryParse(part, out _));
         if (yearPart == null) return null;
 
         var yearIndex = Array.IndexOf(parts, yearPart);
         var afterYear = parts.Skip(yearIndex + 1)
-            .Where(p => p != "Season")
+            .Where(part => part != "Season")
             .ToArray();
 
         if (afterYear.Length == 0) return null;
@@ -564,5 +564,92 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
     private static DateTimeOffset ParseDate(string? dateStr)
     {
         return TryParseDate(dateStr) ?? DateTimeOffset.UtcNow;
+    }
+    
+    /// <summary>
+    /// Backfills ExternalId (Leaguepedia GameId) on games that were imported before
+    /// GameId was captured. Queries MatchScheduleGame for each match whose games
+    /// are missing ExternalId and sets it from the API response.
+    /// </summary>
+    /// <returns>Count of games updated and tournaments skipped (no Cargo rows).</returns>
+    public async Task<(int GamesUpdated, int TournamentsSkipped)> BackfillGameExternalIdsAsync(int leagueId)
+    {
+        var tournaments = await dbContext.Tournaments
+            .Where(tournament => tournament.LeagueId == leagueId
+                        && tournament.LiquipediaSlug != null
+                        && tournament.Matches.Any(match => match.ExternalId != null && match.Games.Any(game => game.ExternalId == null)))
+            .Include(tournament => tournament.Matches)
+                .ThenInclude(match => match.Games)
+            .ToListAsync();
+
+        Console.WriteLine($"  Found {tournaments.Count} tournaments with games missing ExternalId");
+
+        int updatedCount = 0;
+        int skippedCount = 0;
+
+        foreach (var tournament in tournaments)
+        {
+            Console.WriteLine($"  Fetching games for: {tournament.Name}");
+
+            // One Cargo query per tournament (not per match) to limit API load.
+            var results = await client.QueryAsync(
+                tables: "MatchScheduleGame",
+                fields: "MatchId,GameId,N_GameInMatch=GameNumber",
+                where: $"OverviewPage=\"{tournament.LiquipediaSlug}\"",
+                limit: 500
+            );
+
+            if (results.Count == 0)
+            {
+                Console.WriteLine($"  No results for {tournament.Name} — skipping");
+                skippedCount++;
+                continue;
+            }
+            
+            var lpGamesByMatch = results
+                .GroupBy(row => row.GetProperty("MatchId").GetString() ?? "")
+                .Where(rowsByMatchId => rowsByMatchId.Key != "")
+                .ToDictionary(
+                    rowsByMatchId => rowsByMatchId.Key,
+                    rowsByMatchId => rowsByMatchId.ToList()
+                );
+
+            foreach (var match in tournament.Matches.Where(scheduledMatch => scheduledMatch.ExternalId != null))
+            {
+                if (!lpGamesByMatch.TryGetValue(match.ExternalId!, out var lpGames))
+                    continue;
+
+                foreach (var row in lpGames)
+                {
+                    var leaguepediaGameId = row.GetProperty("GameId").GetString();
+                    var gameNumberStr = row.GetProperty("GameNumber").GetString();
+
+                    if (string.IsNullOrWhiteSpace(leaguepediaGameId))
+                        continue;
+
+                    if (!int.TryParse(gameNumberStr, out var gameNumber) || gameNumber <= 0)
+                        continue;
+
+                    var matchedGame = match.Games.FirstOrDefault(
+                        game => game.GameNumber == gameNumber && game.ExternalId == null);
+                    if (matchedGame == null)
+                        continue;
+
+                    matchedGame.SetExternalId(leaguepediaGameId);
+                    updatedCount++;
+                }
+            }
+
+            await dbContext.SaveChangesAsync();
+            // Brief pause between tournaments to stay under Cargo rate limits.
+            await Task.Delay(500);
+        }
+
+        Console.WriteLine($"\n--- Backfill Summary ---");
+        Console.WriteLine($"{updatedCount} games updated with ExternalId");
+        Console.WriteLine($"{skippedCount} tournaments skipped (no Leaguepedia data)");
+        Console.WriteLine($"------------------------\n");
+
+        return (updatedCount, skippedCount);
     }
 }

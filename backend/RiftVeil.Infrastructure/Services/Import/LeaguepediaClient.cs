@@ -47,16 +47,14 @@ public class LeaguepediaClient(HttpClient httpClient)
         {
             if (attempt > 0)
             {
-                // Exponential backoff: 10s, 20s, 30s, 45s, 60s, 90s, 120s
+                // Short staggered backoff after ratelimited — keeps total wait lower than long fixed pauses.
                 var delay = attempt switch
                 {
-                    1 => 10_000,
-                    2 => 20_000,
-                    3 => 30_000,
-                    4 => 45_000,
-                    5 => 60_000,
-                    6 => 90_000,
-                    _ => 120_000
+                    1 => 1_000,
+                    2 => 2_000,
+                    3 => 4_000,
+                    4 => 8_000,
+                    _ => 20_000
                 };
                 Console.WriteLine($"  Rate limited (attempt {attempt + 1}/8), waiting {delay / 1000}s...");
                 await Task.Delay(delay);

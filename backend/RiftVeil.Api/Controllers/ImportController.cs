@@ -111,4 +111,15 @@ public class ImportController(
         "LCK" => "LoL Champions Korea",
         _ => null
     };
+
+    [HttpPost("backfill-game-ids/{leagueShortName}")]
+    public async Task<IActionResult> BackfillGameExternalIds(string leagueShortName)
+    {
+        var league = await FindLeagueByShortNameAsync(leagueShortName);
+        if (league == null)
+            return NotFound($"League '{leagueShortName}' not found.");
+        
+        var (gamesUpdated, tournamentsSkipped) = await importService.BackfillGameExternalIdsAsync(league.Id);
+        return Ok(new { gamesUpdated, tournamentsSkipped });
+    }
 }
