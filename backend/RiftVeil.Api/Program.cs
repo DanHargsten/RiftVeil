@@ -43,6 +43,7 @@ builder.Services.AddHttpClient<LolesportsClient>(client =>
 // Import and VOD enrichment (uses HTTP clients above).
 builder.Services.AddScoped<LolesportsVodEnricher>();
 builder.Services.AddScoped<LeaguepediaImportService>();
+builder.Services.AddScoped<GameDetailImportService>();
 
 // Read services for database access.
 builder.Services.AddScoped<ILeagueReadService, LeagueReadService>();

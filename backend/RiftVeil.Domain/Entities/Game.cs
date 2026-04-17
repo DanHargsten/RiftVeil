@@ -188,4 +188,19 @@ public class Game : BaseEntity
         
         ExternalId = externalId;
     }
+    
+    /// <summary>
+    /// Backfills Team1Side and Team2Side when missing from the original import.
+    /// </summary>
+    public void SetSides(string team1Side, string team2Side)
+    {
+        ValidateSide(team1Side, nameof(team1Side));
+        ValidateSide(team2Side, nameof(team2Side));
+
+        if (team1Side == team2Side)
+            throw new ArgumentException("Team1Side and Team2Side must be different.", nameof(team2Side));
+
+        Team1Side = NormalizeSide(team1Side);
+        Team2Side = NormalizeSide(team2Side);
+    }
 }

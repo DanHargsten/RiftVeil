@@ -652,4 +652,103 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
 
         return (updatedCount, skippedCount);
     }
+    
+    /// <summary>
+    /// Backfills Team1Side and Team2Side for games that were imported before side data was available.
+    /// </summary>
+    public async Task<(int gamesUpdated, int tournamentsSkipped)> BackfillGameSidesAsync(int leagueId)
+    {
+        var tournaments = await dbContext.Tournaments
+            .Where(tournament => tournament.LeagueId == leagueId
+                        && tournament.LiquipediaSlug != null
+                        && tournament.Matches.Any(match => match.Games.Any(game => game.ExternalId != null && game.Team1Side == null)))
+            .Include(tournament => tournament.Matches)
+                .ThenInclude(match => match.Games)
+            .ToListAsync();
+
+        Console.WriteLine($"  Found {tournaments.Count} tournaments with games missing sides");
+
+        int updatedCount = 0;
+        int skippedCount = 0;
+
+        foreach (var tournament in tournaments)
+        {
+            Console.WriteLine($"  Fetching sides for: {tournament.Name}");
+
+            var results = await client.QueryAsync(
+                tables: "MatchScheduleGame",
+                fields: "MatchId,GameId,Blue,Red,N_GameInMatch=GameNumber",
+                where: $"OverviewPage=\"{tournament.LiquipediaSlug}\"",
+                limit: 500
+            );
+
+            if (results.Count == 0)
+            {
+                Console.WriteLine($"  No results for {tournament.Name} — skipping");
+                skippedCount++;
+                continue;
+            }
+
+            // Build lookup: ExternalId → (Blue, Red)
+            var sidesByGameId = results
+                .Where(cargoRow => !string.IsNullOrWhiteSpace(cargoRow.GetProperty("GameId").GetString()))
+                .ToDictionary(
+                    cargoRow => cargoRow.GetProperty("GameId").GetString()!,
+                    cargoRow => (
+                        Blue: cargoRow.GetProperty("Blue").GetString(),
+                        Red: cargoRow.GetProperty("Red").GetString()
+                    )
+                );
+
+            foreach (var match in tournament.Matches)
+            {
+                foreach (var game in match.Games.Where(scheduledGame => scheduledGame.ExternalId != null && scheduledGame.Team1Side == null))
+                {
+                    if (!sidesByGameId.TryGetValue(game.ExternalId!, out var sides))
+                        continue;
+
+                    if (string.IsNullOrWhiteSpace(sides.Blue) || string.IsNullOrWhiteSpace(sides.Red))
+                        continue;
+
+                    // Determine which side Team1 is on — load teams if not already on this instance.
+                    var matchWithTeams = await dbContext.Matches
+                        .Include(loadedMatch => loadedMatch.Team1)
+                        .Include(loadedMatch => loadedMatch.Team2)
+                        .FirstOrDefaultAsync(loadedMatch => loadedMatch.Id == match.Id);
+
+                    if (matchWithTeams == null) continue;
+
+                    var isTeam1Blue =
+                        string.Equals(sides.Blue, matchWithTeams.Team1.Name, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(sides.Blue, matchWithTeams.Team1.ShortName, StringComparison.OrdinalIgnoreCase);
+
+                    var isTeam1Red =
+                        string.Equals(sides.Red, matchWithTeams.Team1.Name, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(sides.Red, matchWithTeams.Team1.ShortName, StringComparison.OrdinalIgnoreCase);
+
+                    if (!isTeam1Blue && !isTeam1Red)
+                    {
+                        Console.WriteLine($"  Warning: Could not match team sides for game {game.ExternalId}");
+                        continue;
+                    }
+
+                    var team1Side = isTeam1Blue ? "Blue" : "Red";
+                    var team2Side = isTeam1Blue ? "Red" : "Blue";
+
+                    game.SetSides(team1Side, team2Side);
+                    updatedCount++;
+                }
+            }
+
+            await dbContext.SaveChangesAsync();
+            await Task.Delay(1_000);
+        }
+
+        Console.WriteLine($"\n--- Backfill Sides Summary ---");
+        Console.WriteLine($"{updatedCount} games updated with sides");
+        Console.WriteLine($"{skippedCount} tournaments skipped");
+        Console.WriteLine($"------------------------------\n");
+
+        return (updatedCount, skippedCount);
+    }
 }

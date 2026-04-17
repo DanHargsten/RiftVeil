@@ -14,7 +14,8 @@ namespace RiftVeil.Api.Controllers;
 public class ImportController(
     LeaguepediaImportService importService,
     RiftVeilDbContext dbContext,
-    LolesportsVodEnricher vodEnricher) : ControllerBase
+    LolesportsVodEnricher vodEnricher,
+    GameDetailImportService gameDetailImportService) : ControllerBase
 {
     /// <summary>
     /// Imports tournaments for the given league.
@@ -61,7 +62,7 @@ public class ImportController(
         await importService.ImportMatchesAsync(league.Id);
         return Ok("Match import complete.");
     }
-    
+
     /// <summary>
     /// Imports matches only for ongoing tournaments in the given league.
     /// </summary>
@@ -97,6 +98,49 @@ public class ImportController(
         return Ok($"VOD enrichment finished for {league.ShortName}");
     }
 
+    [HttpPost("backfill-game-ids/{leagueShortName}")]
+    public async Task<IActionResult> BackfillGameExternalIds(string leagueShortName)
+    {
+        var league = await FindLeagueByShortNameAsync(leagueShortName);
+        if (league == null)
+            return NotFound($"League '{leagueShortName}' not found.");
+
+        var (gamesUpdated, tournamentsSkipped) = await importService.BackfillGameExternalIdsAsync(league.Id);
+        return Ok(new { gamesUpdated, tournamentsSkipped });
+    }
+    
+    /// <summary>
+    /// Backfills Team1Side and Team2Side for games missing side data.
+    /// </summary>
+    [HttpPost("backfill-game-sides/{leagueShortName}")]
+    public async Task<IActionResult> BackfillGameSides(string leagueShortName)
+    {
+        var league = await FindLeagueByShortNameAsync(leagueShortName);
+        if (league == null)
+            return NotFound($"League '{leagueShortName}' not found.");
+
+        var (gamesUpdated, tournamentsSkipped) = await importService.BackfillGameSidesAsync(league.Id);
+        return Ok(new { gamesUpdated, tournamentsSkipped });
+    }
+
+    /// <summary>
+    /// Imports player stats, team stats, and draft entries for all games
+    /// in the given tournament. Use the Leaguepedia OverviewPage slug,
+    /// e.g. "LEC/2026 Season/Spring Season".
+    /// URL-encode slashes: LEC%2F2026+Season%2FSpring+Season
+    /// </summary>
+    [HttpPost("game-details")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ImportGameDetailsAsync([FromQuery] string slug)
+    {
+        if (string.IsNullOrWhiteSpace(slug))
+            return BadRequest("Query parameter 'slug' is required. Example: ?slug=LEC/2026 Season/Spring Season");
+
+        await gameDetailImportService.ImportGameDetailsForTournamentAsync(slug);
+        return Ok($"Game detail import complete for: {slug}");
+    }
+
     private async Task<League?> FindLeagueByShortNameAsync(string leagueShortName)
     {
         var key = leagueShortName.ToUpperInvariant();
@@ -111,15 +155,4 @@ public class ImportController(
         "LCK" => "LoL Champions Korea",
         _ => null
     };
-
-    [HttpPost("backfill-game-ids/{leagueShortName}")]
-    public async Task<IActionResult> BackfillGameExternalIds(string leagueShortName)
-    {
-        var league = await FindLeagueByShortNameAsync(leagueShortName);
-        if (league == null)
-            return NotFound($"League '{leagueShortName}' not found.");
-        
-        var (gamesUpdated, tournamentsSkipped) = await importService.BackfillGameExternalIdsAsync(league.Id);
-        return Ok(new { gamesUpdated, tournamentsSkipped });
-    }
 }
