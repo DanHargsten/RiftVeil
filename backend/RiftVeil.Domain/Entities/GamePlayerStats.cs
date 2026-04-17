@@ -25,7 +25,7 @@ public class GamePlayerStats : BaseEntity
     /// <summary>
     /// Lane role: Top, Jungle, Mid, Bot, Support.
     /// </summary>
-    public string Role { get; private set; } = null!;
+    public string IngameRole { get; private set; } = null!;
 
     public string Champion { get; private set; } = null!;
     
@@ -69,7 +69,7 @@ public class GamePlayerStats : BaseEntity
         int gameId,
         int teamNumber,
         string playerName,
-        string role,
+        string ingameRole,
         string champion,
         int kills,
         int deaths,
@@ -89,8 +89,8 @@ public class GamePlayerStats : BaseEntity
         if (string.IsNullOrWhiteSpace(playerName))
             throw new ArgumentException("Player name is required.", nameof(playerName));
         
-        if (string.IsNullOrWhiteSpace(role))
-            throw new ArgumentException("Role is required.", nameof(role));
+        if (string.IsNullOrWhiteSpace(ingameRole))
+            throw new ArgumentException("Role is required.", nameof(IngameRole));
         
         if (string.IsNullOrWhiteSpace(champion))
             throw new ArgumentException("Champion is required.", nameof(champion));
@@ -98,7 +98,7 @@ public class GamePlayerStats : BaseEntity
         GameId = gameId;
         TeamNumber = teamNumber;
         PlayerName = playerName.Trim();
-        Role = role.Trim();
+        IngameRole = ingameRole.Trim();
         Champion = champion.Trim();
         Kills = kills;
         Deaths = deaths;

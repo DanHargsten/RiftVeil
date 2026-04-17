@@ -146,7 +146,7 @@ public class RiftVeilDbContext(DbContextOptions<RiftVeilDbContext> options) : Db
         modelBuilder.Entity<GamePlayerStats>(entity =>
         {
             entity.Property(p => p.PlayerName).IsRequired().HasMaxLength(100);
-            entity.Property(p => p.Role).IsRequired().HasMaxLength(20);
+            entity.Property(p => p.IngameRole).IsRequired().HasMaxLength(20);
             entity.Property(p => p.Champion).IsRequired().HasMaxLength(100);
             entity.Property(p => p.ItemIds).HasMaxLength(200);
             entity.Property(p => p.TrinketId).HasMaxLength(20);
