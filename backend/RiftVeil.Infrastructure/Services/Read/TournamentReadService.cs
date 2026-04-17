@@ -7,6 +7,9 @@ using RiftVeil.Infrastructure.Data;
 
 namespace RiftVeil.Infrastructure.Services.Read;
 
+/// <summary>
+/// Read-side queries for tournaments and nested matches.
+/// </summary>
 public class TournamentReadService(RiftVeilDbContext context) : ITournamentReadService
 {
     private readonly RiftVeilDbContext _context = context;
@@ -20,16 +23,16 @@ public class TournamentReadService(RiftVeilDbContext context) : ITournamentReadS
 
         if (leagueId.HasValue)
         {
-            query = query.Where(t => t.LeagueId == leagueId.Value);
+            query = query.Where(tournament => tournament.LeagueId == leagueId.Value);
         }
 
         if (status.HasValue)
         {
-            query = query.Where(t => t.Status == status.Value);
+            query = query.Where(tournament => tournament.Status == status.Value);
         }
 
         return await query
-            .OrderByDescending(t => t.StartsAtUtc)
+            .OrderByDescending(tournament => tournament.StartsAtUtc)
             .Select(TournamentProjections.ToListItemDto())
             .ToListAsync();
     }
@@ -38,15 +41,15 @@ public class TournamentReadService(RiftVeilDbContext context) : ITournamentReadS
     public async Task<TournamentDetailsDto?> GetByIdAsync(int id)
     {
         var tournament = await _context.Tournaments
-            .Include(t => t.League)
-            .Include(t => t.Matches)
-                .ThenInclude(m => m.Team1)
-            .Include(t => t.Matches)
-                .ThenInclude(m => m.Team2)
-            .Include(t => t.Matches)
-                .ThenInclude(m => m.Games)
-                    .ThenInclude(g => g.Vods)
-            .FirstOrDefaultAsync(t => t.Id == id);
+            .Include(tournament => tournament.League)
+            .Include(tournament => tournament.Matches)
+                .ThenInclude(match => match.Team1)
+            .Include(tournament => tournament.Matches)
+                .ThenInclude(match => match.Team2)
+            .Include(tournament => tournament.Matches)
+                .ThenInclude(match => match.Games)
+                    .ThenInclude(game => game.Vods)
+            .FirstOrDefaultAsync(tournament => tournament.Id == id);
 
         return tournament?.ToDetailsDto();
     }

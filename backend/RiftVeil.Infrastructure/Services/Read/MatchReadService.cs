@@ -7,6 +7,9 @@ using RiftVeil.Infrastructure.Data;
 
 namespace RiftVeil.Infrastructure.Services.Read;
 
+/// <summary>
+/// Read-side queries for matches (list filters, live/upcoming/recent, and detail with games).
+/// </summary>
 public class MatchReadService(RiftVeilDbContext context) : IMatchReadService
 {
     private readonly RiftVeilDbContext _context = context;
@@ -23,29 +26,29 @@ public class MatchReadService(RiftVeilDbContext context) : IMatchReadService
         if (tournamentId.HasValue)
         {
             // Tournament filter: return all matches for that tournament
-            query = query.Where(m => m.TournamentId == tournamentId.Value);
+            query = query.Where(match => match.TournamentId == tournamentId.Value);
         }
         else
         {
             // Date range filter
             if (from.HasValue)
             {
-                query = query.Where(m => m.StartsAtUtc >= from.Value);
+                query = query.Where(match => match.StartsAtUtc >= from.Value);
             }
 
             if (to.HasValue)
             {
-                query = query.Where(m => m.StartsAtUtc <= to.Value);
+                query = query.Where(match => match.StartsAtUtc <= to.Value);
             }
         }
 
         if (status.HasValue)
         {
-            query = query.Where(m => m.Status == status.Value);
+            query = query.Where(match => match.Status == status.Value);
         }
 
         return await query
-            .OrderBy(m => m.StartsAtUtc)
+            .OrderBy(match => match.StartsAtUtc)
             .Select(MatchProjections.ToListItemDto())
             .ToListAsync();
     }
@@ -56,10 +59,10 @@ public class MatchReadService(RiftVeilDbContext context) : IMatchReadService
         var cutoffTime = DateTimeOffset.UtcNow.AddDays(days);
 
         return await _context.Matches
-            .Where(m => m.Status == MatchStatus.Scheduled)
-            .Where(m => m.StartsAtUtc >= DateTimeOffset.UtcNow)
-            .Where(m => m.StartsAtUtc <= cutoffTime)
-            .OrderBy(m => m.StartsAtUtc)
+            .Where(match => match.Status == MatchStatus.Scheduled)
+            .Where(match => match.StartsAtUtc >= DateTimeOffset.UtcNow)
+            .Where(match => match.StartsAtUtc <= cutoffTime)
+            .OrderBy(match => match.StartsAtUtc)
             .Select(MatchProjections.ToListItemDto())
             .ToListAsync();
     }
@@ -68,8 +71,8 @@ public class MatchReadService(RiftVeilDbContext context) : IMatchReadService
     public async Task<List<MatchListItemDto>> GetRecentAsync(int count = 10)
     {
         return await _context.Matches
-            .Where(m => m.Status == MatchStatus.Finished)
-            .OrderByDescending(m => m.StartedAtUtc)
+            .Where(match => match.Status == MatchStatus.Finished)
+            .OrderByDescending(match => match.StartedAtUtc)
             .Take(count)
             .Select(MatchProjections.ToListItemDto())
             .ToListAsync();
@@ -79,8 +82,8 @@ public class MatchReadService(RiftVeilDbContext context) : IMatchReadService
     public async Task<List<MatchListItemDto>> GetLiveAsync()
     {
         return await _context.Matches
-            .Where(m => m.Status == MatchStatus.Live)
-            .OrderByDescending(m => m.StartedAtUtc)
+            .Where(match => match.Status == MatchStatus.Live)
+            .OrderByDescending(match => match.StartedAtUtc)
             .Select(MatchProjections.ToListItemDto())
             .ToListAsync();
     }
@@ -89,13 +92,13 @@ public class MatchReadService(RiftVeilDbContext context) : IMatchReadService
     public async Task<MatchDetailsDto?> GetByIdAsync(int id)
     {
         var match = await _context.Matches
-            .Include(m => m.Tournament)
-                .ThenInclude(t => t.League)
-            .Include(m => m.Team1)
-            .Include(m => m.Team2)
-            .Include(m => m.Games)
-                .ThenInclude(g => g.Vods)
-            .FirstOrDefaultAsync(m => m.Id == id);
+            .Include(match => match.Tournament)
+                .ThenInclude(tournament => tournament.League)
+            .Include(match => match.Team1)
+            .Include(match => match.Team2)
+            .Include(match => match.Games)
+                .ThenInclude(game => game.Vods)
+            .FirstOrDefaultAsync(match => match.Id == id);
 
         return match?.ToDetailsDto();
     }

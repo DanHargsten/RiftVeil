@@ -33,7 +33,9 @@ builder.Services.AddHttpClient<LeaguepediaClient>(client =>
         AutomaticDecompression = System.Net.DecompressionMethods.All
     });
 
-// Lolesports VOD client.
+// Lolesports VOD client (API key: Lolesports:ApiKey).
+builder.Services.Configure<LolesportsClientOptions>(
+    builder.Configuration.GetSection(LolesportsClientOptions.SectionName));
 builder.Services.AddHttpClient<LolesportsClient>(client =>
 {
     client.DefaultRequestHeaders.UserAgent.ParseAdd(

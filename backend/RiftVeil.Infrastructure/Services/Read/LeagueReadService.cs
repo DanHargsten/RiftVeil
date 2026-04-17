@@ -6,6 +6,9 @@ using RiftVeil.Infrastructure.Data;
 
 namespace RiftVeil.Infrastructure.Services.Read;
 
+/// <summary>
+/// Read-side queries for leagues and their tournaments.
+/// </summary>
 public class LeagueReadService(RiftVeilDbContext context) : ILeagueReadService
 {
     private readonly RiftVeilDbContext _context = context;
@@ -14,7 +17,7 @@ public class LeagueReadService(RiftVeilDbContext context) : ILeagueReadService
     public async Task<List<LeagueListItemDto>> GetAllAsync()
     {
         return await _context.Leagues
-            .OrderBy(l => l.Name)
+            .OrderBy(league => league.Name)
             .Select(LeagueProjections.ToListItemDto())
             .ToListAsync();
     }
@@ -23,8 +26,8 @@ public class LeagueReadService(RiftVeilDbContext context) : ILeagueReadService
     public async Task<LeagueDetailsDto?> GetByIdAsync(int leagueId)
     {
         var league = await _context.Leagues
-            .Include(l => l.Tournaments)
-            .FirstOrDefaultAsync(l => l.Id == leagueId);
+            .Include(league => league.Tournaments)
+            .FirstOrDefaultAsync(league => league.Id == leagueId);
 
         return league?.ToDetailsDto();
     }

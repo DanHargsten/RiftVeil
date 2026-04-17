@@ -1,5 +1,8 @@
 namespace RiftVeil.Application.Dtos.Leagues;
 
+/// <summary>
+/// Request body for creating a league.
+/// </summary>
 public class CreateLeagueRequest
 {
     public required string Name { get; init; }

@@ -1,9 +1,16 @@
-﻿namespace RiftVeil.Application.Dtos.Games;
+namespace RiftVeil.Application.Dtos.Games;
 
+/// <summary>
+/// Full scoreboard-style payload for one game: sides, VOD link, per-player stats, team totals, and draft order.
+/// </summary>
 public class GameDetailsDto
 {
     public int GameId { get; init; }
     public int GameNumber { get; init; }
+
+    /// <summary>
+    /// Winning side: 1 or 2; null if the game is unfinished.
+    /// </summary>
     public int? WinningTeam { get; init; }
     public string? Team1Side { get; init; }
     public string? Team2Side { get; init; }
@@ -16,6 +23,9 @@ public class GameDetailsDto
     public List<DraftEntryDto> Draft { get; init; } = [];
 }
 
+/// <summary>
+/// One player's line on the game scoreboard (Leaguepedia ScoreboardPlayers shape).
+/// </summary>
 public class PlayerStatsDto
 {
     public string PlayerName { get; init; } = null!;
@@ -28,13 +38,24 @@ public class PlayerStatsDto
     public int CreepScore { get; init; }
     public int DamageDealtToChampions { get; init; }
     public int VisionScore { get; init; }
+
+    /// <summary>
+    /// Comma-separated item IDs as returned by the data source, e.g. "3157,3089,3040".
+    /// </summary>
     public string? ItemIds { get; init; }
     public string? TrinketId { get; init; }
     public string? SummonerSpell1Id { get; init; }
     public string? SummonerSpell2Id { get; init; }
+
+    /// <summary>
+    /// 1 or 2 — same convention as <see cref="GameDetailsDto.WinningTeam"/>.
+    /// </summary>
     public int TeamNumber { get; init; }
 }
 
+/// <summary>
+/// Aggregated objectives and economy for one team in a game.
+/// </summary>
 public class TeamStatsDto
 {
     public int TotalKills { get; init; }
@@ -53,11 +74,21 @@ public class TeamStatsDto
     public int ChemtechDragonsSlain { get; init; }
     public int ElderDragonsSlain { get; init; }
     public int GameDurationSeconds { get; init; }
+
+    /// <summary>
+    /// 1 or 2 — same convention as <see cref="GameDetailsDto.WinningTeam"/>.
+    /// </summary>
     public int TeamNumber { get; init; }
 }
 
+/// <summary>
+/// One pick or ban step in chronological order for the game's draft.
+/// </summary>
 public class DraftEntryDto
 {
+    /// <summary>
+    /// 1 or 2 — same convention as <see cref="GameDetailsDto.WinningTeam"/>.
+    /// </summary>
     public int TeamNumber { get; init; }
     public string Phase { get; init; } = null!;
     public int SequenceNumber { get; init; }

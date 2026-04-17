@@ -30,7 +30,7 @@ public class LolesportsVodEnricher(
         logger.LogInformation("Starting VOD enrichment for {LeagueShortName}", leagueShortName);
 
         var league = await dbContext.Leagues
-            .FirstOrDefaultAsync(l => l.ShortName.ToUpper() == leagueShortName.ToUpper());
+            .FirstOrDefaultAsync(storedLeague => storedLeague.ShortName.ToUpper() == leagueShortName.ToUpper());
 
         if (league == null)
         {
@@ -39,7 +39,7 @@ public class LolesportsVodEnricher(
         }
 
         var unenrichedCount = await dbContext.Games
-            .CountAsync(g => g.Match.Tournament.LeagueId == league.Id && string.IsNullOrEmpty(g.VodUrl));
+            .CountAsync(game => game.Match.Tournament.LeagueId == league.Id && string.IsNullOrEmpty(game.VodUrl));
 
         logger.LogInformation("{Count} games without VOD for league {LeagueShortName}", unenrichedCount, leagueShortName);
         if (unenrichedCount == 0) return;
@@ -55,10 +55,10 @@ public class LolesportsVodEnricher(
         logger.LogInformation("Found {Count} lolesports tournaments for {LeagueShortName}", lolesportsTournaments.Count, leagueShortName);
 
         var ourTournaments = await dbContext.Tournaments
-            .Where(t => t.LeagueId == league.Id)
-            .Include(t => t.Matches).ThenInclude(m => m.Team1)
-            .Include(t => t.Matches).ThenInclude(m => m.Team2)
-            .Include(t => t.Matches).ThenInclude(m => m.Games).ThenInclude(g => g.Vods)
+            .Where(tournament => tournament.LeagueId == league.Id)
+            .Include(tournament => tournament.Matches).ThenInclude(match => match.Team1)
+            .Include(tournament => tournament.Matches).ThenInclude(match => match.Team2)
+            .Include(tournament => tournament.Matches).ThenInclude(match => match.Games).ThenInclude(game => game.Vods)
             .ToListAsync();
 
         int totalEnriched = 0;
@@ -95,7 +95,7 @@ public class LolesportsVodEnricher(
                 logger.LogDebug("First event JSON (truncated): {Snippet}",
                     first.GetRawText()[..Math.Min(500, first.GetRawText().Length)]);
 
-                var firstMatch = ourTournaments.SelectMany(t => t.Matches).FirstOrDefault();
+                var firstMatch = ourTournaments.SelectMany(tournament => tournament.Matches).FirstOrDefault();
                 if (firstMatch != null)
                 {
                     logger.LogDebug("First DB match: {Team1} vs {Team2} @ {StartsAt:yyyy-MM-dd HH:mm}",
@@ -116,7 +116,7 @@ public class LolesportsVodEnricher(
                 if (!matchEl.TryGetProperty("teams", out var teamsEl)) continue;
 
                 var codes = teamsEl.EnumerateArray()
-                    .Select(t => t.TryGetProperty("code", out var c) ? c.GetString()?.ToUpperInvariant().Trim() : null)
+                    .Select(team => team.TryGetProperty("code", out var code) ? code.GetString()?.ToUpperInvariant().Trim() : null)
                     .OfType<string>()
                     .ToArray();
 
@@ -128,11 +128,11 @@ public class LolesportsVodEnricher(
 
                     foreach (var tournament in ourTournaments)
                     {
-                        foreach (var m in tournament.Matches.Take(3))
+                        foreach (var match in tournament.Matches.Take(3))
                         {
-                            var t1 = m.Team1.ShortName.ToUpperInvariant().Trim();
-                            var t2 = m.Team2.ShortName.ToUpperInvariant().Trim();
-                            logger.LogDebug("DB match: {T1} vs {T2} @ {Time:yyyy-MM-dd HH:mm}", t1, t2, m.StartsAtUtc);
+                            var t1 = match.Team1.ShortName.ToUpperInvariant().Trim();
+                            var t2 = match.Team2.ShortName.ToUpperInvariant().Trim();
+                            logger.LogDebug("DB match: {T1} vs {T2} @ {Time:yyyy-MM-dd HH:mm}", t1, t2, match.StartsAtUtc);
                         }
                         break;
                     }
@@ -141,13 +141,13 @@ public class LolesportsVodEnricher(
                 Match? ourMatch = null;
                 foreach (var tournament in ourTournaments)
                 {
-                    ourMatch = tournament.Matches.FirstOrDefault(m =>
+                    ourMatch = tournament.Matches.FirstOrDefault(match =>
                     {
-                        var t1 = m.Team1.ShortName.ToUpperInvariant().Trim();
-                        var t2 = m.Team2.ShortName.ToUpperInvariant().Trim();
+                        var t1 = match.Team1.ShortName.ToUpperInvariant().Trim();
+                        var t2 = match.Team2.ShortName.ToUpperInvariant().Trim();
 
                         var teamsMatch = codes.Contains(t1) && codes.Contains(t2);
-                        var timeClose = Math.Abs((m.StartsAtUtc - evTime).TotalMinutes) < 120;
+                        var timeClose = Math.Abs((match.StartsAtUtc - evTime).TotalMinutes) < 120;
                         return teamsMatch && timeClose;
                     });
                     if (ourMatch != null) break;
@@ -155,7 +155,7 @@ public class LolesportsVodEnricher(
 
                 if (ourMatch == null) continue;
 
-                var gamesNeedingVods = ourMatch.Games.Where(g => string.IsNullOrEmpty(g.VodUrl)).ToList();
+                var gamesNeedingVods = ourMatch.Games.Where(game => string.IsNullOrEmpty(game.VodUrl)).ToList();
                 if (gamesNeedingVods.Count == 0) continue;
 
                 if (!matchEl.TryGetProperty("id", out var eventIdEl)) continue;
@@ -208,8 +208,8 @@ public class LolesportsVodEnricher(
     /// </summary>
     private bool EnrichGameVods(Game game, List<JsonElement> detailGames)
     {
-        var targetGame = detailGames.FirstOrDefault(g =>
-            g.TryGetProperty("number", out var numEl) && numEl.GetInt32() == game.GameNumber);
+        var targetGame = detailGames.FirstOrDefault(detailGame =>
+            detailGame.TryGetProperty("number", out var numEl) && numEl.GetInt32() == game.GameNumber);
 
         if (targetGame.ValueKind == JsonValueKind.Undefined || !targetGame.TryGetProperty("vods", out var vodsEl))
             return false;
@@ -225,7 +225,7 @@ public class LolesportsVodEnricher(
         {
             var providerStr = vod.TryGetProperty("provider", out var p) ? p.GetString() : null;
             var videoId = vod.TryGetProperty("parameter", out var param) ? param.GetString() : null;
-            var locale = vod.TryGetProperty("locale", out var l) ? l.GetString() : null;
+            var locale = vod.TryGetProperty("locale", out var localeEl) ? localeEl.GetString() : null;
 
             if (string.IsNullOrEmpty(providerStr) || string.IsNullOrEmpty(videoId)) continue;
 
@@ -303,8 +303,8 @@ public class LolesportsVodEnricher(
         foreach (var league in leaguesEl.EnumerateArray())
         {
             if (!league.TryGetProperty("tournaments", out var tournamentsEl)) continue;
-            foreach (var t in tournamentsEl.EnumerateArray())
-                tournaments.Add(t.Clone());
+            foreach (var tournamentEl in tournamentsEl.EnumerateArray())
+                tournaments.Add(tournamentEl.Clone());
         }
 
         return tournaments;

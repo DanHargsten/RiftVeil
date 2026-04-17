@@ -6,6 +6,7 @@ namespace RiftVeil.Application.Dtos.Games;
 /// Represents a single game within a match (e.g., Game 1 of a Bo3).
 /// Vods is null on list endpoints for performance, populated on detail views.
 /// </summary>
+/// <param name="WinningTeam">Winning side: 1 or 2; null if the game is unfinished.</param>
 public record GameDto(
     int Id,
     int GameNumber,
