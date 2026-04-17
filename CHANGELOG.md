@@ -2,6 +2,18 @@
 
 All notable changes to **RiftVeil** are recorded here, **newest first**. Sections are dated (no version numbers). Where it helps, entries are grouped like [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) (Added / Changed / Fixed / Removed).
 
+## 2026-04-18
+
+### Added
+
+- Read API: **`GET /api/games/{gameId}/details`** returning **`GameDetailsDto`** (core game fields, **`Team1Players`** / **`Team2Players`**, **`Team1Stats`** / **`Team2Stats`**, ordered **`Draft`**).
+- Application DTOs under **`GameDetailsDto`**, **`PlayerStatsDto`**, **`TeamStatsDto`**, **`DraftEntryDto`**; **`IGameReadService`** and infrastructure **`GameReadService`** (single projected query, lane ordering for display).
+- API: **`GamesController`** and DI registration for **`IGameReadService`**.
+
+### Changed
+
+- **Leaguepedia draft import** (`PicksAndBansS7`): Cargo field list and pick resolution use **`Team{n}Pick{k}`** instead of **`Team{n}Role{k}`** to match current Leaguepedia column names.
+
 ## 2026-04-17
 
 ### Changed

@@ -49,6 +49,7 @@ builder.Services.AddScoped<GameDetailImportService>();
 builder.Services.AddScoped<ILeagueReadService, LeagueReadService>();
 builder.Services.AddScoped<ITournamentReadService, TournamentReadService>();
 builder.Services.AddScoped<IMatchReadService, MatchReadService>();
+builder.Services.AddScoped<IGameReadService, GameReadService>();
 
 // Central data access for the API layer.
 builder.Services.AddDbContext<RiftVeilDbContext>(options =>

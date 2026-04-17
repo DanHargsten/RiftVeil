@@ -306,13 +306,14 @@ public class GameDetailImportService(LeaguepediaClient client, RiftVeilDbContext
     {
         Console.WriteLine("  Fetching PicksAndBansS7...");
 
+        // Cargo exposes pick columns as Team{n}Pick{k}; older docs used Team{n}Role{k}.
         var rows = await client.QueryAsync(
             tables: "PicksAndBansS7",
             fields: "GameId," +
                     "Team1Ban1,Team1Ban2,Team1Ban3,Team1Ban4,Team1Ban5," +
                     "Team2Ban1,Team2Ban2,Team2Ban3,Team2Ban4,Team2Ban5," +
-                    "Team1Role1,Team1Role2,Team1Role3,Team1Role4,Team1Role5," +
-                    "Team2Role1,Team2Role2,Team2Role3,Team2Role4,Team2Role5",
+                    "Team1Pick1,Team1Pick2,Team1Pick3,Team1Pick4,Team1Pick5," +
+                    "Team2Pick1,Team2Pick2,Team2Pick3,Team2Pick4,Team2Pick5",
             where: $"OverviewPage=\"{liquipediaSlug}\"",
             limit: 500
         );
@@ -356,7 +357,7 @@ public class GameDetailImportService(LeaguepediaClient client, RiftVeilDbContext
             {
                 var fieldName = phase == "Ban"
                     ? $"Team{team}Ban{slot}"
-                    : $"Team{team}Role{slot}";
+                    : $"Team{team}Pick{slot}";
 
                 var champion = row.GetProperty(fieldName).GetString();
                 if (string.IsNullOrWhiteSpace(champion) || champion == "None") continue;
