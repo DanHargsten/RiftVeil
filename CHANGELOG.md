@@ -2,6 +2,25 @@
 
 All notable changes to **RiftVeil** are recorded here, **newest first**. Sections are dated (no version numbers). Where it helps, entries are grouped like [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) (Added / Changed / Fixed / Removed).
 
+## 2026-04-17
+
+### Changed
+
+- `GamePlayerStats`: property `Role` renamed to **`IngameRole`** to match Leaguepedia Cargo field naming; EF migration `RenameRoleToIngameRole` and snapshot update.
+
+## 2026-04-16
+
+### Added
+
+- Documentation: root **`README.md`** — current features (Home, leagues, match detail, admin), Leaguepedia/Lolesports data flow, tech table, repo layout, local dev steps, link to this changelog.
+- Import API: **`POST /api/import/backfill-game-ids/{leagueShortName}`** returns JSON `{ gamesUpdated, tournamentsSkipped }`; backfills **`Game.ExternalId`** from **`MatchScheduleGame`** (one Cargo query per tournament).
+- Domain: **`Game.SetExternalId`** with validation for Leaguepedia `GameId` backfill.
+
+### Changed
+
+- **Leaguepedia client**: shorter rate-limit backoff after `ratelimited`; shorter delay between tournaments during backfill.
+- **Leaguepedia import service**: domain-oriented lambda parameter names in backfill-related LINQ.
+
 ## 2026-04-15
 
 ### Added
