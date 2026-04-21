@@ -96,22 +96,88 @@ export interface TournamentDetails extends TournamentListItem {
   matches: MatchListItem[];
 }
 
-/* Parameters for fetching matches with a date range. */
+/** Parameters for fetching matches with a date range. */
 export interface MatchQueryParams {
   tournamentId?: number;
   from?: string;
   to?: string;
 }
 
+/** Stat summary for an individual player for a single game. */
+export interface PlayerStatsDto {
+  playerName: string;
+  ingameRole: string;
+  champion: string;
+  kills: number;
+  deaths: number;
+  assists: number;
+  goldEarned: number;
+  creepScore: number;
+  damageDealtToChampions: number;
+  visionScore: number;
+  itemIds: string | null;
+  trinketId: string | null;
+  summonerSpell1Id: string | null;
+  summonerSpell2Id: string | null;
+  teamNumber: number;
+}
+
+/** Team stat summary for a single game */
+export interface TeamStatsDto {
+  totalKills: number;
+  totalDeaths: number;
+  totalAssists: number;
+  totalGoldEarned: number;
+  towersDestroyed: number;
+  inhibitorsDestroyed: number;
+  baronsSlain: number;
+  riftHeraldsSlain: number;
+  voidGrubsSlain: number;
+  totalDragonsSlain: number;
+  infernalDragonsSlain: number;
+  mountainDragonsSlain: number;
+  cloudDragonsSlain: number;
+  oceanDragonsSlain: number;
+  hextechDragonsSlain: number;
+  chemtechDragonsSlain: number;
+  elderDragonsSlain: number;
+  gameDurationSeconds: number;
+  teamNumber: number;
+}
+
+/** Represents a single pick or ban entry in the draft phase. */
+export interface DraftEntryDto {
+  teamNumber: number;
+  phase: "Pick" | "Ban";
+  sequenceNumber: number;
+  champion: string;
+}
+
+/** Full statistical details for a single game, including players and draft. */
+export interface GameDetailsDto {
+  gameId: number;
+  gameNumber: number;
+  winningTeam: number | null;
+  team1Side: string | null;
+  team2Side: string | null;
+  vodUrl: string | null;
+  team1Players: PlayerStatsDto[];
+  team2Players: PlayerStatsDto[];
+  team1Stats: TeamStatsDto | null;
+  team2Stats: TeamStatsDto | null;
+  draft: DraftEntryDto[];
+  gameDurationSeconds: number | null;
+}
+
 export const matchesApi = {
   getUpcoming: (days = 7) => 
-      fetchApi<MatchListItem[]>(`/api/matches/upcoming?days=${days}`),
+    fetchApi<MatchListItem[]>(`/api/matches/upcoming?days=${days}`),
   
   getRecent: (count = 10) =>
-      fetchApi<MatchListItem[]>(`/api/matches/recent?count=${count}`),
+    fetchApi<MatchListItem[]>(`/api/matches/recent?count=${count}`),
   
   getLive: () =>
-      fetchApi<MatchListItem[]>("/api/matches/live"),
+    fetchApi<MatchListItem[]>("/api/matches/live"),
 
   getAll: (params?: MatchQueryParams) => {
     const qs = new URLSearchParams();
@@ -120,17 +186,22 @@ export const matchesApi = {
     if (params?.to) qs.set("to", params.to);
     const query = qs.toString();
     return fetchApi<MatchListItem[]>(`/api/matches${query ? `?${query}` : ""}`);
-},
+  },
 
   getById: (id: number) => fetchApi<MatchDetails>(`/api/matches/${id}`),
 };
 
 export const leaguesApi = {
-    getAll: () => fetchApi<LeagueListItem[]>("/api/leagues"),
-    getById: (id: number) => fetchApi<LeagueDetails>(`/api/leagues/${id}`),
+  getAll: () => fetchApi<LeagueListItem[]>("/api/leagues"),
+  getById: (id: number) => fetchApi<LeagueDetails>(`/api/leagues/${id}`),
 };
 
 export const tournamentsApi = {
   getAll: () => fetchApi<TournamentListItem[]>("/api/tournaments"),
   getById: (id: number) => fetchApi<TournamentDetails>(`/api/tournaments/${id}`),
+};
+
+export const gamesApi = {
+  getDetails: (gameId: number) =>
+    fetchApi<GameDetailsDto>(`/api/games/${gameId}/details`),
 };

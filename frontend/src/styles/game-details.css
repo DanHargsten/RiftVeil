@@ -1,0 +1,493 @@
+/*
+ * Styles for the match detail game panels: section summary bar (MatchDetail),
+ * GameDraft, and GameScoreboard. Page chrome lives in pages/match-detail.css.
+ * Order: match-detail section header → draft → scoreboard.
+ */
+
+/* =============================================================================
+   MATCH DETAIL — section summary bar (shared header above draft)
+   ============================================================================= */
+
+.match-detail__section-header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    padding: 0.65rem 1.25rem;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+}
+
+.match-detail__section-team {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.match-detail__section-team--right {
+    justify-content: flex-end;
+}
+
+.match-detail__section-kda {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.match-detail__section-gold {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: oklch(0.82 0.15 85);
+}
+
+.match-detail__section-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+}
+
+.match-detail__section-vs {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.match-detail__section-vs-team {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.match-detail__section-vs-sep {
+    font-size: 0.65rem;
+    font-weight: 400;
+    color: var(--text-muted-extra);
+}
+
+.match-detail__section-time {
+    font-size: 0.75rem;
+    color: var(--text-muted-extra);
+}
+
+/* =============================================================================
+   GAME DRAFT (GameDraft.tsx)
+   ============================================================================= */
+
+.draft {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.25rem;
+}
+
+.draft__empty {
+    margin: 0;
+    padding: 2rem 1.25rem;
+    text-align: center;
+    color: var(--text-muted-extra);
+    font-size: 0.875rem;
+}
+
+.draft__body {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    gap: 1rem;
+}
+
+.draft__separator {
+    background: var(--border);
+    align-self: stretch;
+}
+
+.draft__left {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+}
+
+.draft__right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.draft__bans {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.draft__bans--left {
+    justify-content: flex-end;
+}
+
+.draft__bans--right {
+    justify-content: flex-start;
+}
+
+.draft__bans-icons {
+    display: flex;
+    flex-direction: row;
+    gap: 0.3rem;
+}
+
+.draft__pick-icons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.draft__pick-icons--left {
+    justify-content: flex-end;
+}
+
+.draft__pick-icons--right {
+    justify-content: flex-start;
+}
+
+/* DraftChampIcon */
+.draft__champ-icon {
+    border-radius: 0.25rem;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    position: relative;
+}
+
+.draft__champ-icon img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.draft__champ-icon--ban {
+    filter: grayscale(0.7) brightness(0.6);
+    position: relative;
+}
+
+.draft__champ-icon--ban::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+            -45deg,
+            transparent,
+            transparent 3px,
+            rgba(200, 50, 50, 0.4) 3px,
+            rgba(200, 50, 50, 0.4) 4px
+    );
+}
+
+.draft__champ-icon--pick {
+    border-color: var(--primary-border);
+}
+
+/* =============================================================================
+   GAME SCOREBOARD (GameScoreboard.tsx)
+   ============================================================================= */
+
+.scoreboard {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.scoreboard__team {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 0.625rem;
+    overflow: hidden;
+}
+
+.scoreboard__team-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 1.25rem;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+}
+
+.scoreboard__team-name {
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text);
+    flex: 1;
+}
+
+.scoreboard__team-totals {
+    display: flex;
+    gap: 0.75rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.scoreboard__total-kda {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.scoreboard__total-kills {
+    color: var(--text-muted);
+}
+
+.scoreboard__total-deaths {
+    color: var(--text-muted);
+}
+
+.scoreboard__total-kda-sep {
+    color: var(--text-muted-extra);
+    margin-inline: 1px;
+}
+
+.scoreboard__total-assists {
+    color: var(--text-muted);
+}
+
+.scoreboard__total-gold {
+    color: oklch(0.82 0.15 85);
+}
+
+.scoreboard__winner-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--primary);
+    border: 1px solid var(--primary-border);
+    border-radius: 0.25rem;
+    padding: 0.1rem 0.4rem;
+    background: var(--primary-soft);
+}
+
+.scoreboard__table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+/*
+ * Column share matches the pre-table grid on rows / header:
+ * grid-template-columns: 1.9fr 1fr 0.6fr 0.8fr 1.6fr 1.2fr  (sum 6.1fr → % = fr/6.1).
+ */
+.scoreboard__col--player {
+    width: 31.1475%;
+}
+
+.scoreboard__col--kda {
+    width: 16.3934%;
+}
+
+.scoreboard__col--cs {
+    width: 9.8361%;
+}
+
+.scoreboard__col--gold {
+    width: 13.1148%;
+}
+
+.scoreboard__col--items {
+    width: 26.2295%;
+}
+
+.scoreboard__col--damage {
+    width: 19.6721%;
+}
+
+.scoreboard__th {
+    padding: 0.35rem 1.25rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted-extra);
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+}
+
+.scoreboard__row {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.12s ease;
+}
+
+.scoreboard__row:last-child {
+    border-bottom: none;
+}
+
+.scoreboard__row:hover {
+    background: var(--surface-2);
+}
+
+.scoreboard__row td {
+    padding: 0.6rem 1.25rem;
+    vertical-align: middle;
+}
+
+/* Flex lives inside wrappers only — display:flex on <td> breaks table column layout. */
+.scoreboard__player-inner {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
+}
+
+.scoreboard__champ-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 0.25rem;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+}
+
+.scoreboard__player-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.scoreboard__player-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.scoreboard__player-champ {
+    font-size: 0.75rem;
+    color: var(--text-muted-extra);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.scoreboard__kda-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.1rem;
+}
+
+.scoreboard__kda {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.scoreboard__kda-kills::after,
+.scoreboard__kda-deaths::after {
+    content: " / ";
+    color: var(--text-muted-extra);
+    font-weight: 400;
+}
+
+.scoreboard__kda-ratio {
+    font-size: 0.7rem;
+    color: var(--text-muted-extra);
+}
+
+.scoreboard__kda-cell {
+    text-align: left;
+}
+
+.scoreboard__cs-cell {
+    text-align: left;
+}
+
+.scoreboard__cs {
+    font-size: 0.875rem;
+    color: var(--text);
+}
+
+.scoreboard__gold-cell {
+    text-align: left;
+}
+
+.scoreboard__gold {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: oklch(0.82 0.15 85);
+}
+
+.scoreboard__items-inner {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 2px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+}
+
+.scoreboard__items-cell {
+    text-align: left;
+}
+
+.scoreboard__damage-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    width: 100%;
+}
+
+.scoreboard__damage-cell {
+    text-align: left;
+}
+
+.scoreboard__damage-num {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.scoreboard__damage-bar-track {
+    width: 100%;
+    height: 4px;
+    background: var(--surface-2);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.scoreboard__damage-bar-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+}
+
+.scoreboard__item-icon {
+    border-radius: 0.2rem;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    width: 24px;
+    height: 24px;
+}
+
+.scoreboard__item-icon img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.scoreboard__item-icon--missing {
+    background: var(--surface-2);
+}
+
+.scoreboard__item-icon--trinket {
+    border-color: var(--primary-border);
+}

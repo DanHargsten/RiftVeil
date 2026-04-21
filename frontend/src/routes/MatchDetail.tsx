@@ -1,9 +1,12 @@
-import { useParams, Link, useLocation } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { matchesApi } from "@/lib/api.ts";
 import { useState } from "react";
-import { TeamLogo, LeagueLogo } from "@/components/common/Logos.tsx";
+import { Link, useLocation, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { GameDraft } from "@/components/Match/GameDraft.tsx";
+import { GameScoreboard } from "@/components/Match/GameScoreboard.tsx";
 import { PlayIcon } from "@/components/common/Icons.tsx";
+import { LeagueLogo, TeamLogo } from "@/components/common/Logos.tsx";
+import { gamesApi, matchesApi } from "@/lib/api.ts";
+import "@/styles/game-details.css";
 
 /** Match detail page: full match info with game-by-game breakdown. */
 export function MatchDetail() {
@@ -11,13 +14,34 @@ export function MatchDetail() {
     const location = useLocation();
     const [selectedGame, setSelectedGame] = useState<number>(1);
 
-    // Läs av vart användaren kom ifrån — skickades med av MatchCard
+    // Back link target: optional `state.from` set by MatchCard
     const from = (location.state as { from?: string })?.from ?? "/";
     const backLabel = from.startsWith("/leagues/") ? "← League" : "← Home";
 
     const { data: match, isLoading, error } = useQuery({
         queryKey: ["match", id],
         queryFn: () => matchesApi.getById(Number(id)),
+    });
+    
+    const playedGames =
+        match?.games.filter((game) => game.winningTeam != null) ?? [];
+    const currentGame =
+        playedGames.find((game) => game.gameNumber === selectedGame)
+        ?? playedGames[0];
+
+    const {
+        data: gameDetails,
+        isLoading: gameLoading,
+        isError: gameDetailsError,
+    } = useQuery({
+        queryKey: ["game-details", currentGame?.id],
+        queryFn: () => {
+            if (!currentGame) {
+                throw new Error("No game selected");
+            }
+            return gamesApi.getDetails(currentGame.id);
+        },
+        enabled: !!currentGame,
     });
 
     if (isLoading) {
@@ -46,15 +70,8 @@ export function MatchDetail() {
     const team2Wins = match.team2Score ?? 0;
     const team1IsWinner = team1Wins > team2Wins;
     const team2IsWinner = team2Wins > team1Wins;
-
     const leagueShortName = match.tournament.leagueShortName;
     const tournamentStage = match.tournament.stage;
-
-    // Visa bara games som faktiskt spelades
-    const playedGames = match.games.filter(g => g.winningTeam != null);
-
-    const currentGame = playedGames.find((g) => g.gameNumber === selectedGame)
-        ?? playedGames[0];
 
     const getGameWinnerShort = (winningTeam: number | null) => {
         if (winningTeam === 1) return match.team1ShortName;
@@ -68,6 +85,10 @@ export function MatchDetail() {
 
                 {/* ── HERO HEADER ── */}
                 <header className="match-detail__hero">
+                    <h1 className="sr-only">
+                        Match: {match.team1Name} vs {match.team2Name}
+                        {tournamentStage ? ` — ${tournamentStage}` : ""}
+                    </h1>
 
                     <div className="match-detail__breadcrumb">
                         <Link to={from} className="match-detail__back-link">
@@ -132,8 +153,12 @@ export function MatchDetail() {
                     </div>
                 </header>
 
-                {/* ── GAME TABS — bara spelade games ── */}
-                <div className="match-detail__tabs">
+                {/* ========== GAME TABS (PLAYED GAMES ONLY) ========== */}
+                <div
+                    className="match-detail__tabs"
+                    role="tablist"
+                    aria-label="Games in this match"
+                >
                     {playedGames.map((game) => {
                         const isActive = currentGame?.gameNumber === game.gameNumber;
                         const winnerShort = getGameWinnerShort(game.winningTeam);
@@ -141,10 +166,13 @@ export function MatchDetail() {
                         return (
                             <button
                                 key={game.id}
+                                id={`match-detail-tab-${game.id}`}
+                                role="tab"
+                                aria-selected={isActive}
+                                aria-controls="match-detail-game-panel"
                                 className={`match-detail__tab ${isActive ? "match-detail__tab--active" : ""}`}
                                 onClick={() => setSelectedGame(game.gameNumber)}
                                 type="button"
-                                aria-selected={isActive}
                             >
                                 <span className="match-detail__tab-number">Game {game.gameNumber}</span>
                                 {winnerShort && (
@@ -157,7 +185,12 @@ export function MatchDetail() {
 
                 {/* ── GAME CONTENT ── */}
                 {currentGame && (
-                    <div className="match-detail__content">
+                    <div
+                        id="match-detail-game-panel"
+                        role="tabpanel"
+                        aria-labelledby={`match-detail-tab-${currentGame.id}`}
+                        className="match-detail__content"
+                    >
 
                         {currentGame.vodUrl ? (
                             <a
@@ -174,19 +207,81 @@ export function MatchDetail() {
                             <span className="match-detail__vod-unavailable">No VOD available for this game</span>
                         )}
 
-                        <section className="match-detail__section">
-                            <h2 className="match-detail__section-title">Draft</h2>
-                            <div className="match-detail__placeholder-body">
-                                <span>Draft data coming soon</span>
+                        {gameLoading ? (
+                            <div className="match-detail-loading">
+                                <div className="match-detail-loading__spinner" />
+                                <span>Loading game data...</span>
                             </div>
-                        </section>
+                        ) : gameDetailsError ? (
+                            <div
+                                className="match-detail__placeholder-body"
+                                role="alert"
+                            >
+                                <span>Could not load game details.</span>
+                            </div>
+                        ) : gameDetails ? (
+                            <>
+                                {/* Draft */}
+                                <section className="match-detail__section" aria-labelledby="match-detail-draft-heading">
+                                    <h2 id="match-detail-draft-heading" className="sr-only">
+                                        Draft
+                                    </h2>
+                                    <div className="match-detail__section-header">
+                                        <span className="match-detail__section-team">
+                                            <span className="match-detail__section-kda">
+                                                {gameDetails.team1Players.reduce((sum, player) => sum + player.kills, 0)}/{gameDetails.team1Players.reduce((sum, player) => sum + player.deaths, 0)}/{gameDetails.team1Players.reduce((sum, player) => sum + player.assists, 0)}
+                                            </span>
+                                            <span className="match-detail__section-gold">
+                                                {formatGold(gameDetails.team1Players.reduce((sum, player) => sum + player.goldEarned, 0))}
+                                            </span>
+                                        </span>
+                                        <div className="match-detail__section-center">
+                                            <div className="match-detail__section-vs">
+                                                <span className="match-detail__section-vs-team">{match.team1ShortName}</span>
+                                                <span className="match-detail__section-vs-sep">vs</span>
+                                                <span className="match-detail__section-vs-team">{match.team2ShortName}</span>
+                                            </div>
+                                            {gameDetails.gameDurationSeconds != null && (
+                                                <span className="match-detail__section-time">{formatDuration(gameDetails.gameDurationSeconds)}</span>
+                                            )}
+                                        </div>
+                                        <span className="match-detail__section-team match-detail__section-team--right">
+                                            <span className="match-detail__section-gold">
+                                                {formatGold(gameDetails.team2Players.reduce((sum, player) => sum + player.goldEarned, 0))}
+                                            </span>
+                                            <span className="match-detail__section-kda">
+                                                {gameDetails.team2Players.reduce((sum, player) => sum + player.kills, 0)}/{gameDetails.team2Players.reduce((sum, player) => sum + player.deaths, 0)}/{gameDetails.team2Players.reduce((sum, player) => sum + player.assists, 0)}
+                                            </span>
+                                        </span>
+                                    </div>
+                                    <GameDraft draft={gameDetails.draft} />
+                                </section>
 
-                        <section className="match-detail__section">
-                            <h2 className="match-detail__section-title">Scoreboard</h2>
-                            <div className="match-detail__placeholder-body">
-                                <span>Player stats coming soon</span>
-                            </div>
-                        </section>
+                                {/* Scoreboard */}
+                                <section className="match-detail__section" aria-labelledby="match-detail-scoreboard-heading">
+                                    <h2 id="match-detail-scoreboard-heading" className="sr-only">
+                                        Scoreboard
+                                    </h2>
+                                    <GameScoreboard
+                                        team1Name={match.team1ShortName}
+                                        team2Name={match.team2ShortName}
+                                        team1Players={gameDetails.team1Players}
+                                        team2Players={gameDetails.team2Players}
+                                        team1Stats={gameDetails.team1Stats}
+                                        team2Stats={gameDetails.team2Stats}
+                                        winningTeam={gameDetails.winningTeam}
+                                    />
+                                </section>                                
+                                
+                                {/* Objectives placeholder */}
+                                <section className="match-detail__section">
+                                    <h2 className="match-detail__section-title">Objectives</h2>
+                                    <div className="match-detail__placeholder-body">
+                                        <span>Objectives coming soon</span>
+                                    </div>
+                                </section>
+                            </>
+                        ) : null }
 
                         <div className="match-detail__two-col">
                             <section className="match-detail__section">
@@ -195,16 +290,21 @@ export function MatchDetail() {
                                     <span>Gold graph coming soon</span>
                                 </div>
                             </section>
-                            <section className="match-detail__section">
-                                <h2 className="match-detail__section-title">Objectives</h2>
-                                <div className="match-detail__placeholder-body">
-                                    <span>Objectives coming soon</span>
-                                </div>
-                            </section>
                         </div>
                     </div>
                 )}
             </div>
         </div>
     );
+}
+
+
+function formatGold(gold: number): string {
+    return gold >= 1000 ? `${(gold / 1000).toFixed(1)}k` : String(gold);
+}
+
+function formatDuration(seconds: number): string {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes}:${secs.toString().padStart(2, "0")}`;
 }
