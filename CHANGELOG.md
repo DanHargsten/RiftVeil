@@ -2,6 +2,24 @@
 
 All notable changes to **RiftVeil** are recorded here, **newest first**. Sections are dated (no version numbers). Where it helps, entries are grouped like [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) (Added / Changed / Fixed / Removed).
 
+## 2026-04-21
+
+### Added
+
+- Frontend: **`GameDraft`** and **`GameScoreboard`** on the match detail page, driven by **`GET /api/games/{gameId}/details`** via **`gamesApi.getDetails`** and client DTOs aligned with **`GameDetailsDto`** (**`PlayerStatsDto`**, **`TeamStatsDto`**, **`DraftEntryDto`**).
+- Frontend: **`useItemLookup`** hook — Data Dragon **`item.json`** (cached with React Query) for item name → icon URL resolution on the scoreboard.
+- Frontend: **`MatchHero`**, **`GameTabs`**, and **`GamePanel`** — match detail route composes these instead of a single large component; **`GamePanel`** owns VOD, loading/error, draft, and scoreboard for the selected game.
+- Styles: **`styles/pages/game-details.css`** — draft/scoreboard layout, loading and error states, section chrome, and outer match-detail grid (moved from **`styles/game-details.css`** for consistency with other page stylesheets).
+- Import API: **`POST /api/import/game-details/ongoing`** — imports game details for all **ongoing** tournaments (sequential processing with a delay between tournaments).
+- Admin: import step **Game Details (all ongoing)** calling the new endpoint.
+
+### Changed
+
+- **`MatchDetail`**: per-game query for details when a played game tab is selected; draft and scoreboard replace placeholders; loading and error UI; tab list / tab panel semantics and **`sr-only`** headings for accessibility.
+- **`MatchDetail`**: outer **`match-detail__outer`** layout with left/right sidebars (objectives and highlights placeholders); root **`.page`** uses **`display: contents`** so the grid participates in the parent flex layout (**`layout/app.css`**).
+- **`match-detail.css`**: page chrome adjustments (e.g. padding); placeholder regions sized for upcoming content.
+- **`GameScoreboard`**: **`TeamLogo`** in team headers; player names strip parenthetical suffixes for display.
+
 ## 2026-04-18
 
 ### Added

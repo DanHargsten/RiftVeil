@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RiftVeil.Domain.Entities;
+using RiftVeil.Domain.Enums;
 using RiftVeil.Infrastructure.Data;
 using RiftVeil.Infrastructure.Services.Import;
 
@@ -123,6 +124,28 @@ public class ImportController(
         return Ok(new { gamesUpdated, tournamentsSkipped });
     }
 
+    /// <summary>
+    /// Imports game details (player stats, team stats, draft) for all ongoing tournaments across all leagues.
+    /// </summary>
+    [HttpPost("game-details/ongoing")]
+    public async Task<IActionResult> ImportOngoingGameDetailsAsync()
+    {
+        var ongoingTournaments = await dbContext.Tournaments
+            .Where(t => t.Status == TournamentStatus.Ongoing && t.LiquipediaSlug != null)
+            .ToListAsync();
+
+        Console.WriteLine($"Found {ongoingTournaments.Count} ongoing tournaments");
+
+        foreach (var tournament in ongoingTournaments)
+        {
+            Console.WriteLine($"Importing game details for: {tournament.Name}");
+            await gameDetailImportService.ImportGameDetailsForTournamentAsync(tournament.LiquipediaSlug!);
+            await Task.Delay(10_000);
+        }
+
+        return Ok($"Game detail import complete for {ongoingTournaments.Count} ongoing tournaments.");
+    }
+    
     /// <summary>
     /// Imports player stats, team stats, and draft entries for all games
     /// in the given tournament. Use the Leaguepedia OverviewPage slug,

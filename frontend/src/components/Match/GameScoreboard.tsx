@@ -1,5 +1,6 @@
 import { useItemLookup } from "@/hooks/useItemLookup.ts";
 import type { PlayerStatsDto, TeamStatsDto } from "@/lib/api.ts";
+import {TeamLogo} from "@/components/common/Logos.tsx";
 
 interface GameScoreboardProps {
     team1Name: string;
@@ -42,6 +43,7 @@ export function GameScoreboard({
         <div className="scoreboard" role="region" aria-label="Player statistics by team">
             <ScoreboardTeam
                 teamName={team1Name}
+                teamShortName={team1Name}
                 players={team1Players}
                 isWinner={winningTeam === 1}
                 totalKills={team1Kills}
@@ -53,6 +55,7 @@ export function GameScoreboard({
             />
             <ScoreboardTeam
                 teamName={team2Name}
+                teamShortName={team2Name}
                 players={team2Players}
                 isWinner={winningTeam === 2}
                 totalKills={team2Kills}
@@ -68,6 +71,7 @@ export function GameScoreboard({
 
 interface ScoreboardTeamProps {
     teamName: string;
+    teamShortName: string;
     players: PlayerStatsDto[];
     isWinner: boolean;
     totalKills: number;
@@ -80,12 +84,9 @@ interface ScoreboardTeamProps {
 
 function ScoreboardTeam({
     teamName,
+    teamShortName,
     players,
     isWinner,
-    totalKills,
-    totalDeaths,
-    totalAssists,
-    totalGold,
     side,
     getItemIconUrl,
 }: ScoreboardTeamProps) {
@@ -101,19 +102,11 @@ function ScoreboardTeam({
             aria-labelledby={headingId}
         >
             <header className="scoreboard__team-header">
+                <TeamLogo shortName={teamShortName} className="scoreboard__team-logo" />
                 <h3 id={headingId} className="scoreboard__team-name">
                     {teamName}
                 </h3>
-                <div className="scoreboard__team-totals">
-                    <span className="scoreboard__total-kda">
-                        <span className="scoreboard__total-kills">{totalKills}</span>
-                        <span className="scoreboard__total-kda-sep" aria-hidden="true">/</span>
-                        <span className="scoreboard__total-deaths">{totalDeaths}</span>
-                        <span className="scoreboard__total-kda-sep" aria-hidden="true">/</span>
-                        <span className="scoreboard__total-assists">{totalAssists}</span>
-                        <span className="scoreboard__total-gold">{formatGold(totalGold)}</span>
-                    </span>
-                </div>
+
                 {isWinner && (
                     <span className="scoreboard__winner-badge">
                         <span aria-hidden="true">WIN</span>
@@ -185,7 +178,7 @@ function PlayerRow({
                 <div className="scoreboard__player-inner">
                     <ChampionIcon champion={player.champion} size={32} />
                     <div className="scoreboard__player-info">
-                        <span className="scoreboard__player-name">{player.playerName}</span>
+                        <span className="scoreboard__player-name">{player.playerName.replace(/\s*\(.*?\)/, "").trim()}</span>
                         <span className="scoreboard__player-champ">{player.champion}</span>
                     </div>
                 </div>

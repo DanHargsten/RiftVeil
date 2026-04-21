@@ -3,7 +3,7 @@
 const LEAGUES = ["ALL", "LEC", "LCS", "LCK"] as const;
 type League = typeof LEAGUES[number];
 
-type Step = "tournaments" | "matches" | "vods";
+type Step = "tournaments" | "matches" | "vods" | "game-details";
 
 type StepResult = {
     step: Step;
@@ -15,9 +15,20 @@ const STEP_LABELS: Record<Step, string> = {
     tournaments: "Tournaments",
     matches: "Matches",
     vods: "VODs",
+    "game-details": "Game Details (all ongoing)",
 };
 
 async function runImport(league: League, step: Step, ongoingOnly: boolean): Promise<void> {
+    // Game details runs once for all ongoing tournaments, no league param needed
+    if (step === "game-details") {
+        const res = await fetch("/api/import/game-details/ongoing", { method: "POST" });
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text || res.statusText);
+        }
+        return;
+    }
+
     const leagues = league === "ALL" ? ["LEC", "LCS", "LCK"] : [league];
     for (const l of leagues) {
         const endpoint = step === "matches" && ongoingOnly
@@ -55,7 +66,7 @@ export function Admin() {
         if (running || selectedSteps.size === 0) return;
         setRunning(true);
 
-        const steps = (["tournaments", "matches", "vods"] as Step[]).filter(s => selectedSteps.has(s));
+        const steps = (["tournaments", "matches", "vods", "game-details"] as Step[]).filter(s => selectedSteps.has(s));
         setResults(steps.map(s => ({ step: s, status: "idle" })));
 
         for (const step of steps) {
@@ -107,7 +118,7 @@ export function Admin() {
                         <fieldset className="admin__field" aria-labelledby={stepsFieldId}>
                             <legend id={stepsFieldId} className="admin__label">Steps</legend>
                             <div className="admin__steps">
-                                {(["tournaments", "matches", "vods"] as Step[]).map(step => (
+                                {(["tournaments", "matches", "vods", "game-details"] as Step[]).map(step => (
                                     <label key={step} className="admin__step-label">
                                         <input
                                             type="checkbox"
