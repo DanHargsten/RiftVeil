@@ -1,5 +1,5 @@
 using System.Text.Json;
-
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace RiftVeil.Infrastructure.Services.Import;
@@ -7,7 +7,7 @@ namespace RiftVeil.Infrastructure.Services.Import;
 /// <summary>
 /// HTTP client for Riot's persisted lolesports GraphQL gateway (schedule, events, VOD metadata).
 /// </summary>
-public class LolesportsClient(HttpClient httpClient, IOptions<LolesportsClientOptions> options)
+public class LolesportsClient(HttpClient httpClient, IOptions<LolesportsClientOptions> options, ILogger<LolesportsClient> logger)
 {
     private const string BaseUrl = "https://esports-api.lolesports.com/persisted/gw";
 
@@ -36,42 +36,39 @@ public class LolesportsClient(HttpClient httpClient, IOptions<LolesportsClientOp
                 $"{Uri.EscapeDataString(parameter.Key)}={Uri.EscapeDataString(parameter.Value)}"));
         }
 
-        Console.WriteLine($"[Lolesports] Fetching {endpoint}...");
+        logger.LogDebug("[Lolesports] Fetching {Endpoint}", endpoint);
 
-        for (int attempt = 0; attempt < 5; attempt++)
+        for (int attempt = 0; attempt < _options.MaxAttempts; attempt++)
         {
             if (attempt > 0)
-                await Task.Delay(attempt * 5000);
+                await Task.Delay(attempt * _options.RetryDelayMilliseconds);
 
             var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Add("x-api-key", _options.ApiKey);
 
-            Console.WriteLine($"[Lolesports] URL: {request.RequestUri}");
-            Console.WriteLine($"[Lolesports] Headers: {string.Join(", ", request.Headers.Select(header => $"{header.Key}={string.Join(",", header.Value)}"))}");
-
             var response = await httpClient.SendAsync(request);
             var body = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"[Lolesports] Response ({response.StatusCode}): {body[..Math.Min(200, body.Length)]}");
 
             if (response.IsSuccessStatusCode)
             {
-                Console.WriteLine($"[Lolesports] OK: {endpoint}");
                 var doc = JsonDocument.Parse(body);
 
                 // Riot returns 200 with {"message":"Forbidden"} instead of 403
                 if (doc.RootElement.TryGetProperty("message", out var msg) &&
                     msg.GetString() == "Forbidden")
                 {
-                    Console.WriteLine($"[Lolesports] Forbidden for {endpoint} (API key may be invalid)");
+                    logger.LogWarning("[Lolesports] Forbidden for {Endpoint} (API key may be invalid)", endpoint);
                     throw new Exception($"Lolesports API returned Forbidden for {endpoint}");
                 }
 
+                logger.LogDebug("[Lolesports] OK: {Endpoint}", endpoint);
                 return doc;
             }
 
-            Console.WriteLine($"[Lolesports] Attempt {attempt + 1} failed: {response.StatusCode}");
+            logger.LogWarning("[Lolesports] Attempt {Attempt} failed for {Endpoint}: {StatusCode}",
+                attempt + 1, endpoint, response.StatusCode);
         }
 
-        throw new Exception($"Lolesports API failed for {endpoint}");
+        throw new Exception($"Lolesports API failed for {endpoint} after {_options.MaxAttempts} attempts");
     }
 }
