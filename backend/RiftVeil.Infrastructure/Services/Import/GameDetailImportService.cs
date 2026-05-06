@@ -1,4 +1,6 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using RiftVeil.Domain.Entities;
 using RiftVeil.Infrastructure.Data;
 
@@ -9,8 +11,12 @@ namespace RiftVeil.Infrastructure.Services.Import;
 /// GameTeamStats, and GameDraftEntry tables.
 /// Triggered per tournament via ImportController.
 /// </summary>
-public class GameDetailImportService(LeaguepediaClient client, RiftVeilDbContext dbContext)
+public class GameDetailImportService(
+    LeaguepediaClient client,
+    RiftVeilDbContext dbContext,
+    IOptions<LeaguepediaClientOptions> leaguepediaOptions)
 {
+    private readonly LeaguepediaClientOptions _leaguepediaOptions = leaguepediaOptions.Value;
     private class ImportStats
     {
         public int Imported { get; set; }
@@ -94,12 +100,12 @@ public class GameDetailImportService(LeaguepediaClient client, RiftVeilDbContext
         var kdaByGameAndTeam = await ImportPlayerStatsAsync(
             liquipediaSlug, gameByExternalId, existingPlayerStatGameIds, playerStats);
 
-        await Task.Delay(3_000);
+        await Task.Delay(Math.Max(0, _leaguepediaOptions.DelayBetweenGameDetailImportPhasesMilliseconds));
 
         await ImportTeamStatsAsync(
             liquipediaSlug, gameByExternalId, existingTeamStatGameIds, kdaByGameAndTeam, teamStats);
 
-        await Task.Delay(3_000);
+        await Task.Delay(Math.Max(0, _leaguepediaOptions.DelayBetweenGameDetailImportPhasesMilliseconds));
 
         await ImportDraftEntriesAsync(
             liquipediaSlug, gameByExternalId, existingDraftGameIds, draftStats);
@@ -109,6 +115,43 @@ public class GameDetailImportService(LeaguepediaClient client, RiftVeilDbContext
         playerStats.Print("GamePlayerStats");
         teamStats.Print("GameTeamStats");
         draftStats.Print("GameDraftEntry");
+    }
+
+    /// <summary>
+    /// Fetches all Cargo rows for a query using limit/offset pages and a stable <paramref name="orderBy"/>.
+    /// </summary>
+    private async Task<List<JsonElement>> FetchAllCargoPagesAsync(
+        string tables,
+        string fields,
+        string where,
+        string orderBy)
+    {
+        var pageSize = Math.Max(1, _leaguepediaOptions.CargoPageSize);
+        var allRows = new List<JsonElement>();
+        var offset = 0;
+        var pageIndex = 0;
+
+        while (true)
+        {
+            pageIndex++;
+            var batch = await client.QueryAsync(
+                tables: tables,
+                fields: fields,
+                where: where,
+                orderBy: orderBy,
+                limit: pageSize,
+                offset: offset);
+
+            Console.WriteLine($"  Cargo page {pageIndex}, +{batch.Count} rows (total {allRows.Count + batch.Count})");
+            allRows.AddRange(batch);
+
+            if (batch.Count < pageSize)
+                break;
+
+            offset += batch.Count;
+        }
+
+        return allRows;
     }
 
     // =====================================================================
@@ -127,14 +170,13 @@ public class GameDetailImportService(LeaguepediaClient client, RiftVeilDbContext
     {
         Console.WriteLine("  Fetching ScoreboardPlayers...");
 
-        var rows = await client.QueryAsync(
+        var rows = await FetchAllCargoPagesAsync(
             tables: "ScoreboardPlayers",
             fields: "GameId,Link,Side,IngameRole,Champion,Kills,Deaths,Assists,Gold,CS,DamageToChampions,VisionScore,Items,Trinket,SummonerSpells",
             where: $"OverviewPage=\"{liquipediaSlug}\"",
-            limit: 500
-        );
+            orderBy: "GameId, Link");
 
-        Console.WriteLine($"  Got {rows.Count} ScoreboardPlayers rows");
+        Console.WriteLine($"  Got {rows.Count} ScoreboardPlayers rows (all pages)");
 
         // (gameId, teamNumber) → accumulated deaths + assists
         var kdaAccumulator = new Dictionary<(int, int), (int Deaths, int Assists)>();
@@ -233,14 +275,13 @@ public class GameDetailImportService(LeaguepediaClient client, RiftVeilDbContext
     {
         Console.WriteLine("  Fetching ScoreboardTeams...");
 
-        var rows = await client.QueryAsync(
+        var rows = await FetchAllCargoPagesAsync(
             tables: "ScoreboardTeams",
             fields: "GameId,Team,Side,Kills,Gold,Towers,Inhibitors,Barons,RiftHeralds,VoidGrubs,Dragons,Clouds,Infernals,Mountains,Oceans,Hextechs,Chemtechs,Elders,Gamelength_Number",
             where: $"OverviewPage=\"{liquipediaSlug}\"",
-            limit: 500
-        );
+            orderBy: "GameId, Side");
 
-        Console.WriteLine($"  Got {rows.Count} ScoreboardTeams rows");
+        Console.WriteLine($"  Got {rows.Count} ScoreboardTeams rows (all pages)");
 
         foreach (var row in rows)
         {
@@ -307,7 +348,7 @@ public class GameDetailImportService(LeaguepediaClient client, RiftVeilDbContext
         Console.WriteLine("  Fetching PicksAndBansS7...");
 
         // Cargo exposes pick columns as Team{n}Pick{k}; older docs used Team{n}Role{k}.
-        var rows = await client.QueryAsync(
+        var rows = await FetchAllCargoPagesAsync(
             tables: "PicksAndBansS7",
             fields: "GameId," +
                     "Team1Ban1,Team1Ban2,Team1Ban3,Team1Ban4,Team1Ban5," +
@@ -315,10 +356,9 @@ public class GameDetailImportService(LeaguepediaClient client, RiftVeilDbContext
                     "Team1Pick1,Team1Pick2,Team1Pick3,Team1Pick4,Team1Pick5," +
                     "Team2Pick1,Team2Pick2,Team2Pick3,Team2Pick4,Team2Pick5",
             where: $"OverviewPage=\"{liquipediaSlug}\"",
-            limit: 500
-        );
+            orderBy: "GameId");
 
-        Console.WriteLine($"  Got {rows.Count} PicksAndBansS7 rows");
+        Console.WriteLine($"  Got {rows.Count} PicksAndBansS7 rows (all pages)");
 
         foreach (var row in rows)
         {
@@ -362,13 +402,9 @@ public class GameDetailImportService(LeaguepediaClient client, RiftVeilDbContext
                 var champion = row.GetProperty(fieldName).GetString();
                 if (string.IsNullOrWhiteSpace(champion) || champion == "None") continue;
 
-                // Team1 in PicksAndBansS7 = blue side
-                var teamNumber = ResolveTeamNumberFromPickBan(game, team);
-                if (teamNumber == null) { stats.Skipped++; continue; }
-
                 dbContext.GameDraftEntries.Add(new GameDraftEntry(
                     gameId: game.Id,
-                    teamNumber: teamNumber.Value,
+                    teamNumber: team,
                     phase: phase,
                     sequenceNumber: seq,
                     champion: champion

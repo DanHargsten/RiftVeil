@@ -21,13 +21,17 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.Configure<LeaguepediaClientOptions>(
+    builder.Configuration.GetSection(LeaguepediaClientOptions.SectionName));
+
 // Leaguepedia API client.
 builder.Services.AddHttpClient<LeaguepediaClient>(client =>
-{
-    client.DefaultRequestHeaders.UserAgent.ParseAdd(
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36");
-    client.DefaultRequestHeaders.Add("Accept", "application/json");
-})
+    {
+        client.DefaultRequestHeaders.Add("User-Agent", "RiftVeil_Bot/1.1 (contact: dan.hargsten@gmail.com)");
+        client.DefaultRequestHeaders.AcceptEncoding.Add(
+            new System.Net.Http.Headers.StringWithQualityHeaderValue("gzip"));
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+    })
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
     {
         AutomaticDecompression = System.Net.DecompressionMethods.All
@@ -74,11 +78,11 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-    app.UseCors();
 
     // Initialize database.
     using var scope = app.Services.CreateScope();
@@ -94,6 +98,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors();
 app.UseAuthorization();
 app.MapControllers();
 

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using RiftVeil.Domain.Entities;
 using RiftVeil.Domain.Enums;
 using RiftVeil.Infrastructure.Data;
@@ -16,8 +17,10 @@ public class ImportController(
     LeaguepediaImportService importService,
     RiftVeilDbContext dbContext,
     LolesportsVodEnricher vodEnricher,
-    GameDetailImportService gameDetailImportService) : ControllerBase
+    GameDetailImportService gameDetailImportService,
+    IOptions<LeaguepediaClientOptions> leaguepediaOptions) : ControllerBase
 {
+    private readonly LeaguepediaClientOptions _leaguepediaOptions = leaguepediaOptions.Value;
     /// <summary>
     /// Imports tournaments for the given league.
     /// </summary>
@@ -68,13 +71,15 @@ public class ImportController(
     /// Imports matches only for ongoing tournaments in the given league.
     /// </summary>
     [HttpPost("matches/{leagueShortName}/ongoing")]
-    public async Task<IActionResult> ImportOngoingMatches(string leagueShortName)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ImportOngoingMatchesAsync(string leagueShortName)
     {
-        var league = await dbContext.Leagues
-            .FirstOrDefaultAsync(l => l.ShortName == leagueShortName.ToUpperInvariant());
-
+        var league = await FindLeagueByShortNameAsync(leagueShortName);
         if (league == null)
+        {
             return NotFound($"League '{leagueShortName}' not found.");
+        }
 
         await importService.ImportOngoingMatchesAsync(league.Id);
         return Ok("Ongoing match import complete.");
@@ -140,7 +145,7 @@ public class ImportController(
         {
             Console.WriteLine($"Importing game details for: {tournament.Name}");
             await gameDetailImportService.ImportGameDetailsForTournamentAsync(tournament.LiquipediaSlug!);
-            await Task.Delay(10_000);
+            await Task.Delay(Math.Max(0, _leaguepediaOptions.DelayBetweenOngoingTournamentsMilliseconds));
         }
 
         return Ok($"Game detail import complete for {ongoingTournaments.Count} ongoing tournaments.");
