@@ -2,6 +2,29 @@
 
 All notable changes to **RiftVeil** are recorded here, **newest first**. Sections are dated (no version numbers). Where it helps, entries are grouped like [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) (Added / Changed / Fixed / Removed).
 
+## 2026-05-06
+
+### Added
+
+- **`LeaguepediaClientOptions`** and **`Leaguepedia`** configuration section: Cargo pacing (**`PostSuccessDelayMilliseconds`**), delays between game-detail phases and between ongoing-tournament imports, **`CargoPageSize`** for pagination, rate-limit and transient API backoff (**`RateLimitMaxAttempts`**, extended cooldown, exponential caps, **`TransientApiErrorBackoff*`**).
+- API project: **`UserSecretsId`** for local configuration (**`dotnet user-secrets`**).
+- **`LolesportsClientOptions`**: **`MaxAttempts`** and **`RetryDelayMilliseconds`** for GraphQL retries.
+
+### Changed
+
+- **`LeaguepediaClient`**: binds **`IOptions<LeaguepediaClientOptions>`**; process-wide **`SemaphoreSlim`** so Cargo requests run sequentially; **`offset`** for paged queries; stream-based JSON parse; retries with separate backoff paths for **ratelimited** vs **`internal_api_error_*`**; post-success delay from config.
+- **`GameDetailImportService`**: **`FetchAllCargoPagesAsync`** over **ScoreboardPlayers**, **ScoreboardTeams**, and **PicksAndBansS7** (stable **`order by`**, configurable page size); phase delays from options; draft rows use **`team`** from pick/ban columns directly for **`teamNumber`** (removes incorrect **`ResolveTeamNumberFromPickBan`** mapping).
+- **`ImportController`**: injects **`LeaguepediaClientOptions`** for **`DelayBetweenOngoingTournamentsMilliseconds`**; ongoing matches action renamed **`ImportOngoingMatchesAsync`** with **`ProducesResponseType`** and shared league lookup.
+- **`Program`**: registers **`LeaguepediaClientOptions`**; Leaguepedia **`HttpClient`** uses identifiable **`User-Agent`**, **gzip** **`Accept-Encoding`**, and **`DecompressionMethods.All`**; **`UseCors`** runs outside the development-only block so CORS applies in all environments.
+- **`LolesportsClient`**: **`ILogger<LolesportsClient>`** instead of noisy **`Console`** output; retry loop driven by options.
+- **`appsettings` / Development**: **`Leaguepedia`** + expanded LoLesports keys; **commit no longer stores a real LoLesports API key** in Development — use user secrets or environment variables.
+
+### Changed (frontend)
+
+- **`GameDraft`**: **`team1Side`** places blue side left (swap columns when team 1 is red); optional pick-order badge (**`draft__champ-seq`**); ban icons updated.
+- **`GameScoreboard`** / **`GamePanel`**: **`team1Side`** reorders teams so blue side renders in the left column.
+- **`game-details.css`**: ban styling (**`draft__champ-seq`**, overlay); scoreboard team header tints (**`color-mix`**).
+
 ## 2026-04-21
 
 ### Added
