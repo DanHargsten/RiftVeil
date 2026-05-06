@@ -177,25 +177,45 @@
 }
 
 .draft__champ-icon--ban {
-    filter: grayscale(0.7) brightness(0.6);
+    filter: grayscale(0.75) brightness(0.9);
     position: relative;
+    border: 1px solid var(--live);
 }
 
 .draft__champ-icon--ban::after {
     content: "";
     position: absolute;
     inset: 0;
-    background: repeating-linear-gradient(
+    background: linear-gradient(
             -45deg,
-            transparent,
-            transparent 3px,
-            rgba(200, 50, 50, 0.4) 3px,
-            rgba(200, 50, 50, 0.4) 4px
+            transparent 50%,
+            rgba(200, 50, 50, 1.0) 45%,
+            rgba(200, 50, 50, 1.0) 55%,
+            transparent 55%
     );
 }
 
 .draft__champ-icon--pick {
     border-color: var(--primary-border);
+}
+
+.draft__champ-seq {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-align: center;
+    border-radius: 50%;
+    color: var(--text-muted);
+    line-height: 1;
+    border: 1px solid var(--border);
+    background-color: var(--bg);
+    width: 1rem;
+    height: 1rem;
 }
 
 /* =============================================================================
@@ -501,4 +521,12 @@
 
 .scoreboard__item-icon--trinket {
     border-color: var(--primary-border);
+}
+
+.scoreboard__team--left .scoreboard__team-header {
+    background: color-mix(in oklch, var(--surface-2) 90%, oklch(0.6 0.15 250));
+}
+
+.scoreboard__team--right .scoreboard__team-header {
+    background: color-mix(in oklch, var(--surface-2) 90%, oklch(0.6 0.15 20));
 }

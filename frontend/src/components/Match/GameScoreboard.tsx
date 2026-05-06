@@ -10,6 +10,7 @@ interface GameScoreboardProps {
     team1Stats: TeamStatsDto | null;
     team2Stats: TeamStatsDto | null;
     winningTeam: number | null;
+    team1Side: string | null;
 }
 
 export function GameScoreboard({
@@ -20,6 +21,7 @@ export function GameScoreboard({
     team1Stats,
     team2Stats,
     winningTeam,
+    team1Side,
 }: GameScoreboardProps) {
     const { getItemIconUrl } = useItemLookup();
     const team1Gold = team1Stats?.totalGoldEarned
@@ -39,32 +41,65 @@ export function GameScoreboard({
     const team2Assists = team2Stats?.totalAssists
         ?? team2Players.reduce((sum, player) => sum + player.assists, 0);
 
+    const blueFirst = team1Side === "Blue"
+    
     return (
         <div className="scoreboard" role="region" aria-label="Player statistics by team">
-            <ScoreboardTeam
-                teamName={team1Name}
-                teamShortName={team1Name}
-                players={team1Players}
-                isWinner={winningTeam === 1}
-                totalKills={team1Kills}
-                totalDeaths={team1Deaths}
-                totalAssists={team1Assists}
-                totalGold={team1Gold}
-                side="left"
-                getItemIconUrl={getItemIconUrl}
-            />
-            <ScoreboardTeam
-                teamName={team2Name}
-                teamShortName={team2Name}
-                players={team2Players}
-                isWinner={winningTeam === 2}
-                totalKills={team2Kills}
-                totalDeaths={team2Deaths}
-                totalAssists={team2Assists}
-                totalGold={team2Gold}
-                side="right"
-                getItemIconUrl={getItemIconUrl}
-            />
+            {blueFirst ? (
+                <>
+                    <ScoreboardTeam
+                        teamName={team1Name}
+                        teamShortName={team1Name}
+                        players={team1Players}
+                        isWinner={winningTeam === 1}
+                        totalKills={team1Kills}
+                        totalDeaths={team1Deaths}
+                        totalAssists={team1Assists}
+                        totalGold={team1Gold}
+                        side="left"
+                        getItemIconUrl={getItemIconUrl}
+                    />
+                    <ScoreboardTeam
+                        teamName={team2Name}
+                        teamShortName={team2Name}
+                        players={team2Players}
+                        isWinner={winningTeam === 2}
+                        totalKills={team2Kills}
+                        totalDeaths={team2Deaths}
+                        totalAssists={team2Assists}
+                        totalGold={team2Gold}
+                        side="right"
+                        getItemIconUrl={getItemIconUrl}
+                    />
+                </>
+            ) : (
+                <>
+                    <ScoreboardTeam
+                        teamName={team2Name}
+                        teamShortName={team2Name}
+                        players={team2Players}
+                        isWinner={winningTeam === 2}
+                        totalKills={team2Kills}
+                        totalDeaths={team2Deaths}
+                        totalAssists={team2Assists}
+                        totalGold={team2Gold}
+                        side="left"
+                        getItemIconUrl={getItemIconUrl}
+                    />
+                    <ScoreboardTeam
+                        teamName={team1Name}
+                        teamShortName={team1Name}
+                        players={team1Players}
+                        isWinner={winningTeam === 1}
+                        totalKills={team1Kills}
+                        totalDeaths={team1Deaths}
+                        totalAssists={team1Assists}
+                        totalGold={team1Gold}
+                        side="right"
+                        getItemIconUrl={getItemIconUrl}
+                    />
+                </>
+            )}
         </div>
     );
 }

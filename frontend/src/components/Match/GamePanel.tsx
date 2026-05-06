@@ -82,7 +82,10 @@ export function GamePanel({ match, currentGame, gameDetails, gameLoading, gameDe
                                 </span>
                             </span>
                         </div>
-                        <GameDraft draft={gameDetails.draft} />
+                        <GameDraft
+                            draft={gameDetails.draft}
+                            team1Side={gameDetails.team1Side}
+                        />
                     </section>
 
                     {/* Scoreboard */}
@@ -96,6 +99,7 @@ export function GamePanel({ match, currentGame, gameDetails, gameLoading, gameDe
                             team1Stats={gameDetails.team1Stats}
                             team2Stats={gameDetails.team2Stats}
                             winningTeam={gameDetails.winningTeam}
+                            team1Side={gameDetails.team1Side}
                         />
                     </section>
                 </>

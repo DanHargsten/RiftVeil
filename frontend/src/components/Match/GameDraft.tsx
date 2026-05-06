@@ -2,26 +2,42 @@ import type { DraftEntryDto } from "@/lib/api.ts";
 
 interface GameDraftProps {
     draft: DraftEntryDto[];
+    team1Side: string | null;
 }
 
 export function GameDraft({
     draft,
+    team1Side,
 }: GameDraftProps) {
-    // Blue side = Team1 in Leaguepedia's PickAndBansS7,
-    // but teamNumber already maps to team1/team2 in the DB
-    const team1Bans = draft
-        .filter((entry) => entry.teamNumber === 1 && entry.phase === "Ban")
+    const blueIsTeam1 = team1Side === "Blue";
+
+    const leftBans = draft
+        .filter(d => d.teamNumber === (blueIsTeam1 ? 1 : 2) && d.phase === "Ban")
         .sort((a, b) => a.sequenceNumber - b.sequenceNumber);
-    const team2Bans = draft
-        .filter((entry) => entry.teamNumber === 2 && entry.phase === "Ban")
+    const rightBans = draft
+        .filter(d => d.teamNumber === (blueIsTeam1 ? 2 : 1) && d.phase === "Ban")
         .sort((a, b) => a.sequenceNumber - b.sequenceNumber);
-    const team1Picks = draft
-        .filter((entry) => entry.teamNumber === 1 && entry.phase === "Pick")
+    const leftPicks = draft
+        .filter(d => d.teamNumber === (blueIsTeam1 ? 1 : 2) && d.phase === "Pick")
         .sort((a, b) => a.sequenceNumber - b.sequenceNumber);
-    const team2Picks = draft
-        .filter((entry) => entry.teamNumber === 2 && entry.phase === "Pick")
+    const rightPicks = draft
+        .filter(d => d.teamNumber === (blueIsTeam1 ? 2 : 1) && d.phase === "Pick")
         .sort((a, b) => a.sequenceNumber - b.sequenceNumber);
-        
+
+    const banOrder = new Map(
+        [...draft]
+            .filter(entry => entry.phase === "Ban")
+            .sort((a, b) => a.sequenceNumber - b.sequenceNumber)
+            .map((entry, i) => [entry.sequenceNumber, i + 1])
+    );
+
+    const pickOrder = new Map(
+        [...draft]
+            .filter(d => d.phase === "Pick")
+            .sort((a, b) => a.sequenceNumber - b.sequenceNumber)
+            .map((entry, i) => [entry.sequenceNumber, i + 1])
+    );
+    
     if (draft.length === 0) {
         return (
             <p className="draft__empty">Draft data not available for this game.</p>
@@ -35,14 +51,26 @@ export function GameDraft({
                 <div className="draft__left">
                     <div className="draft__bans draft__bans--left">
                         <div className="draft__bans-icons">
-                            {team1Bans.map(entry => (
-                                <DraftChampIcon key={entry.sequenceNumber} champion={entry.champion} phase="Ban" size={38} />
+                            {leftBans.map(entry => (
+                                <DraftChampIcon
+                                    key={entry.sequenceNumber}
+                                    champion={entry.champion}
+                                    phase="Ban"
+                                    size={40}
+                                    sequenceNumber={banOrder.get(entry.sequenceNumber)}
+                                />
                             ))}
                         </div>
                     </div>
                     <div className="draft__pick-icons draft__pick-icons--left">
-                        {[...team1Picks].reverse().map(entry => (
-                            <DraftChampIcon key={entry.sequenceNumber} champion={entry.champion} phase="Pick" size={48} />
+                        {[...leftPicks].map(entry => (
+                            <DraftChampIcon
+                                key={entry.sequenceNumber}
+                                champion={entry.champion}
+                                phase="Pick"
+                                size={50}
+                                sequenceNumber={pickOrder.get(entry.sequenceNumber)}
+                            />
                         ))}
                     </div>
                 </div>
@@ -52,14 +80,26 @@ export function GameDraft({
                 <div className="draft__right">
                     <div className="draft__bans draft__bans--right">
                         <div className="draft__bans-icons">
-                            {team2Bans.map(entry => (
-                                <DraftChampIcon key={entry.sequenceNumber} champion={entry.champion} phase="Ban" size={38} />
+                            {rightBans.map(entry => (
+                                <DraftChampIcon
+                                    key={entry.sequenceNumber}
+                                    champion={entry.champion}
+                                    phase="Ban"
+                                    size={40}
+                                    sequenceNumber={banOrder.get(entry.sequenceNumber)}
+                                />
                             ))}
                         </div>
                     </div>
                     <div className="draft__pick-icons draft__pick-icons--right">
-                        {team2Picks.map(entry => (
-                            <DraftChampIcon key={entry.sequenceNumber} champion={entry.champion} phase="Pick" size={48} />
+                        {rightPicks.map(entry => (
+                            <DraftChampIcon
+                                key={entry.sequenceNumber}
+                                champion={entry.champion}
+                                phase="Pick"
+                                size={50}
+                                sequenceNumber={pickOrder.get(entry.sequenceNumber)}
+                            />
                         ))}
                     </div>
                 </div>
@@ -72,10 +112,12 @@ function DraftChampIcon({
     champion,
     phase,
     size,
+    sequenceNumber,
 }: {
     champion: string;
     phase: "Pick" | "Ban";
     size: number;
+    sequenceNumber?: number;
 }) {
     const normalized = champion.replace(/[^a-zA-Z0-9]/g, "");
     const url = `https://ddragon.leagueoflegends.com/cdn/15.8.1/img/champion/${normalized}.png`;
@@ -95,6 +137,10 @@ function DraftChampIcon({
                     (e.target as HTMLImageElement).style.opacity = "0";
                 }}
             />
+            {phase === "Pick" && (
+                <span className="draft__champ-seq">{sequenceNumber}</span>
+            )}
         </div>
     );
 }
+
