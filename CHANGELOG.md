@@ -2,6 +2,36 @@
 
 All notable changes to **RiftVeil** are recorded here, **newest first**. Sections are dated (no version numbers). Where it helps, entries are grouped like [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) (Added / Changed / Fixed / Removed).
 
+## 2026-05-07
+
+### Added
+
+- **`LeaguepediaClient.QueryWithOutcomeAsync`**: returns **`(bool Succeeded, List<JsonElement> Rows)`** so callers can distinguish a Cargo failure-after-retries from a legitimately empty result; **`QueryAsync`** stays as a thin wrapper.
+- **`LeaguepediaClient`** bot login: shared **`CookieContainer`** (registered as singleton in **`Program.cs`**), **`EnsureLoggedInAsync`** (one-time per process), **`FetchLoginTokenAsync`** + **`PostLoginAsync`** using **`BotUsername`** / **`BotPassword`** from user secrets — anonymous fallback when credentials are missing.
+- **`LeaguepediaClientOptions.MaxTransientRetriesPerQuery`** (default **`3`**): caps **`internal_api_error_*`** retries per query so a known server-side bug stops costing wall-clock time.
+- **`LeaguepediaClientOptions.DelayBetweenMatchImportTournamentsMilliseconds`** (default **`1000`**): replaces hard-coded **`Task.Delay(3000)`** in **`LeaguepediaImportService`**.
+- **`GameDetailImportService.ScoreboardTeamsCargoFieldTiers`**: ordered list of Cargo field strings (richest → smallest) tried in turn; first tier whose **`QueryWithOutcomeAsync`** call succeeds wins. Logs which tier was used.
+- **`GameDetailImportService.FetchCargoForOverviewGameIdsWithOutcomeAsync`** + **`FetchAllCargoPagesWithOutcomeAsync`**: paged variants that propagate the success flag for tiered fallbacks.
+- **`GameDetailImportService.ImportGameDetailsForGameIdAsync`**: import a single game by local id (with sides preflight backfill).
+- **`ImportController`** `POST /api/import/game-details/game/{gameId:int}`: dev/admin endpoint for per-game detail import.
+- Frontend dev-only **Import details** button in **`GamePanel`** / **`MatchDetail`** (visible under **`import.meta.env.DEV`**); shared **`useSpoilerPrefs`** wired through **`Matches`** → **`MatchList`** with **`tournamentId`** prop.
+- Documentation: **`docs/future-projects.md`** — design notes for background auto-import, Oracle's Elixir as a secondary stats source, in-game event timeline (highlights), gold/XP graph, and the empty objectives sidebar.
+
+### Changed
+
+- **`LeaguepediaClient`**: response body buffered and **`JsonDocument.Parse(body)`** so transient error bodies can be logged once per query (**`LogTransientErrorBody`**) — surfaces the underlying MWException trace ID that the JSON error envelope hides; rate-limit diagnostics extended (**`LogRateLimitDiagnostics`** with **`Retry-After`** / **`X-RateLimit-*`** / **`MediaWiki-API-Error`**).
+- **`GameDetailImportService.ImportTeamStatsAsync`**: replaces the single brittle **`ScoreboardTeams`** Cargo query with the tiered fallback above; **`Gamelength`** intentionally excluded from all tiers (see postmortem) so we no longer pay ~15 s per import on **`internal_api_error_MWException`**; **`ParseIntOptional`** tolerates fields missing from narrower tiers.
+- **`GameDetailImportService`** sides backfill: **`MatchScheduleGame`** + **`ScoreboardTeams`** (Team + Side) fallback; draft import skipped per batch when **`GameDraftEntries`** rows already exist for every game in the batch.
+- **`LeaguepediaImportService`**: now binds **`IOptions<LeaguepediaClientOptions>`**; hard-coded **`Task.Delay(3000)`** / **`Task.Delay(2000)`** between tournament/match/game phases removed (covered by **`LeaguepediaClient.PostSuccessDelayMilliseconds`**); **`PreloadTeamShortNamesAsync`** and **`LookupShortNameAsync`** drop their per-region / per-lookup spacers; new private **`DelayBetweenTournamentsAsync`** uses options.
+- **`LeaguepediaClientOptions`** defaults tuned for bot-authenticated traffic: **`PostSuccessDelayMilliseconds`** 2000 → **`1500`**, **`DelayBetweenGameDetailImportPhasesMilliseconds`** 5000 → **`0`**, **`DelayBetweenOngoingTournamentsMilliseconds`** 30 000 → **`5000`**.
+- **`appsettings.json`** + **`appsettings.Development.json`**: Leaguepedia section reflects the new defaults and exposes **`MaxTransientRetriesPerQuery`** + **`DelayBetweenMatchImportTournamentsMilliseconds`**.
+- **`Program.cs`**: shared **`CookieContainer`** singleton; **`HttpClientHandler`** uses **`UseCookies = true`** + **`CookieContainer = leaguepediaCookies`** so the MediaWiki session cookie persists across requests.
+
+### Fixed
+
+- **`ScoreboardTeams`** import no longer silently returns zero rows when Cargo fails after retries — the tiered fallback either returns real data from a narrower query or surfaces a clear warning. **`GameTeamStats`** is now populated for matches that previously imported only **`GamePlayerStats`** + draft.
+- **`ResolveTeamStatsGameDurationSeconds`**: defaults to **`Game.Duration`** when **`Gamelength`** is missing from the winning Cargo tier (currently always, since the field is excluded — Oracle's Elixir is the planned source for real in-game duration).
+
 ## 2026-05-06
 
 ### Added
