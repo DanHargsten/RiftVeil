@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using RiftVeil.Domain.Entities;
 using RiftVeil.Domain.Enums;
 using RiftVeil.Infrastructure.Data;
@@ -8,8 +9,12 @@ namespace RiftVeil.Infrastructure.Services.Import;
 /// <summary>
 /// Imports tournaments, matches, games, and teams from Leaguepedia into the database.
 /// </summary>
-public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContext dbContext)
+public class LeaguepediaImportService(
+    LeaguepediaClient client,
+    RiftVeilDbContext dbContext,
+    IOptions<LeaguepediaClientOptions> leaguepediaOptions)
 {
+    private readonly LeaguepediaClientOptions _leaguepediaOptions = leaguepediaOptions.Value;
     private readonly Dictionary<string, string?> _shortNameCache = new();
 
     private class ImportStats
@@ -118,20 +123,13 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
             var importedCount = await ImportMatchesForTournamentAsync(tournament, matchStats, gameStats);
 
             if (importedCount > 0)
-            {
-                Console.WriteLine($"  Waiting 3s before next tournament...");
-                await Task.Delay(3_000);
-            }
-            else
-            {
-                Console.WriteLine($"  No new matches imported for {tournament.Name}, skipping delay.");
-            }
+                await DelayBetweenTournamentsAsync();
         }
 
         matchStats.Print("Matches");
         gameStats.Print("Games");
     }
-    
+
     /// <summary>
     /// Imports matches only for currently ongoing tournaments.
     /// </summary>
@@ -155,14 +153,17 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
             var importedCount = await ImportMatchesForTournamentAsync(tournament, matchStats, gameStats);
 
             if (importedCount > 0)
-            {
-                Console.WriteLine($"  Waiting 3s before next tournament...");
-                await Task.Delay(3000);
-            }
+                await DelayBetweenTournamentsAsync();
         }
 
         matchStats.Print("Matches (ongoing)");
         gameStats.Print("Games (ongoing)");
+    }
+
+    private Task DelayBetweenTournamentsAsync()
+    {
+        var delay = Math.Max(0, _leaguepediaOptions.DelayBetweenMatchImportTournamentsMilliseconds);
+        return delay > 0 ? Task.Delay(delay) : Task.CompletedTask;
     }
 
     private async Task<int> ImportMatchesForTournamentAsync(Tournament tournament, ImportStats matchStats, ImportStats gameStats)
@@ -275,14 +276,10 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
 
         var importedInThisBatch = matchStats.Imported - startingImportedCount;
 
+        // No extra spacer between match and game imports — the LeaguepediaClient already
+        // applies PostSuccessDelayMilliseconds after the match Cargo response.
         if (results.Count > 0)
-        {
-            if (importedInThisBatch > 0)
-            {
-                await Task.Delay(2000);
-            }
             await ImportGamesForTournamentAsync(tournament, gameStats);
-        }
 
         return importedInThisBatch;
     }
@@ -414,6 +411,8 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
     {
         var regions = new[] { "Europe", "EMEA", "CIS", "Turkey", "Korea", "North America" };
 
+        // No per-region spacer — LeaguepediaClient already applies PostSuccessDelayMilliseconds
+        // after each successful response, and the process-wide semaphore guarantees serial execution.
         foreach (var region in regions)
         {
             var results = await client.QueryAsync(
@@ -431,11 +430,6 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
                 {
                     _shortNameCache[name] = shortName.Trim().ToUpperInvariant();
                 }
-            }
-
-            if (results.Count > 0)
-            {
-                await Task.Delay(5000);
             }
         }
 
@@ -487,8 +481,7 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
         if (_shortNameCache.TryGetValue(teamName, out var cached))
             return cached;
 
-        await Task.Delay(2000);
-
+        // LeaguepediaClient.QueryAsync already paces requests; no extra delay needed here.
         try
         {
             var results = await client.QueryAsync(
@@ -641,8 +634,7 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
             }
 
             await dbContext.SaveChangesAsync();
-            // Brief pause between tournaments to stay under Cargo rate limits.
-            await Task.Delay(500);
+            // No extra spacer — client paces requests via PostSuccessDelayMilliseconds.
         }
 
         Console.WriteLine($"\n--- Backfill Summary ---");
@@ -741,7 +733,7 @@ public class LeaguepediaImportService(LeaguepediaClient client, RiftVeilDbContex
             }
 
             await dbContext.SaveChangesAsync();
-            await Task.Delay(1_000);
+            // No extra spacer — client paces requests via PostSuccessDelayMilliseconds.
         }
 
         Console.WriteLine($"\n--- Backfill Sides Summary ---");

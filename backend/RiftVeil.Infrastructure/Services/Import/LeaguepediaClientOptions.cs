@@ -10,18 +10,25 @@ public class LeaguepediaClientOptions
 
     /// <summary>
     /// Pause after each successful Cargo response before releasing the semaphore (reduces burst load).
+    /// Bot-authenticated requests get a much higher rate-limit budget, so a small spacer is sufficient.
     /// </summary>
-    public int PostSuccessDelayMilliseconds { get; set; } = 2_000;
+    public int PostSuccessDelayMilliseconds { get; set; } = 1_500;
 
     /// <summary>
     /// Pause between player / team / draft import phases in <see cref="GameDetailImportService"/>.
+    /// Disabled by default — <see cref="PostSuccessDelayMilliseconds"/> already paces phases.
     /// </summary>
-    public int DelayBetweenGameDetailImportPhasesMilliseconds { get; set; } = 5_000;
+    public int DelayBetweenGameDetailImportPhasesMilliseconds { get; set; } = 0;
 
     /// <summary>
     /// Pause after each tournament when importing game details for all ongoing tournaments.
     /// </summary>
-    public int DelayBetweenOngoingTournamentsMilliseconds { get; set; } = 30_000;
+    public int DelayBetweenOngoingTournamentsMilliseconds { get; set; } = 5_000;
+
+    /// <summary>
+    /// Pause after each tournament during match / game import (per league sweep).
+    /// </summary>
+    public int DelayBetweenMatchImportTournamentsMilliseconds { get; set; } = 1_000;
 
     /// <summary>
     /// Page size for Cargo <c>limit</c> when paginating game-detail imports.
