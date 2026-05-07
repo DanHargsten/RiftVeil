@@ -1,16 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { GamePanel } from "@/components/Match/GamePanel.tsx";
+import { GameTabs } from "@/components/Match/GameTabs.tsx";
 import { MatchHero } from "@/components/Match/MatchHero.tsx";
 import { gamesApi, matchesApi } from "@/lib/api.ts";
-import {GameTabs} from "@/components/Match/GameTabs.tsx";
-import {GamePanel} from "@/components/Match/GamePanel.tsx";
 
 /** Match detail page: full match info with game-by-game breakdown. */
 export function MatchDetail() {
     const { id } = useParams<{ id: string }>();
     const location = useLocation();
+    const queryClient = useQueryClient();
     const [selectedGame, setSelectedGame] = useState<number>(1);
+    const [devImportBusy, setDevImportBusy] = useState(false);
+    const [devImportError, setDevImportError] = useState<string | null>(null);
 
     // Back link target: optional `state.from` set by MatchCard
     const from = (location.state as { from?: string })?.from ?? "/";
@@ -26,6 +29,10 @@ export function MatchDetail() {
     const currentGame =
         playedGames.find((game) => game.gameNumber === selectedGame)
         ?? playedGames[0];
+
+    useEffect(() => {
+        setDevImportError(null);
+    }, [currentGame?.id]);
 
     const { data: gameDetails, isLoading: gameLoading, isError: gameDetailsError } = useQuery({
         queryKey: ["game-details", currentGame?.id],
@@ -64,6 +71,35 @@ export function MatchDetail() {
         return null;
     };
 
+    async function handleDevImportGameDetails() {
+        if (!currentGame || devImportBusy) return;
+        setDevImportBusy(true);
+        setDevImportError(null);
+        const gameId = currentGame.id;
+        try {
+            const res = await fetch(`/api/import/game-details/game/${gameId}`, { method: "POST" });
+            const text = (await res.text()).trim();
+            if (!res.ok) {
+                setDevImportError(text || `Import failed (${res.status})`);
+                return;
+            }
+            await queryClient.invalidateQueries({ queryKey: ["game-details", gameId] });
+        } catch (err) {
+            setDevImportError(err instanceof Error ? err.message : "Import failed");
+        } finally {
+            setDevImportBusy(false);
+        }
+    }
+
+    const devImport =
+        import.meta.env.DEV && currentGame
+            ? {
+                  busy: devImportBusy,
+                  error: devImportError,
+                  onImport: handleDevImportGameDetails,
+              }
+            : undefined;
+
     return (
         <div className="page">
             <div className="match-detail__outer">
@@ -96,6 +132,7 @@ export function MatchDetail() {
                             gameDetails={gameDetails}
                             gameLoading={gameLoading}
                             gameDetailsError={gameDetailsError}
+                            devImport={devImport}
                         />
                     )}
                 </div>

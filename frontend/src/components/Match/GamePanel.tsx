@@ -3,15 +3,30 @@ import { GameScoreboard } from "@/components/Match/GameScoreboard.tsx";
 import { PlayIcon } from "@/components/common/Icons.tsx";
 import type { GameDetailsDto, GameListItem, MatchDetails } from "@/lib/api.ts";
 
+export interface GamePanelDevImportProps {
+    busy: boolean;
+    error: string | null;
+    onImport: () => void;
+}
+
 interface GamePanelProps {
     match: MatchDetails;
     currentGame: GameListItem;
     gameDetails: GameDetailsDto | undefined;
     gameLoading: boolean;
     gameDetailsError: boolean;
+    /** Dev-only: Leaguepedia import for this game id (see MatchDetail). */
+    devImport?: GamePanelDevImportProps;
 }
 
-export function GamePanel({ match, currentGame, gameDetails, gameLoading, gameDetailsError }: GamePanelProps) {
+export function GamePanel({
+    match,
+    currentGame,
+    gameDetails,
+    gameLoading,
+    gameDetailsError,
+    devImport,
+}: GamePanelProps) {
     return (
         <div
             id="match-detail-game-panel"
@@ -19,20 +34,38 @@ export function GamePanel({ match, currentGame, gameDetails, gameLoading, gameDe
             aria-labelledby={`match-detail-tab-${currentGame.id}`}
             className="match-detail__content"
         >
-            {currentGame.vodUrl ? (
-                <a
-                    href={currentGame.vodUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="match-detail__vod-btn"
-                    aria-label={`Watch Game ${currentGame.gameNumber} VOD`}
-                >
-                <PlayIcon size={16} aria-hidden="true" />
-                Watch Game {currentGame.gameNumber} VOD
-                </a>
+            <div className="match-detail__vod-row">
+                {currentGame.vodUrl ? (
+                    <a
+                        href={currentGame.vodUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="match-detail__vod-btn"
+                        aria-label={`Watch Game ${currentGame.gameNumber} VOD`}
+                    >
+                        <PlayIcon size={16} aria-hidden="true" />
+                        Watch Game {currentGame.gameNumber} VOD
+                    </a>
                 ) : (
-                <span className="match-detail__vod-unavailable">No VOD available for this game</span>
+                    <span className="match-detail__vod-unavailable">No VOD available for this game</span>
                 )}
+                {devImport ? (
+                    <button
+                        type="button"
+                        className="match-detail__dev-import-btn"
+                        disabled={devImport.busy}
+                        onClick={devImport.onImport}
+                        aria-label={`Import Leaguepedia details for game ${currentGame.gameNumber}`}
+                    >
+                        {devImport.busy ? "Importing…" : "Import details"}
+                    </button>
+                ) : null}
+            </div>
+            {devImport?.error ? (
+                <p className="match-detail__dev-import-error" role="alert">
+                    {devImport.error}
+                </p>
+            ) : null}
 
             {gameLoading ? (
                 <div className="match-detail-loading">
