@@ -169,6 +169,29 @@ public class ImportController(
         return Ok($"Game detail import complete for: {slug}");
     }
 
+    /// <summary>
+    /// Imports player stats, team stats, and draft for a single game by local database id (admin/testing).
+    /// </summary>
+    [HttpPost("game-details/game/{gameId:int}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ImportGameDetailsForGameAsync(int gameId)
+    {
+        try
+        {
+            var message = await gameDetailImportService.ImportGameDetailsForGameIdAsync(gameId);
+            if (message == null)
+                return NotFound($"Game {gameId} not found.");
+
+            return Ok(message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
     private async Task<League?> FindLeagueByShortNameAsync(string leagueShortName)
     {
         var key = leagueShortName.ToUpperInvariant();
