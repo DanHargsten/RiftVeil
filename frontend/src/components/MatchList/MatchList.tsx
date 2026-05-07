@@ -24,12 +24,18 @@ interface MatchListProps {
     };
 }
 
-export function MatchList({ spoilerProps }: MatchListProps) {
+export function MatchList({ tournamentId, spoilerProps }: MatchListProps) {
     const { spoilers, toggleGlobal, revealMatch, hideMatch } = spoilerProps;
     const [search, setSearch] = useState("");
-    const [selectedTournamentId, setSelectedTournamentId] = useState<number | "all">("all");
+    const [selectedTournamentId, setSelectedTournamentId] = useState<number | "all">(
+        tournamentId != null ? tournamentId : "all",
+    );
     const todayRef = useRef<HTMLDivElement>(null);
     const hasScrolled = useRef(false);
+
+    useEffect(() => {
+        setSelectedTournamentId(tournamentId != null ? tournamentId : "all");
+    }, [tournamentId]);
 
     const { data: tournaments } = useQuery({
         queryKey: ["tournaments"],
@@ -63,14 +69,14 @@ export function MatchList({ spoilerProps }: MatchListProps) {
         hasScrolled.current = false;
     }, [selectedTournamentId]);
 
-    const filteredMatches = (matches ?? []).filter((m) => {
+    const filteredMatches = (matches ?? []).filter((match) => {
         if (!search.trim()) return true;
-        const q = search.toLowerCase();
+        const query = search.toLowerCase();
         return (
-            m.team1Name.toLowerCase().includes(q) ||
-            m.team2Name.toLowerCase().includes(q) ||
-            m.team1ShortName.toLowerCase().includes(q) ||
-            m.team2ShortName.toLowerCase().includes(q)
+            match.team1Name.toLowerCase().includes(query) ||
+            match.team2Name.toLowerCase().includes(query) ||
+            match.team1ShortName.toLowerCase().includes(query) ||
+            match.team2ShortName.toLowerCase().includes(query)
         );
     });
 
@@ -108,9 +114,9 @@ export function MatchList({ spoilerProps }: MatchListProps) {
                         }
                     >
                         <option value="all">All Tournaments</option>
-                        {tournaments?.map((t) => (
-                            <option key={t.id} value={t.id}>
-                                {t.name}
+                        {tournaments?.map((tournament) => (
+                            <option key={tournament.id} value={tournament.id}>
+                                {tournament.name}
                             </option>
                         ))}
                     </select>
