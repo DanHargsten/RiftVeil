@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Http.Headers;
 using System.Text.Json.Serialization;
 
 using Microsoft.EntityFrameworkCore;
@@ -24,17 +26,30 @@ builder.Services.AddSwaggerGen();
 builder.Services.Configure<LeaguepediaClientOptions>(
     builder.Configuration.GetSection(LeaguepediaClientOptions.SectionName));
 
-// Leaguepedia API client.
+// Leaguepedia API client. A single CookieContainer is shared across all
+// requests so the MediaWiki session cookie set by bot login persists.
+var leaguepediaCookies = new CookieContainer();
+builder.Services.AddSingleton(leaguepediaCookies);
+
+var leaguepediaContact = builder.Configuration
+    .GetSection(LeaguepediaClientOptions.SectionName)
+    .GetValue<string>(nameof(LeaguepediaClientOptions.ContactEmail));
+var leaguepediaUserAgent = string.IsNullOrWhiteSpace(leaguepediaContact)
+    ? "RiftVeil_Bot/1.1"
+    : $"RiftVeil_Bot/1.1 (contact: {leaguepediaContact})";
+
 builder.Services.AddHttpClient<LeaguepediaClient>(client =>
     {
-        client.DefaultRequestHeaders.Add("User-Agent", "RiftVeil_Bot/1.1 (contact: dan.hargsten@gmail.com)");
+        client.DefaultRequestHeaders.Add("User-Agent", leaguepediaUserAgent);
         client.DefaultRequestHeaders.AcceptEncoding.Add(
-            new System.Net.Http.Headers.StringWithQualityHeaderValue("gzip"));
+            new StringWithQualityHeaderValue("gzip"));
         client.DefaultRequestHeaders.Add("Accept", "application/json");
     })
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
     {
-        AutomaticDecompression = System.Net.DecompressionMethods.All
+        AutomaticDecompression = DecompressionMethods.All,
+        UseCookies = true,
+        CookieContainer = leaguepediaCookies
     });
 
 // Lolesports VOD client (API key: Lolesports:ApiKey).
