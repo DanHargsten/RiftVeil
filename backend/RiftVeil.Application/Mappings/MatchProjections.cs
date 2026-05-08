@@ -4,15 +4,31 @@ using RiftVeil.Application.Dtos.Games;
 using RiftVeil.Application.Dtos.Matches;
 using RiftVeil.Application.Dtos.Tournaments;
 using RiftVeil.Domain.Entities;
+using RiftVeil.Domain.Enums;
 
 namespace RiftVeil.Application.Mappings;
 
 public static class MatchProjections
 {
     /// <summary>
-    /// Projects matches for list views.
+    /// Approximate per-game wall-clock budget used to decide whether a Scheduled match
+    /// is "probably live right now". 75 min covers a typical pro game (~35–40 min play
+    /// + draft + breaks), so a BO3 gets ~3¾ h and a BO5 ~6¼ h.
+    /// <para>
+    /// Needed because <see cref="Match.MarkLive"/> is never called by the import (no
+    /// auto-import yet — see docs/future-projects.md). Without this heuristic the UI
+    /// would never show a LIVE badge between the scheduled-import and the
+    /// finished-import.
+    /// </para>
     /// </summary>
-    public static Expression<Func<Match, MatchListItemDto>> ToListItemDto()
+    public const int LiveWindowMinutesPerGame = 75;
+
+    /// <summary>
+    /// Projects matches for list views. <paramref name="now"/> is used to derive
+    /// <see cref="MatchStatus.Live"/> on the fly when the DB still says Scheduled but
+    /// the planned start has passed and the live window hasn't expired.
+    /// </summary>
+    public static Expression<Func<Match, MatchListItemDto>> ToListItemDto(DateTimeOffset now)
     {
         return match => new MatchListItemDto(
             match.Id,
@@ -27,7 +43,11 @@ public static class MatchProjections
             match.Team2.ShortName,
             match.StartsAtUtc,
             match.BestOf,
-            match.Status,
+            match.Status == MatchStatus.Scheduled
+                && match.StartsAtUtc <= now
+                && match.StartsAtUtc.AddMinutes(match.BestOf * (double)LiveWindowMinutesPerGame) >= now
+                ? MatchStatus.Live
+                : match.Status,
             match.Team1Score,
             match.Team2Score,
             match.Round,
@@ -40,10 +60,17 @@ public static class MatchProjections
 
 
     /// <summary>
-    /// Maps a materialized match to a details DTO.
+    /// Maps a materialized match to a details DTO. <paramref name="now"/> is used for
+    /// the same derived-Live heuristic as <see cref="ToListItemDto"/>.
     /// </summary>
-    public static MatchDetailsDto ToDetailsDto(this Match match)
+    public static MatchDetailsDto ToDetailsDto(this Match match, DateTimeOffset now)
     {
+        var derivedStatus = match.Status == MatchStatus.Scheduled
+            && match.StartsAtUtc <= now
+            && match.StartsAtUtc.AddMinutes(match.BestOf * (double)LiveWindowMinutesPerGame) >= now
+                ? MatchStatus.Live
+                : match.Status;
+
         return new MatchDetailsDto(
             match.Id,
             match.Team1.Name,
@@ -54,7 +81,7 @@ public static class MatchProjections
             match.StartedAtUtc,
             match.FinishedAtUtc,
             match.BestOf,
-            match.Status,
+            derivedStatus,
             match.Team1Score,
             match.Team2Score,
             match.Round,

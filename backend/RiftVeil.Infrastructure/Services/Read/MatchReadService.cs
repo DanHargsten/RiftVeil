@@ -47,44 +47,57 @@ public class MatchReadService(RiftVeilDbContext context) : IMatchReadService
             query = query.Where(match => match.Status == status.Value);
         }
 
+        var now = DateTimeOffset.UtcNow;
         return await query
             .OrderBy(match => match.StartsAtUtc)
-            .Select(MatchProjections.ToListItemDto())
+            .Select(MatchProjections.ToListItemDto(now))
             .ToListAsync();
     }
 
     /// <inheritdoc />
     public async Task<List<MatchListItemDto>> GetUpcomingAsync(int days = 7)
     {
-        var cutoffTime = DateTimeOffset.UtcNow.AddDays(days);
+        var now = DateTimeOffset.UtcNow;
+        var cutoffTime = now.AddDays(days);
 
         return await _context.Matches
             .Where(match => match.Status == MatchStatus.Scheduled)
-            .Where(match => match.StartsAtUtc >= DateTimeOffset.UtcNow)
+            .Where(match => match.StartsAtUtc >= now)
             .Where(match => match.StartsAtUtc <= cutoffTime)
             .OrderBy(match => match.StartsAtUtc)
-            .Select(MatchProjections.ToListItemDto())
+            .Select(MatchProjections.ToListItemDto(now))
             .ToListAsync();
     }
 
     /// <inheritdoc />
     public async Task<List<MatchListItemDto>> GetRecentAsync(int count = 10)
     {
+        var now = DateTimeOffset.UtcNow;
         return await _context.Matches
             .Where(match => match.Status == MatchStatus.Finished)
             .OrderByDescending(match => match.StartedAtUtc)
             .Take(count)
-            .Select(MatchProjections.ToListItemDto())
+            .Select(MatchProjections.ToListItemDto(now))
             .ToListAsync();
     }
 
     /// <inheritdoc />
     public async Task<List<MatchListItemDto>> GetLiveAsync()
     {
+        // Match.MarkLive is never called by the import (no auto-import yet), so we
+        // can't trust Status == Live alone. Mirror the projection's heuristic here so
+        // /api/matches/live returns the same set of "currently playing" matches that
+        // any list-view would show with a LIVE badge. See MatchProjections for context.
+        var now = DateTimeOffset.UtcNow;
         return await _context.Matches
-            .Where(match => match.Status == MatchStatus.Live)
-            .OrderByDescending(match => match.StartedAtUtc)
-            .Select(MatchProjections.ToListItemDto())
+            .Where(match =>
+                match.Status == MatchStatus.Live
+                || (match.Status == MatchStatus.Scheduled
+                    && match.StartsAtUtc <= now
+                    && match.StartsAtUtc.AddMinutes(
+                        match.BestOf * (double)MatchProjections.LiveWindowMinutesPerGame) >= now))
+            .OrderBy(match => match.StartsAtUtc)
+            .Select(MatchProjections.ToListItemDto(now))
             .ToListAsync();
     }
 
@@ -100,6 +113,6 @@ public class MatchReadService(RiftVeilDbContext context) : IMatchReadService
                 .ThenInclude(game => game.Vods)
             .FirstOrDefaultAsync(match => match.Id == id);
 
-        return match?.ToDetailsDto();
+        return match?.ToDetailsDto(DateTimeOffset.UtcNow);
     }
 }
