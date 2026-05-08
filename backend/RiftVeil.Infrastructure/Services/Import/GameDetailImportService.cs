@@ -816,10 +816,29 @@ public class GameDetailImportService(
         return TrySetSidesFromBlueRedNames(game, match, blueTeam, redTeam);
     }
 
-    private static bool NameMatches(string? cargoName, string? entityName) =>
-        !string.IsNullOrWhiteSpace(cargoName) &&
-        !string.IsNullOrWhiteSpace(entityName) &&
-        string.Equals(cargoName, entityName, StringComparison.OrdinalIgnoreCase);
+    /// <summary>
+    /// Compares a Leaguepedia team name (Cargo) to a local team name. Case-insensitive exact
+    /// match, with a tolerance for MediaWiki disambiguation suffixes — e.g. Leaguepedia stores
+    /// the LCS team as <c>"LYON (2024 American Team)"</c> to distinguish it from the older French
+    /// LYON, while we keep the short, current-season name <c>"LYON"</c> in the DB. Without this
+    /// tolerance, ScoreboardPlayers/ScoreboardTeams rows for those games would be silently
+    /// skipped because side-mapping fails.
+    /// <para>
+    /// Wiki convention is <c>"Name (disambiguation text)"</c>, so a strict prefix check
+    /// followed by " (" is safe — it can't accidentally match unrelated teams like "LYON Gaming"
+    /// (no space-paren), only the disambiguation form.
+    /// </para>
+    /// </summary>
+    private static bool NameMatches(string? cargoName, string? entityName)
+    {
+        if (string.IsNullOrWhiteSpace(cargoName) || string.IsNullOrWhiteSpace(entityName))
+            return false;
+
+        if (string.Equals(cargoName, entityName, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return cargoName.StartsWith(entityName + " (", StringComparison.OrdinalIgnoreCase);
+    }
 
     // =====================================================================
     //  HELPERS
