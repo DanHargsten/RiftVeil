@@ -40,8 +40,10 @@ public class GameDetailImportService(
     private record TeamKda(int Deaths, int Assists);
 
     /// <summary>
-    /// Imports player stats, team stats, and draft entries for all games
+    /// Imports player stats, team stats, and draft entries for all played games
     /// in a given tournament that have an ExternalId but no detail stats yet.
+    /// Unplayed games (<see cref="Game.WinningTeam"/> == null) are excluded — Cargo has no
+    /// rows for them and querying anyway burns rate-limit budget for nothing.
     /// </summary>
     public async Task ImportGameDetailsForTournamentAsync(string liquipediaSlug)
     {
@@ -50,13 +52,14 @@ public class GameDetailImportService(
         var games = await dbContext.Games
             .Where(game =>
                 game.Match.Tournament.LiquipediaSlug == liquipediaSlug &&
-                game.ExternalId != null)
+                game.ExternalId != null &&
+                game.WinningTeam != null)
             .Include(game => game.Match)
             .ToListAsync();
 
         if (games.Count == 0)
         {
-            Console.WriteLine("  No games with ExternalId found — has backfill been run?");
+            Console.WriteLine("  No played games with ExternalId found (nothing to import).");
             return;
         }
 

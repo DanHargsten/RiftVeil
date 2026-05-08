@@ -61,9 +61,48 @@ public class LolesportsVodEnricher(
             .Include(tournament => tournament.Matches).ThenInclude(match => match.Games).ThenInclude(game => game.Vods)
             .ToListAsync();
 
+        // Skip lolesports tournaments whose date range doesn't overlap with any DB
+        // tournament that still has games missing a VOD. This avoids ~2.5 s/tournament
+        // wasted on getCompletedEvents calls for tournaments that are years old and
+        // already fully covered.
+        var dbTournamentWindows = ourTournaments
+            .Where(tournament => tournament.Matches.Any(match =>
+                match.Games.Any(game => string.IsNullOrEmpty(game.VodUrl))))
+            .Select(tournament => (
+                Start: tournament.StartsAtUtc,
+                End: tournament.EndsAtUtc ?? DateTimeOffset.UtcNow))
+            .ToList();
+
+        // Tournament dates between Leaguepedia (DB) and lolesports aren't always
+        // perfectly aligned (different timezones, schedule revisions). 14 days of
+        // slack on each side is generous without being noisy.
+        const int dateOverlapBufferDays = 14;
+        var filteredLolesportsTournaments = lolesportsTournaments
+            .Where(lolesportsTournament =>
+            {
+                if (!lolesportsTournament.TryGetProperty("startDate", out var startEl)
+                    || !lolesportsTournament.TryGetProperty("endDate", out var endEl))
+                    return true;
+
+                if (!DateTimeOffset.TryParse(startEl.GetString(), out var ltStart)
+                    || !DateTimeOffset.TryParse(endEl.GetString(), out var ltEnd))
+                    return true;
+
+                var bufferedStart = ltStart.AddDays(-dateOverlapBufferDays);
+                var bufferedEnd = ltEnd.AddDays(dateOverlapBufferDays);
+
+                return dbTournamentWindows.Any(window =>
+                    bufferedStart <= window.End && bufferedEnd >= window.Start);
+            })
+            .ToList();
+
+        logger.LogInformation(
+            "Filtered to {Filtered}/{Total} lolesports tournaments overlapping DB tournaments needing VODs",
+            filteredLolesportsTournaments.Count, lolesportsTournaments.Count);
+
         int totalEnriched = 0;
 
-        foreach (var lolesportsTournament in lolesportsTournaments)
+        foreach (var lolesportsTournament in filteredLolesportsTournaments)
         {
             if (!lolesportsTournament.TryGetProperty("id", out var tournamentIdEl)) continue;
             var tournamentId = tournamentIdEl.GetString();
@@ -186,8 +225,6 @@ public class LolesportsVodEnricher(
                     if (EnrichGameVods(game, detailGames))
                         enrichedInTournament++;
                 }
-
-                await Task.Delay(500);
             }
 
             totalEnriched += enrichedInTournament;
@@ -195,8 +232,6 @@ public class LolesportsVodEnricher(
 
             if (enrichedInTournament > 0)
                 await dbContext.SaveChangesAsync();
-
-            await Task.Delay(2000);
         }
 
         logger.LogInformation("VOD enrichment finished: {Total} VODs total for {LeagueShortName}", totalEnriched, leagueShortName);
