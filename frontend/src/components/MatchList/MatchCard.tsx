@@ -81,7 +81,10 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
                 {/* STATUS */}
                 <div className="match-card__status">
                     {isLive ? (
-                        <span className="badge badge--live" aria-live="polite" role="status">LIVE</span>
+                        <span className="badge badge--live" aria-live="polite" role="status">
+                            <span className="badge__pulse" aria-hidden="true" />
+                            LIVE
+                        </span>
                     ) : match.status === "Scheduled" ? (
                         <span className="badge badge--scheduled">
                             <TimeCircle className="badge__icon" size={18} aria-hidden="true" />
@@ -132,9 +135,9 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
                                 </>
                             )}
                         </button>
-                    ) : isLive ? (
-                        <span className="match-card__vs-live">LIVE</span>
                     ) : (
+                        // Same "vs" for Scheduled and Live — live state already speaks loudly
+                        // through the corner badge, the red border, and the Watch live CTA.
                         <span className="match-card__vs-text">vs</span>
                     )}
                 </div>
@@ -152,10 +155,21 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
             {/* ========== FOOTER ========== */}
             <footer className="match-card__footer">
                 
-                {/* VODS */}
+                {/* VODS / WATCH LIVE / STARTING TIME */}
                 <div className="match-card__vods">
                     {isFinished ? (
                         <VodButtons match={match} canShowScore={canShowScore} />
+                    ) : isLive ? (
+                        <a
+                            href={buildLolesportsLiveUrl(match.leagueShortName)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="match-card__watch-live"
+                            aria-label={`Watch ${match.leagueShortName} live on lolesports.com (opens in new tab)`}
+                        >
+                            <PlayIcon size={12} aria-hidden="true" />
+                            Watch live
+                        </a>
                     ) : (
                         <time dateTime={match.startsAtUtc} className="match-card__vods-empty">
                             Starting {getTimeDisplay()}
@@ -163,8 +177,16 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
                     )}
                 </div>
 
-                {/* BEST-OF */}
-                <span className="match-card__best-of" aria-label={`Best of ${match.bestOf}`}>Bo{match.bestOf}</span>
+                {/* ROUND + BEST-OF (this-match metadata) */}
+                <div className="match-card__match-meta">
+                    {match.round && (
+                        <>
+                            <span className="match-card__round">{match.round}</span>
+                            <span className="match-card__match-meta-separator">·</span>
+                        </>
+                    )}
+                    <span className="match-card__best-of" aria-label={`Best of ${match.bestOf}`}>Bo{match.bestOf}</span>
+                </div>
 
                 {/* DETAILS LINK */}
                 {isFinished && (
@@ -186,6 +208,16 @@ function formatTime(isoUtc: string) {
         hour: "2-digit",
         minute: "2-digit",
     });
+}
+
+/**
+ * Lolesports live page follows the pattern /live/{slug}/{slug} with slug = lowercase
+ * league short name (lck, lec, lcs, lpl, ...). If a future league breaks this pattern
+ * I can either special-case it here or add a per-league override on the backend DTO.
+ */
+function buildLolesportsLiveUrl(leagueShortName: string): string {
+    const slug = leagueShortName.toLowerCase();
+    return `https://lolesports.com/live/${slug}/${slug}`;
 }
 
 function ScoreNumber({ score, otherScore }: { score: number; otherScore: number }) {

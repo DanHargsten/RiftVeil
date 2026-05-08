@@ -21,6 +21,27 @@
     border: 1px solid rgba(232, 64, 87, 0.3);
 }
 
+/* Only ever rendered inside .badge--live today, but kept as a plain element of badge
+   so the class follows standard BEM (block__element, not block--modifier__element). */
+.badge__pulse {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--live);
+    animation: badge-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .badge__pulse {
+        animation: none;
+    }
+}
+
 .badge--scheduled {
     background: transparent;
     /*border: 1px solid var(--text-muted);*/

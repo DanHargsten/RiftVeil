@@ -10,6 +10,8 @@
     background: var(--surface-1);
     height: 170px;
     justify-content: space-between;
+    /* Anchor for the ::before live accent below. */
+    position: relative;
 }
 
 /* ================================================================================================
@@ -118,13 +120,6 @@
     font-weight: 500;
 }
 
-.match-card__vs-live {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--live);
-    letter-spacing: 0.05em;
-}
-
 .match-card__vs-separator {
     width: 2px;
     height: 26px;
@@ -213,6 +208,36 @@
     color: var(--text-muted-extra);
 }
 
+.match-card__watch-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--live-text);
+    background: var(--live-soft);
+    border: 1px solid color-mix(in oklch, var(--live) 30%, transparent);
+    padding: 0.22rem 0.55rem;
+    border-radius: 0.3rem;
+    text-decoration: none;
+    /* Breathing room from the 3px live ::before stripe so the button doesn't kiss the red edge. */
+    margin-left: 3px;
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.match-card__watch-live:hover,
+.match-card__watch-live:focus-visible {
+    background: color-mix(in oklch, var(--live) 30%, transparent);
+    transform: translateY(-1px);
+}
+
+.match-card__watch-live:focus-visible {
+    outline: 2px solid var(--live);
+    outline-offset: 2px;
+}
+
 .match-card__vod-btn {
     width: 42px;
     height: 28px;
@@ -260,6 +285,15 @@
     opacity: 0.8;
 }
 
+.match-card__match-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+
+.match-card__round,
+.match-card__match-meta-separator,
 .match-card__best-of {
     font-size: 0.75rem;
     color: var(--text-muted-extra);
@@ -269,14 +303,21 @@
 /* ================================================================================================
    STATUS VARIANTS
    ================================================================================================ */
-.match-card--finished {
-    border-left: 3px solid var(--border);
-}
+/* Live is the only state worth a colored accent — Upcoming is the default expected case
+   (most cards in any list), and Finished is calm by nature. A red stripe on Live makes
+   the rare, action-worthy match pop when scanning a long list.
 
-.match-card--upcoming {
-    border-left: 3px solid var(--status-upcoming);
-}
-
-.match-card--live {
-    border-left: 3px solid var(--live);
+   Painted as an absolutely-positioned ::before so it sits on top of the footer's own
+   background (a box-shadow inset would render behind it). Layout is unaffected because
+   the stripe doesn't participate in flow. The card's 4px header/footer padding leaves
+   the leftmost 3px content-free, so nothing visible gets covered. */
+.match-card--live::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 3px;
+    background: var(--live);
+    pointer-events: none;
 }
