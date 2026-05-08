@@ -21,11 +21,6 @@ public class LeaguepediaClientOptions
     public int DelayBetweenGameDetailImportPhasesMilliseconds { get; set; } = 0;
 
     /// <summary>
-    /// Pause after each tournament when importing game details for all ongoing tournaments.
-    /// </summary>
-    public int DelayBetweenOngoingTournamentsMilliseconds { get; set; } = 5_000;
-
-    /// <summary>
     /// Pause after each tournament during match / game import (per league sweep).
     /// </summary>
     public int DelayBetweenMatchImportTournamentsMilliseconds { get; set; } = 1_000;

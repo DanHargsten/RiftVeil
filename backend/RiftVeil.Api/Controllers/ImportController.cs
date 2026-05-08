@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using RiftVeil.Domain.Entities;
 using RiftVeil.Domain.Enums;
 using RiftVeil.Infrastructure.Data;
@@ -17,10 +16,8 @@ public class ImportController(
     LeaguepediaImportService importService,
     RiftVeilDbContext dbContext,
     LolesportsVodEnricher vodEnricher,
-    GameDetailImportService gameDetailImportService,
-    IOptions<LeaguepediaClientOptions> leaguepediaOptions) : ControllerBase
+    GameDetailImportService gameDetailImportService) : ControllerBase
 {
-    private readonly LeaguepediaClientOptions _leaguepediaOptions = leaguepediaOptions.Value;
     /// <summary>
     /// Imports tournaments for the given league.
     /// </summary>
@@ -145,7 +142,6 @@ public class ImportController(
         {
             Console.WriteLine($"Importing game details for: {tournament.Name}");
             await gameDetailImportService.ImportGameDetailsForTournamentAsync(tournament.LiquipediaSlug!);
-            await Task.Delay(Math.Max(0, _leaguepediaOptions.DelayBetweenOngoingTournamentsMilliseconds));
         }
 
         return Ok($"Game detail import complete for {ongoingTournaments.Count} ongoing tournaments.");
