@@ -2,6 +2,29 @@
 
 All notable changes to **RiftVeil** are recorded here, **newest first**. Sections are dated (no version numbers). Where it helps, entries are grouped like [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) (Added / Changed / Fixed / Removed).
 
+> The earliest entries (2026-01 through ~2026-04-13) are intentionally written at a high, summary level — this changelog was started a few weeks into the project and the early period is reconstructed from memory and commit history rather than tracked day-by-day. From mid-April onwards entries are detailed (class names, methods, files) because they were written while the changes were fresh.
+
+## 2026-05-08
+
+### Added
+
+- **`MatchProjections.LiveWindowMinutesPerGame`** (default **`75`**): heuristic constant used by both **`ToListItemDto(now)`** / **`ToDetailsDto(now)`** and **`MatchReadService.GetLiveAsync`** to derive **`MatchStatus.Live`** for any **`Scheduled`** match where **`StartsAtUtc <= now <= StartsAtUtc + BestOf * 75 min`**. Needed because no auto-import currently calls **`Match.MarkLive`**, so the DB column alone never reflects live state — see **`docs/future-projects.md`** sections 1 + 6.
+- Frontend live affordances on **`MatchCard`**: red **`::before`** accent stripe (Live only), pulsing dot in the LIVE badge (**`.badge__pulse`**, respects **`prefers-reduced-motion`**), **Watch live** link to **`lolesports.com/live/<slug>/<slug>`** (helper **`buildLolesportsLiveUrl`**), and a grouped **`Round · Bo3`** block in the footer (**`.match-card__match-meta`**).
+- Documentation: **`docs/future-projects.md`** section 6 (live status: from estimate to reality) — Phase 1 real-polling sketch (**`LiveMatchPoller`** **`BackgroundService`**) and Phase 2 broadcast-aware live via **Twitch Helix API** (channel mapping table for LCK / LEC / LCS / LPL / LTA / Worlds, OAuth client_credentials flow, **`BroadcastWatcher`** sketch with windowing on **`StartsAtUtc - 90 min`** and **`game_name == "League of Legends"`** filter, edge cases, effort estimate).
+
+### Changed
+
+- **`GameDetailImportService.ImportGameDetailsForTournamentAsync`**: filter now requires **`Game.WinningTeam != null`** so unplayed phantom games (BO3 game 3 when the series ended 2-0, future scheduled matches) no longer cost a Cargo round-trip per game. Eliminates the bulk of the previous "details took long time" wall-clock cost on incremental imports.
+- **`GameDetailImportService.NameMatches`**: tolerates MediaWiki disambiguation suffixes — e.g. **`"LYON (2024 American Team)"`** from Cargo now matches DB **`"LYON"`**. Before, side-mapping silently failed for such teams and player / team stats were skipped without a clear log line.
+- **`LolesportsVodEnricher.EnrichLeagueAsync`**: pre-filters lolesports tournaments to those whose date range (±**`14`** day buffer) overlaps a DB tournament that still has games missing a VOD; skips the **`getCompletedEvents`** call (~2.5 s each) for already-fully-covered seasons. Hard-coded **`Task.Delay(500)`** between event details and **`Task.Delay(2000)`** between tournaments removed — **`LolesportsClientOptions.RetryDelayMilliseconds`** already paces requests on transient errors.
+- **`MatchReadService`**: all read methods (**`GetAllAsync`**, **`GetUpcomingAsync`**, **`GetRecentAsync`**, **`GetLiveAsync`**, **`GetByIdAsync`**) capture **`DateTimeOffset.UtcNow`** once and pass it to the projections so the derived-Live decision is consistent within a single response. **`GetLiveAsync`** WHERE clause mirrors the projection heuristic so **`/api/matches/live`** returns the same set as the LIVE badge.
+- **`MatchCard`** styling overhaul: dropped the colored left-border on Upcoming (yellow) and Finished (gray) — they carried no signal when 90 % of cards in a list shared the stripe — leaving Live as the only state with a colored accent. Live's accent re-implemented as a **`position: absolute ::before`** instead of **`border-left: 3px`** so it sits on top of the footer's **`surface-2`** background and the inner card layout is byte-identical regardless of status. Center-of-card text now reads **`vs`** for Live too (the corner badge, accent stripe, and Watch live CTA already communicate state). **Watch live** button uses smaller padding (**`0.22rem 0.55rem`**) and font (**`0.7rem`**) to match other small footer controls.
+
+### Removed
+
+- **`LeaguepediaClientOptions.DelayBetweenOngoingTournamentsMilliseconds`** and the matching **`appsettings.json`** / **`appsettings.Development.json`** keys: the only consumer (**`ImportController.ImportOngoingGameDetailsAsync`**) no longer needs the per-tournament spacer now that **`LeaguepediaClient.PostSuccessDelayMilliseconds`** paces individual Cargo requests.
+- **`.match-card__vs-live`** CSS class and matching JSX branch: middle of the card now shows **`vs`** for Live too, so the dedicated live label was redundant.
+
 ## 2026-05-07
 
 ### Added

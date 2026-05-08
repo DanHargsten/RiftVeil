@@ -4,10 +4,10 @@ RiftVeil is a spoiler-aware League of Legends esports web app: one place to see 
 
 ## What it does today
 
-- **Home** — Live, upcoming, and recent matches with global and per-match spoiler controls (`useSpoilerPrefs`).
+- **Home** — Live, upcoming, and recent matches with global and per-match spoiler controls (`useSpoilerPrefs`). Live matches show a red accent stripe, a pulsing badge, and a direct **Watch live** link to lolesports.com.
 - **Leagues** — Hub per league at `/leagues/:shortName`: pick a tournament, browse matches grouped by round, open a series without leaving the league context.
-- **Match detail** — Series scoreline, per-game tabs (played games only), VOD link when available; UI placeholders for draft, scoreboard, and objectives (backend models for detailed stats are in place).
-- **Admin** — At `/admin`, run import jobs (tournaments, matches, VOD enrichment) that fill the database from external sources.
+- **Match detail** — Series scoreline, per-game tabs (played games only), VOD link when available, plus per-game **draft** (`GameDraft`) and **scoreboard** (`GameScoreboard`) backed by `GET /api/games/{gameId}/details`. Objectives sidebar still a placeholder while the presentational component is built.
+- **Admin** — At `/admin`, run import jobs (tournaments, matches, VOD enrichment, per-tournament and per-game detail import) that fill the database from external sources.
 
 ## Data flow
 

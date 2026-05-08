@@ -28,7 +28,7 @@ imported**. Manual `/admin` triggers stay available for backfills and one-off co
 | Loop | Cadence | What it does |
 |---|---|---|
 | **Tournaments** | once per day | `ImportTournamentsAsync` for each league. Picks up new splits / playoffs. |
-| **Matches** | every 30 min, or every 5 min during a known match window | `ImportOngoingMatchesAsync` per league. Updates `Status` from `Scheduled` → `Live` → `Finished`. |
+| **Matches** | every 30 min, or every 5 min during a known match window | `ImportOngoingMatchesAsync` per league. Updates `Status` from `Scheduled` → `Live` → `Finished`. **Replaces** the time-window heuristic in `MatchProjections.LiveWindowMinutesPerGame` (see #6). |
 | **Game details** | every 5 min | Game-detail import for any `Game` whose parent `Match.Status` recently flipped to `Finished` and that has no detail rows yet. |
 
 A `Game.DetailsImportedAtUtc` (or just "exists row in `GamePlayerStats`") flag is used to skip
@@ -174,3 +174,207 @@ The match page has an empty "Objectives" sidebar. Per-team objective totals
 (barons, dragons split by element, void grubs, herald, towers, inhibitors) are already imported
 into `GameTeamStats` — just need a presentational component reading the existing
 `GET /api/games/{id}/details` payload. Small UI ticket, not an architecture project.
+
+---
+
+## 6. Live status: from estimate to reality
+
+### Current state (shipped)
+
+`MatchProjections.ToListItemDto` / `ToDetailsDto` derive `Status = Live` whenever:
+
+```
+Status == Scheduled
+  AND StartsAtUtc <= now
+  AND now <= StartsAtUtc + (BestOf * 75 min)
+```
+
+Same heuristic is used in `MatchReadService.GetLiveAsync` so `/api/matches/live` returns the
+same set as the LIVE badge in the UI.
+
+This is a **time-window estimate** — there's no actual signal from Leaguepedia or Riot saying
+"this match is happening right now". Known artifacts:
+
+- **False positive (long tail):** A BO3 that ends 2-0 in 50 min still shows LIVE for ~3 h after
+  the actual finish, until the next manual import flips it to Finished.
+- **False positive (short tail):** A BO1 that ends in 18 min shows LIVE for the rest of the 75 min
+  window.
+- **False negative (rare):** Match starts a few minutes before its scheduled time. We wait until
+  `StartsAtUtc` regardless.
+
+Acceptable for now because (a) the live view is rarely used pre-production and (b) the next
+manual `/admin` import always corrects it.
+
+### Phase 1 — real polling (covered by #1)
+
+When the auto-import in #1 lands, the matches loop should poll Leaguepedia every 1–5 min for
+matches whose `StartsAtUtc` is within the live window, calling `Match.MarkLive` /
+`Match.MarkFinished` based on actual wiki state. Once Status in DB is trustworthy, the heuristic
+in `MatchProjections` becomes a fallback (kept anyway, costs nothing) and the false-positive tail
+shrinks from hours to ~5 minutes.
+
+Concrete implementation sketch:
+
+```csharp
+// Smallest viable v0 — narrower than full #1 if we want it sooner.
+public class LiveMatchPoller(IServiceProvider services) : BackgroundService
+{
+    protected override async Task ExecuteAsync(CancellationToken ct)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
+        while (await timer.WaitForNextTickAsync(ct))
+        {
+            using var scope = services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<RiftVeilDbContext>();
+            var importer = scope.ServiceProvider.GetRequiredService<LeaguepediaImportService>();
+
+            var now = DateTimeOffset.UtcNow;
+            var liveCandidates = await db.Matches
+                .Where(m => m.Status != MatchStatus.Finished
+                         && m.Status != MatchStatus.Cancelled
+                         && m.StartsAtUtc <= now
+                         && m.StartsAtUtc.AddMinutes(m.BestOf * 75.0) >= now)
+                .ToListAsync(ct);
+
+            foreach (var match in liveCandidates)
+                await importer.RefreshMatchStatusAsync(match);
+        }
+    }
+}
+```
+
+Cost estimate: 4-6 simultaneous matches × 1 Cargo query/min × 4 h = ~1500 requests/day during a
+busy LCK+LEC weekend. Bot limit is ~200 req/min, so well within budget.
+
+### Phase 2 — broadcast-aware "live"
+
+A match is *broadcast* live earlier than it's *played*: pre-show, casters, analyst desk, draft
+discussion, sometimes interviews. For viewers who want to catch the whole show, "Upcoming" is
+wrong from the moment the stream goes live (lolesports.com shows a "Broadcast starting in
+21:46" countdown screen — that screen is itself a live video, just before the match starts).
+
+The right answer is to ask the actual broadcasters whether they're live, not to guess from the
+clock. Twitch and YouTube both expose this via their public APIs.
+
+#### Recommended path: Twitch Helix API
+
+Twitch is the primary stream for every major LoL league (LCK, LEC, LCS, LPL, LTA), so a single
+provider integration covers ~95 % of the value.
+
+- Endpoint: `GET https://api.twitch.tv/helix/streams?user_login=<channel>`
+- Returns one stream object when the channel is live, empty array when it's not.
+- Includes `started_at`, `viewer_count`, `title`, `game_name` — useful both for triggering Live
+  and for filtering out off-day SoloQ streams.
+- Pre-show / countdown screens **count as live** — exactly what we want.
+
+Auth: register a free app on [dev.twitch.tv/console](https://dev.twitch.tv/console), get
+Client ID + Secret. Use OAuth client_credentials flow for an App Access Token (~60-day lifetime,
+auto-refresh on 401). No user interaction needed.
+
+Rate limit: 800 requests/minute for app tokens. We need ~1 request/minute/league during a live
+window (4–6 active leagues max in a typical day) → trivially within budget.
+
+Known channel mapping:
+
+| League | Twitch login |
+|---|---|
+| LCK | `lck` |
+| LEC | `lec` |
+| LCS | `lcs` |
+| LPL | `lpl` |
+| LTA North / South | `lta_north` / `lta_south` |
+| Worlds / MSI | `riotgames` |
+
+#### Why not YouTube as primary
+
+- YouTube Data API v3 free tier is **10 000 quota units/day** total.
+- `search.list?eventType=live` costs **100 units per call** → max 100 channel-checks/day.
+  Inadequate for a per-minute polling loop.
+- `videos.list?part=liveStreamingDetails` is 1 unit per call but requires knowing the live
+  video ID up-front, which means scraping the channel uploads first → another quota cost.
+- Worth adding as a fallback only for leagues that don't stream on Twitch (LCK simulcasts on
+  YouTube; not critical to detect since Twitch already tells us).
+
+#### Architecture sketch
+
+```csharp
+public class BroadcastWatcher(
+    IServiceProvider services,
+    TwitchApiClient twitch,
+    ILogger<BroadcastWatcher> logger) : BackgroundService
+{
+    protected override async Task ExecuteAsync(CancellationToken ct)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(60));
+        while (await timer.WaitForNextTickAsync(ct))
+        {
+            using var scope = services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<RiftVeilDbContext>();
+
+            // Only check leagues that have a match within a sensible window — avoids
+            // false positives from off-day SoloQ streams and developer talks.
+            var now = DateTimeOffset.UtcNow;
+            var leaguesWithUpcomingMatches = await db.Leagues
+                .Where(league => league.TwitchChannel != null
+                    && db.Matches.Any(match =>
+                        match.Tournament.LeagueId == league.Id
+                        && match.Status != MatchStatus.Finished
+                        && match.StartsAtUtc.AddMinutes(-90) <= now
+                        && match.StartsAtUtc.AddHours(6) >= now))
+                .ToListAsync(ct);
+
+            foreach (var league in leaguesWithUpcomingMatches)
+            {
+                var stream = await twitch.GetStreamAsync(league.TwitchChannel!, ct);
+                if (stream is null || stream.GameName != "League of Legends")
+                    continue;
+
+                // Mark the closest upcoming match in this league as Live.
+                var match = await db.Matches
+                    .Where(m => m.Tournament.LeagueId == league.Id
+                             && m.Status == MatchStatus.Scheduled
+                             && m.StartsAtUtc.AddHours(6) >= now)
+                    .OrderBy(m => m.StartsAtUtc)
+                    .FirstOrDefaultAsync(ct);
+
+                if (match is not null)
+                {
+                    match.MarkLive(stream.StartedAt);
+                    await db.SaveChangesAsync(ct);
+                }
+            }
+        }
+    }
+}
+```
+
+#### What we'd need
+
+1. Add nullable `TwitchChannel` (string) to `League`. Backfill manually once.
+2. `TwitchApiClient` with OAuth handling and a minimal `GetStreamAsync(channel)` method.
+3. `BroadcastWatcher` background service.
+4. Configure Client ID / Secret via user-secrets (locally) and env vars (production).
+
+#### Edge cases
+
+- **Channel live for unrelated content** (caster SoloQ, dev talk, off-day stream) → mitigate by
+  windowing on `StartsAtUtc - 90 min` and filtering on `game_name == "League of Legends"`.
+- **Re-broadcasts / re-runs** → check `started_at` is recent (within last few hours).
+- **Multi-stage events** (Worlds days with 4+ matches): the same pre-show announces all of them.
+  "First upcoming" gets flagged Live as soon as the stream starts. Acceptable approximation.
+- **Channel takes a break between matches** (small 5–15 min gap) → `is_live` flips off and on;
+  add a debounce so we don't bounce Status repeatedly. E.g. only flip back to Scheduled if
+  channel has been off for >30 min and no new winner has been recorded.
+
+#### Effort
+
+MVP (Twitch only, hard-coded channel mapping, no debounce): **~4–6 h**.
+Production-ready (per-league config table, OAuth refresh, structured logging, debounce, YouTube
+fallback): **~2 days**.
+
+#### Recommendation
+
+Build **Phase 1** first to get the Status field trustworthy from real wiki data. Then build
+this on top — `MarkLive` becomes a triggerable event from multiple sources (broadcast watcher
+*or* match poller, whichever fires first). The heuristic in `MatchProjections` stays as a
+final fallback that costs nothing.
