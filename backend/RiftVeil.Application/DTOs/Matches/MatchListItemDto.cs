@@ -13,6 +13,7 @@ public record MatchListItemDto(
     string? TournamentStage,
     string LeagueName,
     string LeagueShortName,
+    string? LeagueRegion,
     string Team1Name,
     string Team2Name,
     string Team1ShortName,

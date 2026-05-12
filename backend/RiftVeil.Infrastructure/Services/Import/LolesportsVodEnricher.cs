@@ -62,9 +62,7 @@ public class LolesportsVodEnricher(
             .ToListAsync();
 
         // Skip lolesports tournaments whose date range doesn't overlap with any DB
-        // tournament that still has games missing a VOD. This avoids ~2.5 s/tournament
-        // wasted on getCompletedEvents calls for tournaments that are years old and
-        // already fully covered.
+        // tournament that still has games missing a VOD.
         var dbTournamentWindows = ourTournaments
             .Where(tournament => tournament.Matches.Any(match =>
                 match.Games.Any(game => string.IsNullOrEmpty(game.VodUrl))))

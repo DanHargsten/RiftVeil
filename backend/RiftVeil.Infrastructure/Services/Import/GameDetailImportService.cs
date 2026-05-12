@@ -628,9 +628,17 @@ public class GameDetailImportService(
                 var champion = row.GetProperty(fieldName).GetString();
                 if (string.IsNullOrWhiteSpace(champion) || champion == "None") continue;
 
+                // PicksAndBansS7 Team1/Team2 = blue/red on the wiki, not necessarily local Team1/Team2.
+                var localTeamNumber = ResolveTeamNumberFromPickBan(game, team);
+                if (localTeamNumber == null)
+                {
+                    stats.SkippedMissingSides++;
+                    continue;
+                }
+
                 dbContext.GameDraftEntries.Add(new GameDraftEntry(
                     gameId: game.Id,
-                    teamNumber: team,
+                    teamNumber: localTeamNumber.Value,
                     phase: phase,
                     sequenceNumber: seq,
                     champion: champion

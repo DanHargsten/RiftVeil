@@ -84,8 +84,8 @@ public class MatchReadService(RiftVeilDbContext context) : IMatchReadService
     /// <inheritdoc />
     public async Task<List<MatchListItemDto>> GetLiveAsync()
     {
-        // Match.MarkLive is never called by the import (no auto-import yet), so we
-        // can't trust Status == Live alone. Mirror the projection's heuristic here so
+        // The import pipeline does not call Match.MarkLive yet, so Status == Live alone is not
+        // sufficient. Mirror the projection heuristic here so /api/matches/live returns the same
         // /api/matches/live returns the same set of "currently playing" matches that
         // any list-view would show with a LIVE badge. See MatchProjections for context.
         var now = DateTimeOffset.UtcNow;

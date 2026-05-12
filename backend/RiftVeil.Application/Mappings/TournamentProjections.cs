@@ -55,6 +55,7 @@ public static class TournamentProjections
                 tournament.Stage,
                 tournament.League.Name,
                 tournament.League.ShortName,
+                tournament.League.Region,
                 m.Team1.Name,
                 m.Team2.Name,
                 m.Team1.ShortName,

@@ -25,6 +25,7 @@ export interface MatchListItem {
   tournamentStage?: string;
   leagueName: string;
   leagueShortName: string;
+  leagueRegion?: string | null;
   team1Name: string;
   team2Name: string;
   team1ShortName: string;

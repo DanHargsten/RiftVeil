@@ -102,6 +102,8 @@ public class ImportController(
     }
 
     [HttpPost("backfill-game-ids/{leagueShortName}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> BackfillGameExternalIds(string leagueShortName)
     {
         var league = await FindLeagueByShortNameAsync(leagueShortName);
@@ -116,6 +118,8 @@ public class ImportController(
     /// Backfills Team1Side and Team2Side for games missing side data.
     /// </summary>
     [HttpPost("backfill-game-sides/{leagueShortName}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> BackfillGameSides(string leagueShortName)
     {
         var league = await FindLeagueByShortNameAsync(leagueShortName);
@@ -130,6 +134,7 @@ public class ImportController(
     /// Imports game details (player stats, team stats, draft) for all ongoing tournaments across all leagues.
     /// </summary>
     [HttpPost("game-details/ongoing")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> ImportOngoingGameDetailsAsync()
     {
         var ongoingTournaments = await dbContext.Tournaments
