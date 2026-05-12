@@ -1,12 +1,12 @@
-/*
- * Styles for the match detail game panels: section summary bar (MatchDetail),
- * GameDraft, and GameScoreboard. Page chrome lives in pages/match-detail.css.
- * Order: match-detail section header → draft → scoreboard.
- */
+/* ================================================================================================
+   GAME DETAIL PANELS
+   ================================================================================================ */
 
-/* =============================================================================
-   MATCH DETAIL — section summary bar (shared header above draft)
-   ============================================================================= */
+/* Section bar & outer grid; draft and scoreboard follow. Page chrome lives in match-detail.css. */
+
+/* ================================================================================================
+   SECTION SUMMARY BAR & OUTER GRID
+   ================================================================================================ */
 
 .match-detail__outer {
     display: grid;
@@ -81,9 +81,9 @@
     color: var(--text-muted-extra);
 }
 
-/* =============================================================================
-   GAME DRAFT (GameDraft.tsx)
-   ============================================================================= */
+/* ================================================================================================
+   GAME DRAFT
+   ================================================================================================ */
 
 .draft {
     display: flex;
@@ -160,7 +160,7 @@
     justify-content: flex-start;
 }
 
-/* DraftChampIcon */
+/* Draft champion icon pick order badge */
 .draft__champ-icon {
     border-radius: 0.25rem;
     overflow: hidden;
@@ -218,9 +218,9 @@
     height: 1rem;
 }
 
-/* =============================================================================
-   GAME SCOREBOARD (GameScoreboard.tsx)
-   ============================================================================= */
+/* ================================================================================================
+   GAME SCOREBOARD
+   ================================================================================================ */
 
 .scoreboard {
     display: flex;
@@ -313,10 +313,7 @@
     table-layout: fixed;
 }
 
-/*
-* Column widths expressed as % of the table.
-* Same ratios as the original grid-template-columns fr values before the swap to a semantic <table>.
-*/
+/* Column widths as % of table (same ratios as prior grid-template-columns). */
 .scoreboard__col--player {
     width: 23.3548%;
 }

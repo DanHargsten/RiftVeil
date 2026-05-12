@@ -389,6 +389,152 @@
     height: 500px;
 }
 
+/* Objectives sidebar (GameObjectives): team scores | icon + label | team scores */
+.match-detail__objectives-body {
+    --objective-icon-color: rgb(230 235 245 / 0.88);
+    --objective-score-t1: #5ba3ff;
+    --objective-score-t2: #ff9f52;
+
+    padding: 0.5rem 0.85rem 0.85rem;
+    font-size: 0.8125rem;
+}
+
+.match-detail__objectives-body--state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    min-height: 6rem;
+    padding: 1.25rem 1rem;
+    color: var(--text-muted);
+}
+
+.match-detail__objectives-muted {
+    color: var(--text-muted-extra);
+    text-align: center;
+}
+
+.match-detail__objectives-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(4.75rem, auto) minmax(0, 1fr);
+    align-items: end;
+    padding: 0.35rem 0.15rem 0.45rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.62rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted-extra);
+}
+
+.match-detail__objectives-head-score:first-child {
+    text-align: end;
+    padding-right: 0.25rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.match-detail__objectives-head-score:last-child {
+    text-align: start;
+    padding-left: 0.25rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.match-detail__objectives-head-mid {
+    text-align: center;
+}
+
+.match-detail__objectives-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.match-detail__objectives-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(4.75rem, auto) minmax(0, 1fr);
+    align-items: center;
+    min-height: 3.1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.match-detail__objectives-row:last-child {
+    border-bottom: none;
+}
+
+.match-detail__objectives-score {
+    font-size: 1.35rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    letter-spacing: -0.02em;
+}
+
+.match-detail__objectives-score--t1 {
+    text-align: end;
+    padding: 0.4rem 0.25rem 0.4rem 0;
+    color: var(--objective-score-t1);
+}
+
+.match-detail__objectives-score--t2 {
+    text-align: start;
+    padding: 0.4rem 0 0.4rem 0.25rem;
+    color: var(--objective-score-t2);
+}
+
+.match-detail__objectives-mid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    padding: 0.4rem 0.2rem;
+}
+
+.match-detail__objectives-label {
+    font-size: 0.58rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgb(230 235 245 / 0.78);
+    text-align: center;
+    line-height: 1.15;
+    max-width: 6rem;
+}
+
+/* PNGs are light-on-black; luminance mask → tint via --objective-icon-color */
+.match-detail__objectives-icon {
+    flex-shrink: 0;
+}
+
+.match-detail__objectives-icon--masked {
+    display: inline-block;
+    width: 1.65rem;
+    height: 1.65rem;
+    background-color: var(--objective-icon-color);
+    mask-image: var(--objective-icon-src);
+    mask-size: contain;
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-type: luminance;
+    -webkit-mask-image: var(--objective-icon-src);
+    -webkit-mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+}
+
+.match-detail__objectives-icon--svg {
+    display: block;
+    width: 1.65rem;
+    height: 1rem;
+    color: var(--objective-icon-color);
+}
+
 /* Two-column layout for gold + objectives */
 .match-detail__two-col {
     display: grid;

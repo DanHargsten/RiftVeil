@@ -1,22 +1,19 @@
 @import "./base/variables.css";
 @import "./base/reset.css";
-@import "./base/typography.css";
-
-@import "./layout.css";
-
-@import "./components/badge.css";
-@import "./components/match-card.css";
-@import "./components/match-list.css";
-@import "./components/table.css";
-@import "./components/navbar.css";
-@import "./components/sidebar.css";
 
 @import "./layout/app.css";
 @import "./layout/container.css";
 
+@import "./components/badge.css";
+@import "./components/match-card.css";
+@import "./components/match-list.css";
+@import "./components/navbar.css";
+@import "./components/sidebar.css";
+@import "./components/site-footer.css";
+@import "./components/table.css";
+
 @import "./pages/admin.css";
+@import "./pages/game-details.css";
 @import "./pages/home.css";
 @import "./pages/league.css";
 @import "./pages/match-detail.css";
-
-@import "./pages/game-details.css";

@@ -35,7 +35,6 @@
 
 .sidebar__recent-btn--active {
     color: var(--primary);
-    /*background: rgba(226, 25, 69, 0.04);*/
 }
 
 .sidebar__nav {
@@ -43,7 +42,7 @@
     flex-direction: column;
 }
 
-/* ── Liga-grupp ── */
+/* League group */
 .sidebar__league {
     border-bottom: 1px solid var(--border);
 }
@@ -86,7 +85,7 @@
     transform: rotate(180deg);
 }
 
-/* ── Turneringar ── */
+/* Tournaments under a league */
 .sidebar__tournaments {
     display: flex;
     flex-direction: column;
@@ -141,7 +140,7 @@
     font-size: 0.85rem;
 }
 
-/* ── Responsiv: dölj sidebar på mobil ── */
+/* Hide sidebar on small viewports */
 @media (max-width: 768px) {
     .sidebar {
         display: none;
