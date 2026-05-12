@@ -1,0 +1,49 @@
+/* ================================================================================================
+   SITE FOOTER
+   ================================================================================================ */
+.site-footer {
+    flex-shrink: 0;
+    margin-top: auto;
+    border-top: 1px solid var(--border);
+    background: var(--surface-1);
+}
+
+.site-footer__inner {
+    width: 100%;
+    padding-block: 1rem;
+    padding-inline: clamp(1rem, 4vw, 2rem);
+}
+
+.site-footer__body {
+    max-width: min(40rem, 100%);
+    margin-inline: auto;
+    text-align: center;
+}
+
+.site-footer__text {
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--text-muted-extra);
+}
+
+.site-footer__text strong {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.site-footer__contact {
+    margin-top: 0.75rem;
+    font-size: 0.75rem;
+}
+
+.site-footer__mailto {
+    color: var(--text-muted);
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+    text-decoration-color: color-mix(in oklab, var(--text-muted) 45%, transparent);
+}
+
+.site-footer__mailto:hover {
+    color: var(--primary-text);
+    text-decoration-color: color-mix(in oklab, var(--primary-text) 55%, transparent);
+}

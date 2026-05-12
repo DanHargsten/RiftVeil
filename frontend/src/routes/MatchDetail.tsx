@@ -1,6 +1,7 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { GameObjectives } from "@/components/Match/GameObjectives.tsx";
 import { GamePanel } from "@/components/Match/GamePanel.tsx";
 import { GameTabs } from "@/components/Match/GameTabs.tsx";
 import { MatchHero } from "@/components/Match/MatchHero.tsx";
@@ -23,8 +24,8 @@ export function MatchDetail() {
         queryKey: ["match", id],
         queryFn: () => matchesApi.getById(Number(id)),
     });
-    
-    const playedGames = 
+
+    const playedGames =
         match?.games.filter((game) => game.winningTeam != null) ?? [];
     const currentGame =
         playedGames.find((game) => game.gameNumber === selectedGame)
@@ -45,9 +46,9 @@ export function MatchDetail() {
 
     if (isLoading) {
         return (
-            <div className="page">
+            <div className="page" role="status" aria-live="polite">
                 <div className="match-detail-loading">
-                    <div className="match-detail-loading__spinner" />
+                    <div className="match-detail-loading__spinner" aria-hidden="true" />
                     <span>Loading match...</span>
                 </div>
             </div>
@@ -56,7 +57,7 @@ export function MatchDetail() {
 
     if (error || !match) {
         return (
-            <div className="page">
+            <div className="page" role="alert">
                 <div className="match-detail-error">
                     <span>Match not found.</span>
                     <Link to={from} className="match-detail-error__back">← Back</Link>
@@ -103,22 +104,35 @@ export function MatchDetail() {
     return (
         <div className="page">
             <div className="match-detail__outer">
-                
                 <aside className="match-detail__sidebar match-detail__sidebar--left">
-                    <section className="match-detail__section">
-                        <h2 className="match-detail__section-title">Objectives</h2>
-                        <div className="match-detail__placeholder-body">
-                            <span>Coming soon</span>
-                        </div>
+                    <section
+                        className="match-detail__section"
+                        aria-labelledby="match-detail-objectives-title"
+                    >
+                        <h2 id="match-detail-objectives-title" className="match-detail__section-title">
+                            Global objectives
+                        </h2>
+                        {currentGame ? (
+                            <GameObjectives
+                                match={match}
+                                gameDetails={gameDetails}
+                                loading={gameLoading}
+                                error={gameDetailsError}
+                            />
+                        ) : (
+                            <div className="match-detail__objectives-body match-detail__objectives-body--state">
+                                <span className="match-detail__objectives-muted">No game selected.</span>
+                            </div>
+                        )}
                     </section>
                 </aside>
-                
-                <div className="match-detail">                    
+
+                <div className="match-detail">
                     <MatchHero
                         match={match}
                         from={from}
                         backLabel={backLabel}
-                    />                    
+                    />
                     <GameTabs
                         games={playedGames}
                         currentGame={currentGame}
@@ -138,8 +152,13 @@ export function MatchDetail() {
                 </div>
 
                 <aside className="match-detail__sidebar match-detail__sidebar--right">
-                    <section className="match-detail__section">
-                        <h2 className="match-detail__section-title">Highlights</h2>
+                    <section
+                        className="match-detail__section"
+                        aria-labelledby="match-detail-highlights-title"
+                    >
+                        <h2 id="match-detail-highlights-title" className="match-detail__section-title">
+                            Highlights
+                        </h2>
                         <div className="match-detail__placeholder-body">
                             <span>Coming soon</span>
                         </div>

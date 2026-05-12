@@ -1,6 +1,6 @@
+import { TeamLogo } from "@/components/common/Logos.tsx";
 import { useItemLookup } from "@/hooks/useItemLookup.ts";
 import type { PlayerStatsDto, TeamStatsDto } from "@/lib/api.ts";
-import {TeamLogo} from "@/components/common/Logos.tsx";
 
 interface GameScoreboardProps {
     team1Name: string;
@@ -41,8 +41,8 @@ export function GameScoreboard({
     const team2Assists = team2Stats?.totalAssists
         ?? team2Players.reduce((sum, player) => sum + player.assists, 0);
 
-    const blueFirst = team1Side === "Blue"
-    
+    const blueFirst = team1Side === "Blue";
+
     return (
         <div className="scoreboard" role="region" aria-label="Player statistics by team">
             {blueFirst ? (

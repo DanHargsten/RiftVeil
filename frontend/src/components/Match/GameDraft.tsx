@@ -12,32 +12,32 @@ export function GameDraft({
     const blueIsTeam1 = team1Side === "Blue";
 
     const leftBans = draft
-        .filter(d => d.teamNumber === (blueIsTeam1 ? 1 : 2) && d.phase === "Ban")
+        .filter((entry) => entry.teamNumber === (blueIsTeam1 ? 1 : 2) && entry.phase === "Ban")
         .sort((a, b) => a.sequenceNumber - b.sequenceNumber);
     const rightBans = draft
-        .filter(d => d.teamNumber === (blueIsTeam1 ? 2 : 1) && d.phase === "Ban")
+        .filter((entry) => entry.teamNumber === (blueIsTeam1 ? 2 : 1) && entry.phase === "Ban")
         .sort((a, b) => a.sequenceNumber - b.sequenceNumber);
     const leftPicks = draft
-        .filter(d => d.teamNumber === (blueIsTeam1 ? 1 : 2) && d.phase === "Pick")
+        .filter((entry) => entry.teamNumber === (blueIsTeam1 ? 1 : 2) && entry.phase === "Pick")
         .sort((a, b) => a.sequenceNumber - b.sequenceNumber);
     const rightPicks = draft
-        .filter(d => d.teamNumber === (blueIsTeam1 ? 2 : 1) && d.phase === "Pick")
+        .filter((entry) => entry.teamNumber === (blueIsTeam1 ? 2 : 1) && entry.phase === "Pick")
         .sort((a, b) => a.sequenceNumber - b.sequenceNumber);
 
     const banOrder = new Map(
         [...draft]
-            .filter(entry => entry.phase === "Ban")
+            .filter((entry) => entry.phase === "Ban")
             .sort((a, b) => a.sequenceNumber - b.sequenceNumber)
             .map((entry, i) => [entry.sequenceNumber, i + 1])
     );
 
     const pickOrder = new Map(
         [...draft]
-            .filter(d => d.phase === "Pick")
+            .filter((entry) => entry.phase === "Pick")
             .sort((a, b) => a.sequenceNumber - b.sequenceNumber)
             .map((entry, i) => [entry.sequenceNumber, i + 1])
     );
-    
+
     if (draft.length === 0) {
         return (
             <p className="draft__empty">Draft data not available for this game.</p>
@@ -143,4 +143,3 @@ function DraftChampIcon({
         </div>
     );
 }
-

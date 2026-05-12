@@ -1,4 +1,4 @@
-﻿import { useState, useId } from "react";
+﻿import { useId, useState } from "react";
 
 const LEAGUES = ["ALL", "LEC", "LCS", "LCK"] as const;
 type League = typeof LEAGUES[number];
@@ -30,14 +30,14 @@ async function runImport(league: League, step: Step, ongoingOnly: boolean): Prom
     }
 
     const leagues = league === "ALL" ? ["LEC", "LCS", "LCK"] : [league];
-    for (const l of leagues) {
+    for (const leagueCode of leagues) {
         const endpoint = step === "matches" && ongoingOnly
-            ? `matches/${l}/ongoing`
-            : `${step}/${l}`;
+            ? `matches/${leagueCode}/ongoing`
+            : `${step}/${leagueCode}`;
         const res = await fetch(`/api/import/${endpoint}`, { method: "POST" });
         if (!res.ok) {
             const text = await res.text();
-            throw new Error(`${l}: ${text || res.statusText}`);
+            throw new Error(`${leagueCode}: ${text || res.statusText}`);
         }
     }
 }
@@ -66,17 +66,23 @@ export function Admin() {
         if (running || selectedSteps.size === 0) return;
         setRunning(true);
 
-        const steps = (["tournaments", "matches", "vods", "game-details"] as Step[]).filter(s => selectedSteps.has(s));
-        setResults(steps.map(s => ({ step: s, status: "idle" })));
+        const steps = (["tournaments", "matches", "vods", "game-details"] as Step[]).filter((step) =>
+            selectedSteps.has(step),
+        );
+        setResults(steps.map((step) => ({ step, status: "idle" })));
 
         for (const step of steps) {
-            setResults(prev => prev.map(r => r.step === step ? { ...r, status: "running" } : r));
+            setResults((prev) => prev.map((result) => (result.step === step ? { ...result, status: "running" } : result)));
             try {
                 await runImport(selectedLeague, step, ongoingOnly);
-                setResults(prev => prev.map(r => r.step === step ? { ...r, status: "done" } : r));
+                setResults((prev) => prev.map((result) => (result.step === step ? { ...result, status: "done" } : result)));
             } catch (err) {
                 const msg = err instanceof Error ? err.message : "Unknown error";
-                setResults(prev => prev.map(r => r.step === step ? { ...r, status: "error", message: msg } : r));
+                setResults((prev) =>
+                    prev.map((result) =>
+                        result.step === step ? { ...result, status: "error", message: msg } : result,
+                    ),
+                );
                 break;
             }
         }
@@ -99,16 +105,16 @@ export function Admin() {
                         <fieldset className="admin__field" aria-labelledby={leagueFieldId}>
                             <legend id={leagueFieldId} className="admin__label">League</legend>
                             <div className="admin__league-buttons">
-                                {LEAGUES.map(l => (
+                                {LEAGUES.map((leagueCode) => (
                                     <button
-                                        key={l}
+                                        key={leagueCode}
                                         type="button"
-                                        className={`admin__league-btn${selectedLeague === l ? " admin__league-btn--active" : ""}`}
-                                        onClick={() => setSelectedLeague(l)}
+                                        className={`admin__league-btn${selectedLeague === leagueCode ? " admin__league-btn--active" : ""}`}
+                                        onClick={() => setSelectedLeague(leagueCode)}
                                         disabled={running}
-                                        aria-pressed={selectedLeague === l}
+                                        aria-pressed={selectedLeague === leagueCode}
                                     >
-                                        {l}
+                                        {leagueCode}
                                     </button>
                                 ))}
                             </div>
@@ -137,7 +143,7 @@ export function Admin() {
                                     <input
                                         type="checkbox"
                                         checked={ongoingOnly}
-                                        onChange={() => setOngoingOnly(o => !o)}
+                                        onChange={() => setOngoingOnly((prev) => !prev)}
                                         disabled={running}
                                     />
                                     Only ongoing tournaments
@@ -165,17 +171,17 @@ export function Admin() {
                                 aria-relevant="additions"
                                 aria-label="Import results"
                             >
-                                {results.map(r => (
-                                    <div key={r.step} className={`admin__result admin__result--${r.status}`}>
+                                {results.map((result) => (
+                                    <div key={result.step} className={`admin__result admin__result--${result.status}`}>
                                         <span className="admin__result-icon" aria-hidden="true">
-                                            {r.status === "running" && <span className="admin__spinner" />}
-                                            {r.status === "done" && "✓"}
-                                            {r.status === "error" && "✕"}
-                                            {r.status === "idle" && "·"}
+                                            {result.status === "running" && <span className="admin__spinner" />}
+                                            {result.status === "done" && "✓"}
+                                            {result.status === "error" && "✕"}
+                                            {result.status === "idle" && "·"}
                                         </span>
-                                        <span>{STEP_LABELS[r.step]}</span>
-                                        {r.status === "error" && r.message && (
-                                            <span className="admin__result-error" role="alert">{r.message}</span>
+                                        <span>{STEP_LABELS[result.step]}</span>
+                                        {result.status === "error" && result.message && (
+                                            <span className="admin__result-error" role="alert">{result.message}</span>
                                         )}
                                     </div>
                                 ))}

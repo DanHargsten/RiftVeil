@@ -1,4 +1,4 @@
-﻿import type {GameListItem} from "@/lib/api.ts";
+﻿import type { GameListItem } from "@/lib/api.ts";
 
 interface GameTabsProps {
     games: GameListItem[];
@@ -17,13 +17,13 @@ export function GameTabs({ games, currentGame, onSelect, getWinnerShort }: GameT
                 return (
                     <button
                         key={game.id}
+                        type="button"
                         id={`match-detail-tab-${game.id}`}
                         role="tab"
                         aria-selected={isActive}
                         aria-controls="match-detail-game-panel"
                         className={`match-detail__tab ${isActive ? "match-detail__tab--active" : ""}`}
                         onClick={() => onSelect(game.gameNumber)}
-                        type="button"
                     >
                         <span className="match-detail__tab-number">Game {game.gameNumber}</span>
                         {winnerShort && (

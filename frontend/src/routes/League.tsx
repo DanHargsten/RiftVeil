@@ -1,14 +1,15 @@
-import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { leaguesApi, matchesApi } from "@/lib/api.ts";
+import { useId, useState } from "react";
+import { useParams } from "react-router-dom";
+import { LeagueLogo } from "@/components/common/Logos.tsx";
 import { MatchCard } from "@/components/MatchList/MatchCard.tsx";
 import { useSpoilerPrefs } from "@/hooks/useSpoilerPrefs.ts";
-import { LeagueLogo } from "@/components/common/Logos.tsx";
-import { useState } from "react";
-import type { MatchListItem } from "@/lib/api.ts";
+import { leaguesApi, matchesApi, type MatchListItem } from "@/lib/api.ts";
 
 export function League() {
     const { shortName } = useParams<{ shortName: string }>();
+    const ids = useId();
+    const tournamentFieldId = `${ids}-tournament`;
     const { spoilers, revealMatch, hideMatch } = useSpoilerPrefs();
 
     const { data: leagues } = useQuery({
@@ -98,11 +99,11 @@ export function League() {
 
                 {tournaments && tournaments.length > 0 && (
                     <div className="league-page__tournament-field">
-                        <label htmlFor="league-tournament-select" className="league-page__tournament-label">
+                        <label htmlFor={tournamentFieldId} className="league-page__tournament-label">
                             Tournament
                         </label>
                         <select
-                            id="league-tournament-select"
+                            id={tournamentFieldId}
                             className="league-page__tournament-select"
                             value={activeTournamentId ?? ""}
                             onChange={event => {
@@ -121,7 +122,7 @@ export function League() {
             </header>
 
             {/* ========== MAIN ========== */}
-            <main className="league-page__content container">
+            <div className="league-page__content container">
                 {(isLoading || matchesLoading) && (
                     <div className="league-page__state" role="status" aria-live="polite">
                         Loading...
@@ -235,7 +236,7 @@ export function League() {
                         </div>
                     );
                 })}
-            </main>
+            </div>
         </div>
     );
 }

@@ -1,7 +1,7 @@
 ﻿import { useQuery } from "@tanstack/react-query";
-import { tournamentsApi, type TournamentListItem } from "@/lib/api.ts";
 import { useState } from "react";
 import { ArrowDropdownIcon } from "@/components/common/Icons.tsx";
+import { tournamentsApi, type TournamentListItem } from "@/lib/api.ts";
 
 type LeagueGroup = {
     leagueId: number;
@@ -50,7 +50,9 @@ export function TournamentSidebar({ selectedTournamentId, onSelect }: Tournament
         <aside className="sidebar">
             <div className="sidebar__header">
                 <button
+                    type="button"
                     className={`sidebar__recent-btn ${selectedTournamentId === null ? "sidebar__recent-btn--active" : ""}`}
+                    aria-pressed={selectedTournamentId === null}
                     onClick={() => onSelect(null)}
                 >
                     Latest matches
@@ -64,13 +66,17 @@ export function TournamentSidebar({ selectedTournamentId, onSelect }: Tournament
                     return (
                         <div key={group.leagueId} className="sidebar__league">
                             <button
+                                type="button"
                                 className="sidebar__league-header"
+                                aria-expanded={isExpanded}
+                                aria-controls={`sidebar-league-${group.leagueId}-tournaments`}
                                 onClick={() => toggleLeague(group.leagueId)}
                             >
                                 <img
                                     src={`/logos/leagues/${group.leagueShortName.toLowerCase()}.png`}
-                                    alt={group.leagueShortName}
+                                    alt=""
                                     className="sidebar__league-logo"
+                                    aria-hidden="true"
                                     onError={(e) => {
                                         e.currentTarget.src = `/logos/leagues/placeholder.png`;
                                     }}
@@ -85,7 +91,10 @@ export function TournamentSidebar({ selectedTournamentId, onSelect }: Tournament
                             </button>
 
                             {isExpanded && (
-                                <div className="sidebar__tournaments">
+                                <div
+                                    id={`sidebar-league-${group.leagueId}-tournaments`}
+                                    className="sidebar__tournaments"
+                                >
                                     {group.tournaments.map(tournament => {
                                         const isSelected = selectedTournamentId === tournament.id;
                                         const statusClass =
@@ -95,6 +104,7 @@ export function TournamentSidebar({ selectedTournamentId, onSelect }: Tournament
 
                                         return (
                                             <button
+                                                type="button"
                                                 key={tournament.id}
                                                 className={`sidebar__tournament ${statusClass} ${isSelected ? "sidebar__tournament--selected" : ""}`}
                                                 onClick={(e) => {
@@ -104,7 +114,7 @@ export function TournamentSidebar({ selectedTournamentId, onSelect }: Tournament
                                                         const next = new Set(prev);
                                                         next.add(group.leagueId);
                                                         return next;
-                                                    })
+                                                    });
                                                 }}
                                             >
                                                 <span className="sidebar__tournament-name">

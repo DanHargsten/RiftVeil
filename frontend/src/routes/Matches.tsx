@@ -1,9 +1,9 @@
+import { useState } from "react";
 import { MatchList } from "@/components/MatchList";
 import { TournamentSidebar } from "@/components/TournamentSidebar";
 import { useSpoilerPrefs } from "@/hooks/useSpoilerPrefs.ts";
-import { useState } from "react";
 
-/** Matches page: list all matches with spoiler protection. */
+/** Matches page: sidebar filter plus match list with spoiler protection. */
 export function Matches() {
     const [selectedTournamentId, setSelectedTournamentId] = useState<number | null>(null);
     const { spoilers, toggleGlobal, revealMatch, hideMatch } = useSpoilerPrefs();

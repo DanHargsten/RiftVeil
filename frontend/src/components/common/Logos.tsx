@@ -2,7 +2,6 @@ type LogoProps = {
     shortName: string;
     size?: number;
     className?: string;
-    alt?: string;
 };
 
 export function TeamLogo({ shortName, size = 32, className }: LogoProps) {

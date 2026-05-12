@@ -1,8 +1,11 @@
+/* ================================================================================================
+   MATCH LIST
+   ================================================================================================ */
 .match-list {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    padding-block: 1.5rem;
+    padding-block: 0;
 }
 
 /* ================================================================================================
@@ -14,6 +17,13 @@
     justify-content: space-between;
     gap: 1rem;
     flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 90;
+    margin-inline: -0.25rem;
+    padding: 0.65rem 0.25rem 0.85rem;
+    background: var(--bg);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
 }
 
 .match-list__toolbar-left {
@@ -24,11 +34,12 @@
     min-width: 0;
 }
 
-/* Sökfält */
+/* Search field */
 .match-list__search {
     position: relative;
-    flex: 1;
-    max-width: 320px;
+    width: 320px;
+    max-width: 100%;
+    flex-shrink: 0;
 }
 
 .match-list__search-icon {
@@ -61,7 +72,7 @@
     border-color: var(--primary);
 }
 
-/* Turnerings-dropdown */
+/* Tournament filter */
 .match-list__filter-select {
     padding: 0.5rem 0.75rem;
     background: var(--surface-1);
@@ -79,7 +90,7 @@
     border-color: var(--primary);
 }
 
-/* Spoiler-toggle */
+/* Spoiler toggle */
 .match-list__spoiler-toggle {
     display: flex;
     align-items: center;
@@ -105,7 +116,6 @@
     font-weight: 500;
     color: var(--text);
 }
-
 
 .match-list__spoiler-status {
     font-size: 0.7rem;
@@ -158,7 +168,7 @@
 }
 
 /* ================================================================================================
-   GRUPPER & GRID
+   DAY GROUPS & GRID
    ================================================================================================ */
 .match-list__groups {
     display: flex;
@@ -171,10 +181,19 @@
     flex-direction: column;
     gap: 1rem;
     padding: 1.5rem;
-    background-color: var(--bg);
-    
-    border-radius: 0.5rem;
-    border: 1px solid var(--border);
+}
+
+.match-list__group--empty-today {
+    padding-block: 0.75rem 1rem;
+}
+
+.match-list__no-matches-today {
+    margin: 0;
+    padding: 0.35rem 0 0;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    text-align: center;
+    font-weight: 400;
 }
 
 .match-list__group-title {
@@ -202,14 +221,14 @@
         flex-direction: column;
         align-items: stretch;
     }
+
     .match-list__toolbar-left {
         flex-direction: column;
     }
+
     .match-list__search {
+        width: 100%;
         max-width: 100%;
-    }
-    .match-list__items {
-        grid-template-columns: 1fr;
     }
 }
 

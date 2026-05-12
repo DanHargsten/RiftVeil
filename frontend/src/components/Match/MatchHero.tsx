@@ -1,6 +1,6 @@
-﻿import {Link} from "react-router-dom";
-import {LeagueLogo, TeamLogo} from "@/components/common/Logos.tsx";
-import type {MatchDetails} from "@/lib/api.ts";
+﻿import { Link } from "react-router-dom";
+import { LeagueLogo, TeamLogo } from "@/components/common/Logos.tsx";
+import type { MatchDetails } from "@/lib/api.ts";
 
 interface MatchHeroProps {
     match: MatchDetails;
@@ -28,7 +28,7 @@ export function MatchHero({ match, from, backLabel }: MatchHeroProps) {
                     {backLabel}
                 </Link>
                 <div className="match-detail__league-info">
-                    <LeagueLogo shortName={leagueShortName} className="match-detail__league-logo"/>
+                    <LeagueLogo shortName={leagueShortName} className="match-detail__league-logo" />
                     <span className="match-detail__league-name">{leagueShortName}</span>
                     {tournamentStage && (
                         <>
@@ -52,7 +52,7 @@ export function MatchHero({ match, from, backLabel }: MatchHeroProps) {
                         <span className="match-detail__team-full">{match.team1Name}</span>
                     </div>
                     <div className="match-detail__team-logo-wrap">
-                        <TeamLogo shortName={match.team1ShortName} className="match-detail__team-logo"/>
+                        <TeamLogo shortName={match.team1ShortName} className="match-detail__team-logo" />
                     </div>
                 </div>
 
@@ -80,7 +80,7 @@ export function MatchHero({ match, from, backLabel }: MatchHeroProps) {
                 <div
                     className={`match-detail__team match-detail__team--right ${team2IsWinner ? "match-detail__team--winner" : team1IsWinner ? "match-detail__team--loser" : ""}`}>
                     <div className="match-detail__team-logo-wrap">
-                        <TeamLogo shortName={match.team2ShortName} className="match-detail__team-logo"/>
+                        <TeamLogo shortName={match.team2ShortName} className="match-detail__team-logo" />
                     </div>
                     <div className="match-detail__team-identity">
                         <span className="match-detail__team-short">{match.team2ShortName}</span>

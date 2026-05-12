@@ -1,8 +1,8 @@
-import { type MatchListItem } from "@/lib/api.ts";
-import React from "react";
-import { PlayIcon, VisibilityOffIcon, TimeCircle } from "@/components/common/Icons.tsx";
-import {Link, useLocation} from "react-router-dom";
-import { TeamLogo, LeagueLogo } from "@/components/common/Logos.tsx";
+import type { MouseEvent } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { PlayIcon, TimeCircle, VisibilityOffIcon } from "@/components/common/Icons.tsx";
+import { LeagueLogo, TeamLogo } from "@/components/common/Logos.tsx";
+import type { MatchListItem } from "@/lib/api.ts";
 
 type SpoilerPrefs = {
     globalEnabled: boolean;
@@ -18,7 +18,7 @@ interface MatchCardProps {
 
 export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps) {
     const location = useLocation();
-    
+
     const isFinished = match.status === "Finished";
     const isLive = match.status === "Live";
 
@@ -30,7 +30,7 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
         match.team1Score != null &&
         match.team2Score != null;
 
-    const handleEyeClick = (e: React.MouseEvent) => {
+    const handleEyeClick = (e: MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation(); // Prevent click from bubbling to any parent link/card handler
         if (showingSpoilers) onHide();
         else onReveal();
@@ -56,7 +56,7 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
         if (diffDays < 7) return `${diffDays}d ago`;
         return matchDate.toLocaleDateString(undefined, { month: "short", day: "numeric" });
     };
-    
+
     return (
         <article className={`match-card ${getStatusClass()}`} aria-labelledby={`match-title-${match.id}`}>
             <h3 id={`match-title-${match.id}`} className="sr-only">
@@ -95,8 +95,8 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
             </header>
 
             {/* ========== TEAMS + SCORE ========== */}
-            <div className="match-card__main">   
-                
+            <div className="match-card__main">
+
                 {/* TEAM 1 */}
                 <div className="match-card__team match-card__team--left">
                     <TeamLogo shortName={match.team1ShortName} />
@@ -136,9 +136,10 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
                             )}
                         </button>
                     ) : (
-                        // Same "vs" for Scheduled and Live — live state already speaks loudly
-                        // through the corner badge, the red border, and the Watch live CTA.
-                        <span className="match-card__vs-text">vs</span>
+                        <>
+                            {/* Same "vs" for Scheduled and Live — live state is already clear from the badge, border, and Watch live CTA. */}
+                            <span className="match-card__vs-text">vs</span>
+                        </>
                     )}
                 </div>
 
@@ -154,7 +155,7 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
 
             {/* ========== FOOTER ========== */}
             <footer className="match-card__footer">
-                
+
                 {/* VODS / WATCH LIVE / STARTING TIME */}
                 <div className="match-card__vods">
                     {isFinished ? (
@@ -231,19 +232,19 @@ function ScoreNumber({ score, otherScore }: { score: number; otherScore: number 
 }
 
 function VodButtons({ match, canShowScore }: { match: MatchListItem; canShowScore: boolean }) {
-    const vodCount = match.games.filter(g => g.vodUrl).length;
+    const vodCount = match.games.filter((game) => game.vodUrl).length;
     if (vodCount === 0) {
         return <span className="match-card__vods-empty">No VOD available yet</span>;
     }
-    // Show only played games when score is visible, show bestOf number of buttons when hidden (avoids spoiling game count)
+    // When score is visible, show one slot per played game; when hidden, show bestOf slots to avoid spoiling game count.
     const count = canShowScore
-        ? match.games.filter(g => g.winningTeam != null).length
+        ? match.games.filter((game) => game.winningTeam != null).length
         : match.bestOf;
 
     return (
         <>
             {Array.from({ length: count }, (_, i) => {
-                const game = match.games.find(g => g.gameNumber === i + 1);
+                const game = match.games.find((listedGame) => listedGame.gameNumber === i + 1);
                 return game?.vodUrl ? (
                     <a
                         key={i}
@@ -255,7 +256,7 @@ function VodButtons({ match, canShowScore }: { match: MatchListItem; canShowScor
                         aria-label={`Watch Game ${i + 1} VOD`}
                     >
                         <span className="match-card__vod-number">{i + 1}</span>
-                        <span className="match-card__vod-play"><PlayIcon size={20} /></span>
+                        <span className="match-card__vod-play"><PlayIcon size={20} aria-hidden="true" /></span>
                     </a>
                 ) : (
                     <button

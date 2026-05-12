@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect, useId } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { matchesApi, leaguesApi } from "@/lib/api.ts";
+import { useEffect, useId, useRef, useState } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 import { LeagueLogo } from "@/components/common/Logos.tsx";
+import { leaguesApi, matchesApi } from "@/lib/api.ts";
 
 export function Navbar() {
     const leagueMenuRef = useRef<HTMLDivElement>(null);
@@ -24,7 +24,7 @@ export function Navbar() {
     });
     const liveCount = liveMatches?.length ?? 0;
 
-    // Stäng leagues-dropdown vid klick utanför
+    // Close the leagues menu on outside click.
     useEffect(() => {
         if (!leagueMenuOpen) return;
         const handler = (e: MouseEvent) => {
@@ -36,7 +36,7 @@ export function Navbar() {
         return () => document.removeEventListener("mousedown", handler);
     }, [leagueMenuOpen]);
 
-    // Stäng med Escape och återställ fokus till trigger-knappen
+    // Close on Escape and return focus to the trigger button.
     useEffect(() => {
         if (!leagueMenuOpen) return;
         const handler = (e: KeyboardEvent) => {
