@@ -285,6 +285,7 @@ public class ImportController(
         "LEC" => "LoL EMEA Championship",
         "LCS" => "League of Legends Championship Series",
         "LCK" => "LoL Champions Korea",
+        "LPL" => "LPL",
         _ => null
     };
 }

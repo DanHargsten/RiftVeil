@@ -1,5 +1,4 @@
 using RiftVeil.Domain.Entities;
-using RiftVeil.Domain.Enums;
 
 namespace RiftVeil.Infrastructure.Data;
 
@@ -14,17 +13,24 @@ public static class DbInitializer
     /// <param name="context">The database context.</param>
     public static void Initialize(RiftVeilDbContext context)
     {
-        if (context.Leagues.Any())
+        EnsureLeague(context, "EMEA Championship", "LEC", "EMEA", "lec");
+        EnsureLeague(context, "North America Championship", "LCS", "NA", "lcs");
+        EnsureLeague(context, "LoL Pro League", "LPL", "China", "lpl");
+        EnsureLeague(context, "International Championship", "INTL", "Global", "international");
+
+        context.SaveChanges();
+    }
+
+    private static void EnsureLeague(
+        RiftVeilDbContext context,
+        string name,
+        string shortName,
+        string region,
+        string externalId)
+    {
+        if (context.Leagues.Any(league => league.ShortName == shortName))
             return;
 
-        var now = DateTimeOffset.UtcNow;
-
-        // Leagues
-        var lec = new League("EMEA Championship", "LEC", "EMEA", externalId: "lec");
-        var lcs = new League("North America Championship", "LCS", "NA", externalId: "lcs");
-        var intl = new League("International Championship", "INTL", "Global", externalId: "international");
-
-        context.Leagues.AddRange(lec, lcs, intl);
-        context.SaveChanges();
+        context.Leagues.Add(new League(name, shortName, region, externalId: externalId));
     }
 }

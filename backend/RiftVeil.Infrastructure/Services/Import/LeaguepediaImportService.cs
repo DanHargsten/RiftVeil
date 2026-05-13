@@ -51,14 +51,26 @@ public class LeaguepediaImportService(
             limit: 20
         );
 
+        // Leaguepedia occasionally uses inconsistent League labels for LPL rows.
+        // If strict League filter returns no rows, fallback to OverviewPage prefix.
+        if (results.Count == 0 && string.Equals(leagueName, "LPL", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine("  No tournaments found for League=\"LPL\". Falling back to OverviewPage LIKE \"LPL/%\".");
+            results = await client.QueryAsync(
+                tables: "Tournaments",
+                fields: "Name,DateStart,Date,League,Region,OverviewPage",
+                where: "OverviewPage LIKE \"LPL/%\"",
+                orderBy: "DateStart DESC",
+                limit: 20
+            );
+        }
+
         stats.Read = results.Count;
 
-        var existingSlugs = (await dbContext.Tournaments
+        var existingBySlug = await dbContext.Tournaments
             .Where(tournament => tournament.LeagueId == leagueId)
-            .Select(tournament => tournament.LiquipediaSlug)
-            .Where(slug => slug != null)
-            .Select(slug => slug!)
-            .ToListAsync()).ToHashSet();
+            .Where(tournament => tournament.LiquipediaSlug != null)
+            .ToDictionaryAsync(tournament => tournament.LiquipediaSlug!);
 
         foreach (var row in results)
         {
@@ -76,17 +88,25 @@ public class LeaguepediaImportService(
                 continue;
             }
 
-            if (existingSlugs.Contains(overviewPage))
-            {
-                stats.Existing++;
-                continue;
-            }
-
             var startDate = ParseDate(row.GetProperty("DateStart").GetString());
             var endDateStr = row.GetProperty("Date").GetString();
             DateTimeOffset? endDate = string.IsNullOrWhiteSpace(endDateStr)
                 ? null
                 : ParseDate(endDateStr);
+
+            if (existingBySlug.TryGetValue(overviewPage, out var existingTournament))
+            {
+                var status = await DetermineStatusWithFallbackAsync(existingTournament.Id, startDate, endDate);
+                existingTournament.SyncFromImport(
+                    name: name,
+                    startsAtUtc: startDate,
+                    endsAtUtc: endDate,
+                    status: status,
+                    stage: ExtractStage(name)
+                );
+                stats.Updated++;
+                continue;
+            }
 
             var tournament = new Tournament(
                 leagueId: leagueId,
@@ -99,6 +119,7 @@ public class LeaguepediaImportService(
             );
 
             dbContext.Tournaments.Add(tournament);
+            existingBySlug[overviewPage] = tournament;
             stats.Imported++;
         }
 
@@ -409,7 +430,7 @@ public class LeaguepediaImportService(
 
     private async Task PreloadTeamShortNamesAsync()
     {
-        var regions = new[] { "Europe", "EMEA", "CIS", "Turkey", "Korea", "North America" };
+        var regions = new[] { "Europe", "EMEA", "CIS", "Turkey", "Korea", "North America", "China" };
 
         // No per-region spacer — LeaguepediaClient already applies PostSuccessDelayMilliseconds
         // after each successful response, and the process-wide semaphore guarantees serial execution.
@@ -537,6 +558,28 @@ public class LeaguepediaImportService(
         if (end.HasValue && end.Value < now)
             return TournamentStatus.Finished;
         return start <= now ? TournamentStatus.Ongoing : TournamentStatus.Upcoming;
+    }
+
+    private async Task<TournamentStatus> DetermineStatusWithFallbackAsync(
+        int tournamentId,
+        DateTimeOffset start,
+        DateTimeOffset? end)
+    {
+        var status = DetermineStatus(start, end);
+        if (status != TournamentStatus.Ongoing)
+            return status;
+
+        var hasMatchData = await dbContext.Matches
+            .AnyAsync(match => match.TournamentId == tournamentId);
+        if (!hasMatchData)
+            return status;
+
+        var hasActiveOrPlannedMatches = await dbContext.Matches
+            .AnyAsync(match =>
+                match.TournamentId == tournamentId
+                && (match.Status == MatchStatus.Live || match.Status == MatchStatus.Scheduled));
+
+        return hasActiveOrPlannedMatches ? TournamentStatus.Ongoing : TournamentStatus.Finished;
     }
 
     private static DateTimeOffset? TryParseDate(string? dateStr)

@@ -43,4 +43,21 @@ public class Tournament : BaseEntity
         ExternalId = ValidationUtils.NormalizeOptional(externalId);
         LiquipediaSlug = ValidationUtils.NormalizeOptional(liquipediaSlug);
     }
+
+    /// <summary>
+    /// Refreshes tournament metadata from import payloads.
+    /// </summary>
+    public void SyncFromImport(
+        string name,
+        DateTimeOffset startsAtUtc,
+        DateTimeOffset? endsAtUtc,
+        TournamentStatus status,
+        string? stage)
+    {
+        Name = ValidationUtils.ValidateName(name, nameof(name));
+        StartsAtUtc = ValidationUtils.EnsureUtc(startsAtUtc);
+        EndsAtUtc = endsAtUtc is null ? null : ValidationUtils.EnsureUtc(endsAtUtc.Value);
+        Status = status;
+        Stage = ValidationUtils.NormalizeOptional(stage);
+    }
 }
