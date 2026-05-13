@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { VisibilityOffIcon, VisibilityOnIcon } from "@/components/common/Icons.tsx";
 import type { SpoilerPrefs } from "@/hooks/useSpoilerPrefs.ts";
 import { matchesApi, tournamentsApi, type MatchListItem } from "@/lib/api.ts";
@@ -15,6 +15,7 @@ type GroupedMatches = {
 
 interface MatchListProps {
     tournamentId?: number | null;
+    onTournamentChange?: (tournamentId: number | null) => void;
     spoilerProps: {
         spoilers: SpoilerPrefs;
         toggleGlobal: () => void;
@@ -23,22 +24,26 @@ interface MatchListProps {
     };
 }
 
-export function MatchList({ tournamentId, spoilerProps }: MatchListProps) {
+export function MatchList({ tournamentId, onTournamentChange, spoilerProps }: MatchListProps) {
     const { spoilers, toggleGlobal, revealMatch, hideMatch } = spoilerProps;
     const formIds = useId();
     const searchInputId = `${formIds}-search`;
     const tournamentSelectId = `${formIds}-tournament`;
     const spoilerCheckboxId = `${formIds}-spoiler`;
     const [search, setSearch] = useState("");
-    const [selectedTournamentId, setSelectedTournamentId] = useState<number | "all">(
+    const [showJumpToToday, setShowJumpToToday] = useState(false);
+    const [localTournamentId, setLocalTournamentId] = useState<number | "all">(
         tournamentId != null ? tournamentId : "all",
     );
+    const selectedTournamentId = onTournamentChange
+        ? (tournamentId != null ? tournamentId : "all")
+        : localTournamentId;
     const todayRef = useRef<HTMLDivElement>(null);
     const hasScrolled = useRef(false);
     const prevTournamentRef = useRef(selectedTournamentId);
 
     useLayoutEffect(() => {
-        setSelectedTournamentId(tournamentId != null ? tournamentId : "all");
+        setLocalTournamentId(tournamentId != null ? tournamentId : "all");
     }, [tournamentId]);
 
     const { data: tournaments } = useQuery({
@@ -96,6 +101,34 @@ export function MatchList({ tournamentId, spoilerProps }: MatchListProps) {
         };
     }, [groupedMatches, selectedTournamentId]);
 
+    useEffect(() => {
+        const todayAnchor = todayRef.current;
+        const hasTodayGroup = groupedMatches.some((group) => group.isToday);
+        if (!todayAnchor || !hasTodayGroup) {
+            setShowJumpToToday(false);
+            return;
+        }
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                setShowJumpToToday(!entry.isIntersecting);
+            },
+            {
+                root: null,
+                threshold: 0.35,
+                rootMargin: "-90px 0px 0px 0px",
+            },
+        );
+
+        observer.observe(todayAnchor);
+        return () => observer.disconnect();
+    }, [groupedMatches]);
+
+    function jumpToToday() {
+        if (!todayRef.current) return;
+        todayRef.current.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+
     if (isLoading) return <div className="match-list__state">Loading matches...</div>;
     if (error) return <div className="match-list__state match-list__state--error">Error loading matches.</div>;
 
@@ -137,11 +170,16 @@ export function MatchList({ tournamentId, spoilerProps }: MatchListProps) {
                     </label>
                     <select
                         id={tournamentSelectId}
-                        className="match-list__filter-select"
+                        className="match-list__filter-select match-list__filter-select--mobile"
                         value={selectedTournamentId}
-                        onChange={(e) =>
-                            setSelectedTournamentId(e.target.value === "all" ? "all" : Number(e.target.value))
-                        }
+                        onChange={(e) => {
+                            const nextTournamentId = e.target.value === "all" ? "all" : Number(e.target.value);
+                            if (onTournamentChange) {
+                                onTournamentChange(nextTournamentId === "all" ? null : nextTournamentId);
+                                return;
+                            }
+                            setLocalTournamentId(nextTournamentId);
+                        }}
                     >
                         <option value="all">All Tournaments</option>
                         {tournaments?.map((tournament) => (
@@ -152,27 +190,37 @@ export function MatchList({ tournamentId, spoilerProps }: MatchListProps) {
                     </select>
                 </div>
 
-                <div className="match-list__spoiler-toggle">
-                    <label htmlFor={spoilerCheckboxId} className="match-list__spoiler-text">
-                        <span className="match-list__spoiler-label">
-                            {spoilers.globalEnabled ? <VisibilityOffIcon size={20} /> : <VisibilityOnIcon size={20} />}
-                            Hide spoilers
-                        </span>
-                        <span className="match-list__spoiler-status">
-                            {spoilers.globalEnabled
-                                ? "Scores hidden across matches"
-                                : "Scores visible across matches"}
-                        </span>
-                    </label>
-                    <div className={`match-list__toggle-track ${spoilers.globalEnabled ? "match-list__toggle-track--on" : ""}`}>
-                        <input
-                            id={spoilerCheckboxId}
-                            type="checkbox"
-                            checked={spoilers.globalEnabled}
-                            onChange={toggleGlobal}
-                            className="match-list__toggle-input"
-                        />
-                        <div className="match-list__toggle-thumb" />
+                {showJumpToToday && (
+                    <div className="match-list__toolbar-center">
+                        <button type="button" className="match-list__jump-today" onClick={jumpToToday}>
+                            Jump to today
+                        </button>
+                    </div>
+                )}
+
+                <div className="match-list__toolbar-right">
+                    <div className="match-list__spoiler-toggle">
+                        <label htmlFor={spoilerCheckboxId} className="match-list__spoiler-text">
+                            <span className="match-list__spoiler-label">
+                                {spoilers.globalEnabled ? <VisibilityOffIcon size={20} /> : <VisibilityOnIcon size={20} />}
+                                Hide spoilers
+                            </span>
+                            <span className="match-list__spoiler-status">
+                                {spoilers.globalEnabled
+                                    ? "Scores hidden across matches"
+                                    : "Scores visible across matches"}
+                            </span>
+                        </label>
+                        <div className={`match-list__toggle-track ${spoilers.globalEnabled ? "match-list__toggle-track--on" : ""}`}>
+                            <input
+                                id={spoilerCheckboxId}
+                                type="checkbox"
+                                checked={spoilers.globalEnabled}
+                                onChange={toggleGlobal}
+                                className="match-list__toggle-input"
+                            />
+                            <div className="match-list__toggle-thumb" />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -214,6 +262,7 @@ export function MatchList({ tournamentId, spoilerProps }: MatchListProps) {
                     ))}
                 </div>
             )}
+
         </div>
     );
 }

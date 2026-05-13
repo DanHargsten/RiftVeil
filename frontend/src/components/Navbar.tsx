@@ -23,6 +23,11 @@ export function Navbar() {
         refetchInterval: 30_000,
     });
     const liveCount = liveMatches?.length ?? 0;
+    const hasLiveMatches = liveCount > 0;
+    const firstLiveLeague = liveMatches?.[0]?.leagueShortName ?? null;
+    const liveBroadcastUrl = firstLiveLeague
+        ? buildLolesportsLiveUrl(firstLiveLeague)
+        : "https://lolesports.com/live";
 
     // Close the leagues menu on outside click.
     useEffect(() => {
@@ -56,7 +61,7 @@ export function Navbar() {
 
     return (
         <nav className="navbar" aria-label="Primary">
-            <div className="navbar__container container">
+            <div className="navbar__container">
 
                 {/* BRAND */}
                 <NavLink to="/" className="navbar__brand">
@@ -124,29 +129,47 @@ export function Navbar() {
                         )}
                     </div>
 
-                    <NavLink to="/standings" className={({ isActive }) => isActive ? "navbar__link navbar__link--active" : "navbar__link"}>
+                    <span
+                        className="navbar__link navbar__link--disabled"
+                        aria-disabled="true"
+                        tabIndex={-1}
+                        title="Coming soon"
+                    >
                         Standings
-                    </NavLink>
-                    <NavLink to="/teams" className={({ isActive }) => isActive ? "navbar__link navbar__link--active" : "navbar__link"}>
+                    </span>
+                    <span
+                        className="navbar__link navbar__link--disabled"
+                        aria-disabled="true"
+                        tabIndex={-1}
+                        title="Coming soon"
+                    >
                         Teams
-                    </NavLink>
+                    </span>
                 </div>
 
                 {/* ========== LIVE INDICATOR ========== */}
-                {liveCount > 0 && (
-                    <NavLink
-                        to="/"
+                {hasLiveMatches && (
+                    <a
+                        href={liveBroadcastUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="navbar__live-indicator"
-                        aria-label={`${liveCount} live match${liveCount !== 1 ? "es" : ""}`}
+                        aria-label={`Open live broadcast (${liveCount} live match${liveCount !== 1 ? "es" : ""})`}
+                        title="Open live broadcast"
                     >
                         <span role="status" aria-live="polite" className="navbar__live-inner">
                             <span className="navbar__live-dot" aria-hidden="true" />
-                            <span className="navbar__live-count">{liveCount} LIVE</span>
+                            <span className="navbar__live-count">{liveCount} live</span>
                         </span>
-                    </NavLink>
+                    </a>
                 )}
 
             </div>
         </nav>
     );
+}
+
+function buildLolesportsLiveUrl(leagueShortName: string): string {
+    const slug = leagueShortName.toLowerCase();
+    return `https://lolesports.com/live/${slug}/${slug}`;
 }

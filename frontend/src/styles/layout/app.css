@@ -20,3 +20,17 @@
     overflow-x: hidden;
     overflow-y: auto;
 }
+
+.coming-soon {
+    padding: 2rem 0;
+}
+
+.coming-soon__title {
+    font-size: 1.25rem;
+    margin: 0 0 0.5rem;
+}
+
+.coming-soon__lead {
+    color: var(--text-muted);
+    margin: 0;
+}

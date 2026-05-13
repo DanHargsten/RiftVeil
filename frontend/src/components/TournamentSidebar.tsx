@@ -100,6 +100,7 @@ export function TournamentSidebar({ selectedTournamentId, onSelect }: Tournament
                                         const statusClass =
                                             tournament.status === "Ongoing" ? "sidebar__tournament--ongoing" :
                                                 tournament.status === "Upcoming" ? "sidebar__tournament--upcoming" :
+                                                    tournament.status === "Finished" ? "sidebar__tournament--finished" :
                                                     "";
 
                                         return (
@@ -121,7 +122,7 @@ export function TournamentSidebar({ selectedTournamentId, onSelect }: Tournament
                                                     {formatTournamentName(tournament.name, group.leagueShortName)}
                                                 </span>
                                                 {tournament.status === "Ongoing" && (
-                                                    <span className="sidebar__tournament-live">LIVE</span>
+                                                    <span className="sidebar__tournament-live">ACTIVE</span>
                                                 )}
                                             </button>
                                         );

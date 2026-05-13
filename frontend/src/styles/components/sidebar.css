@@ -6,12 +6,13 @@
     flex-direction: column;
     width: 260px;
     min-width: 260px;
-    border-right: 1px solid var(--border);
+    border-right: none;
     overflow-y: auto;
     padding-bottom: 2rem;
     position: sticky;
     top: 0;
-    height: 100dvh;
+    align-self: start;
+    height: calc(100dvh - 3.25rem);
 }
 
 .sidebar__header {
@@ -110,12 +111,23 @@
 }
 
 .sidebar__tournament--selected {
-    color: var(--primary);
-    background: rgba(226, 25, 69, 0.08);
+    color: var(--primary-text);
+    background: var(--primary-soft);
+    opacity: 1;
 }
 
 .sidebar__tournament--ongoing .sidebar__tournament-name {
     color: var(--clr-font);
+}
+
+.sidebar__tournament--upcoming {
+    color: var(--text-muted);
+    opacity: 0.72;
+}
+
+.sidebar__tournament--finished {
+    color: var(--text-muted-extra);
+    opacity: 0.56;
 }
 
 .sidebar__tournament-name {
@@ -127,11 +139,12 @@
 }
 
 .sidebar__tournament-live {
-    font-size: 0.7rem;
+    font-size: 0.64rem;
     font-weight: 600;
-    color: var(--primary);
+    color: var(--primary-text);
     flex-shrink: 0;
     margin-left: 0.5rem;
+    letter-spacing: 0.03em;
 }
 
 .sidebar__loading {

@@ -1,9 +1,21 @@
+const API_ERROR_BODY_MAX = 280;
+
+function truncateDetail(text: string, max: number): string {
+  const t = text.replace(/\s+/g, " ").trim();
+  if (t.length <= max) return t;
+  return `${t.slice(0, max)}…`;
+}
+
 /** Fetches JSON from a relative API endpoint (e.g., /api/...). */
 export async function fetchApi<T>(endpoint: string): Promise<T> {
   const response = await fetch(endpoint);
 
   if (!response.ok) {
-    throw new Error(`API error: ${response.status}`);
+    const bodyText = await response.text();
+    const detail =
+      bodyText.length > 0 ? truncateDetail(bodyText, API_ERROR_BODY_MAX) : "";
+    const suffix = detail ? `: ${detail}` : "";
+    throw new Error(`API error: ${response.status}${suffix}`);
   }
 
   return response.json();

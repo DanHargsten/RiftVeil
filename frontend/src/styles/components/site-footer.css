@@ -6,6 +6,8 @@
     margin-top: auto;
     border-top: 1px solid var(--border);
     background: var(--surface-1);
+    position: relative;
+    z-index: 24;
 }
 
 .site-footer__inner {
@@ -15,7 +17,6 @@
 }
 
 .site-footer__body {
-    max-width: min(40rem, 100%);
     margin-inline: auto;
     text-align: center;
 }

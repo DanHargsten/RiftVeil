@@ -68,8 +68,14 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
 
                 {/* TOURNAMENT */}
                 <div className="match-card__tournament">
-                    <LeagueLogo shortName={match.leagueShortName} />
-                    <span className="match-card__tournament-league">{match.leagueShortName}</span>
+                    <Link
+                        to={`/leagues/${match.leagueShortName.toLowerCase()}`}
+                        className="match-card__league-link"
+                        aria-label={`Go to ${match.leagueShortName} league`}
+                    >
+                        <LeagueLogo shortName={match.leagueShortName} />
+                        <span className="match-card__tournament-league">{match.leagueShortName}</span>
+                    </Link>
                     {match.tournamentStage && (
                         <>
                             <span className="match-card__tournament-separator">·</span>
