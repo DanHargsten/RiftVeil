@@ -301,9 +301,17 @@ function getRoundDateRange(matches: MatchListItem[]): string {
     const latestStart = new Date(
         Math.max(...matchStartDates.map((start) => start.getTime())),
     );
-    const formatDayMonth = (date: Date) =>
-        date.toLocaleDateString("en-GB", { month: "short", day: "numeric" });
-    return earliestStart.toDateString() === latestStart.toDateString()
-        ? formatDayMonth(earliestStart)
-        : `${formatDayMonth(earliestStart)} – ${formatDayMonth(latestStart)}`;
+    const formatDate = (date: Date, includeYear: boolean) =>
+        date.toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "short",
+            ...(includeYear ? { year: "numeric" } : {}),
+        });
+
+    const sameDay = earliestStart.toDateString() === latestStart.toDateString();
+    const sameYear = earliestStart.getFullYear() === latestStart.getFullYear();
+
+    if (sameDay) return formatDate(earliestStart, true);
+    if (sameYear) return `${formatDate(earliestStart, false)} – ${formatDate(latestStart, true)}`;
+    return `${formatDate(earliestStart, true)} – ${formatDate(latestStart, true)}`;
 }
