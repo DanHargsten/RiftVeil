@@ -378,3 +378,35 @@ Build **Phase 1** first to get the Status field trustworthy from real wiki data.
 this on top — `MarkLive` becomes a triggerable event from multiple sources (broadcast watcher
 *or* match poller, whichever fires first). The heuristic in `MatchProjections` stays as a
 final fallback that costs nothing.
+
+---
+
+## 7. Real logo URLs (league, team, tournament)
+
+### Problem
+
+Logos are mostly managed manually in `frontend/public/logos/...`. It works, but it is repetitive
+and gets harder as more leagues/teams/tournaments are added.
+
+### Goal
+
+Use real `logoUrl` data from APIs/importers as the primary source, with local files as fallback.
+The app should still render safely even when a logo is missing.
+
+### Plan
+
+- Keep fallback behavior in the UI (`logoUrl` -> local file -> placeholder).
+- Start with leagues and teams first.
+- Add tournament logos as a second phase if needed.
+- Add a lightweight "logo sync" flow so we do not depend on manual downloading.
+
+### Scope and phases
+
+1. **Phase 1 (safe rollout):** support league/team `logoUrl` in API + frontend fallback.
+2. **Phase 2:** improve importer coverage so more leagues/teams get URLs automatically.
+3. **Phase 3 (optional):** add `Tournament.LogoUrl` and show tournament logos in UI.
+
+### Why this is later
+
+Current manual flow is usable and low risk. This project improves maintainability and scaling,
+but is not blocking core match/tournament functionality.

@@ -6,27 +6,43 @@ For class-level detail, heuristics, and file references, see [`docs/technical-lo
 
 Early months (2026-01 through ~2026-04-13) are summarised at a high level; the project log was backfilled from memory and commits before day-by-day notes started.
 
+## 2026-05-13
+
+### Added
+
+- **Admin import controls** — clearer import scopes (ongoing vs all), tournament-targeted Game Details import mode, and improved guidance for heavier jobs.
+- **LPL support** — `LPL` available in admin league selection and in import mappings for tournaments/matches/VODs.
+- **Docs planning split** — new lightweight `docs/todo.md` for short-term fixes, while larger scoped items remain in `docs/future-projects.md`.
+
+### Changed
+
+- **League view dates** — round date ranges now include year context so ranges are unambiguous.
+- **DB seed behavior** — default leagues are now ensured incrementally (missing leagues are added without requiring an empty table).
+
+### Notes
+
+- LPL VOD enrichment currently reaches lolesports tournaments but still often returns zero completed events / enrichments in this period; this appears to be upstream data-shape/timing rather than a simple missing-channel issue.
+
 ## 2026-05-12
 
 ### Added
 
-- **`leagueRegion`** on **`MatchListItemDto`** / list projections and **`MatchListItem`** in **`frontend/src/lib/api.ts`**, exposed for client-side search and display.
-- Optional **site footer** with Riot notice and **`VITE_CONTACT_EMAIL`** mailto: **`SiteFooter.tsx`**, **`site-footer.css`**, **`frontend/.env.example`**, **`vite-env.d.ts`**.
+- **Match list** — search across teams, tournament name, and **region**; dates grouped by calendar day with a clearer **Today** band when filtering.
+- **Footer** — Riot “Legal Jibber Jabber” notice on every page; optional **contact** link when you set the contact email in the frontend environment.
 
 ### Changed
 
-- Frontend **routing shell**: **`AppShell`** in **`App.tsx`** wraps **`Outlet`** in a single **`main.app-main`** (header + footer outside) so the document keeps **one** `<main>` landmark.
-- **Match list**: grouped by local date with optional empty **Today** row when filtering, **search** + **tournament** controls with improved labels/ids for assistive tech; sticky toolbar styling updates (**`match-list.css`**).
-- **Styles**: CSS entry via **`styles/index.css`** only — removed obsolete **`layout.css`** / **`typography.css`**; **`reset.css`**, **`app.css`**, **`home.css`**, and several page/component sheets adjusted; **section comment style** aligned (banner + short labels) across navbar, league, admin, game-details, badge, table, variables, etc.
-- **`ImportController`**: **`[ProducesResponseType]`** on selected backfill / ongoing import endpoints for clearer OpenAPI output.
+- **Layout** — one primary **main** content area for the whole app (better for screen readers and skip links); header and footer stay outside the scrolling content column.
+- **Match list toolbar** — easier to use with keyboard and assistive tech (labels tied to search and filters).
+- **Imports** — all import actions stay under **`/admin`** only; leftover navbar styles for an old import menu are gone.
 
 ### Removed
 
-- Dead **navbar dev-import (hamburger) CSS** (`.import-menu*`) — imports are **`/admin`** only; **`Navbar.tsx`** already had no markup for it.
+- Legacy global **`layout.css`** / **`typography.css`** entry files from the stylesheet bundle (imports are centralised through **`index.css`**).
 
-### Fixed
+### Notes
 
-- **`MatchReadService.GetLiveAsync`**: comment wording (neutral voice) next to live-status heuristic.
+- API list payloads now include **league region** so the new search can work without extra requests; OpenAPI shows clearer status codes on a few maintenance endpoints. Details: **`docs/technical-log.md`**.
 
 ## 2026-05-11
 

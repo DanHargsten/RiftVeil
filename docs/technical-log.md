@@ -6,6 +6,37 @@ Entries are **newest first**, same structure as before this split.
 
 ---
 
+## 2026-05-13
+
+### Added
+
+- Admin import workflow improvements in **`frontend/src/routes/Admin.tsx`** + **`frontend/src/styles/pages/admin.css`**:
+  - `LPL` included in selectable leagues and `ALL` fan-out.
+  - Explicit import scope for core imports (`all` vs `ongoing`).
+  - Separate Game Details scope (`ongoing` vs specific tournament id).
+  - Validation guardrails for heavy combinations (e.g. requiring a selected tournament when tournament-targeted details mode is chosen).
+- Import API endpoints in **`backend/RiftVeil.Api/Controllers/ImportController.cs`**:
+  - `POST /api/import/vods/{leagueShortName}/ongoing`
+  - `POST /api/import/game-details/{leagueShortName}?ongoingOnly=true|false`
+  - `POST /api/import/game-details/tournament/{tournamentId}`
+- Planning docs:
+  - Added "Real logo URLs" roadmap item in **`docs/future-projects.md`**.
+  - Added short-horizon bugfix list in **`docs/todo.md`**.
+
+### Changed
+
+- **`LolesportsVodEnricher`** now supports `ongoingOnly` filtering in **`EnrichVodsAsync`** so admin scope can target ongoing tournaments without a separate service path.
+- **`League.tsx`** round date range formatter now emits unambiguous year-aware labels (same day, same year range, cross-year range).
+- **`DbInitializer`** changed from "return if any league exists" to per-league ensure semantics, so new default leagues (e.g. `LPL`) are added to existing local DBs.
+- LPL Leaguepedia tournament query fallback in **`LeaguepediaImportService.ImportTournamentsAsync`**:
+  - first attempts strict `League="LPL"`,
+  - then falls back to `OverviewPage LIKE "LPL/%"` when strict query returns zero rows.
+
+### Notes
+
+- Recent runtime logs show LPL VOD enrichment reaching lolesports tournaments and `getCompletedEvents`, but often with zero completed events, and with no final `match.games[].vods` enrichment despite occasional event detail calls. Current evidence points to source payload availability/matching constraints rather than missing channel identity.
+- Recent game-details imports for LPL also show mixed Cargo availability (`PicksAndBansS7` present while `ScoreboardPlayers` / `ScoreboardTeams` can be empty for specific game ids), so detail completeness remains source-dependent per game.
+
 ## 2026-05-12
 
 ### Added
