@@ -20,6 +20,9 @@ obj/
 # -- VS Code Frontend
 vsfrontend
 
+# --- Frontend WIP assets (not versioned until final) ---
+frontend/src/assets/icons/lol-objectives/
+
 # --- Node / Vite ---
 node_modules/
 dist/
