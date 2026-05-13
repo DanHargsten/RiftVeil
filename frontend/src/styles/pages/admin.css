@@ -5,7 +5,9 @@
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    max-width: 600px;
+    width: min(760px, 100%);
+    margin-inline: auto;
+    padding-top: 0.25rem;
 }
 
 .admin__title {
@@ -23,6 +25,7 @@
     border: 1px solid var(--border);
     border-radius: 0.625rem;
     overflow: hidden;
+    box-shadow: 0 6px 20px #00000024;
 }
 
 .admin__section-title {
@@ -50,8 +53,8 @@
 .admin__form {
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
-    padding: 1.25rem;
+    gap: 1rem;
+    padding: 1.35rem 1.5rem;
 }
 
 .admin__field {
@@ -61,6 +64,11 @@
     border: none;
     padding: 0;
     margin: 0;
+}
+
+.admin__field + .admin__field {
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
 }
 
 .admin__label {
@@ -110,14 +118,14 @@
 .admin__steps {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.6rem;
 }
 
 .admin__step-label {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     color: var(--text);
     cursor: pointer;
     user-select: none;
@@ -130,23 +138,62 @@
     cursor: pointer;
 }
 
+.admin__step-label input[type="radio"] {
+    accent-color: var(--primary);
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+}
+
 .admin__step-label input:disabled {
     cursor: not-allowed;
     opacity: 0.5;
 }
 
-/* Sub-option (Only ongoing) indented under Steps */
-.admin__step-label--sub {
-    margin-top: 0.25rem;
-    margin-left: 1.5rem;
+.admin__radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.admin__hint {
+    margin: 0.15rem 0 0;
+    font-size: 0.8rem;
     color: var(--text-muted);
-    font-size: 0.85rem;
+}
+
+.admin__select {
+    width: 100%;
+    max-width: 520px;
+    padding: 0.5rem 0.625rem;
+    font-size: 0.9rem;
+    color: var(--text);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    outline: none;
+}
+
+.admin__select:focus {
+    border-color: var(--primary-border);
+    box-shadow: 0 0 0 1px var(--primary-soft);
+}
+
+.admin__select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.admin__warning {
+    margin: 0.2rem 0 0;
+    font-size: 0.82rem;
+    color: var(--live-text);
 }
 
 /* Run button */
 .admin__run-btn {
     align-self: flex-start;
-    padding: 0.5rem 1.25rem;
+    padding: 0.58rem 1.25rem;
     font-size: 0.875rem;
     font-weight: 600;
     border: 1px solid var(--primary-border);

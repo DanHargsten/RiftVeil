@@ -97,8 +97,26 @@ public class ImportController(
             return NotFound($"League '{leagueShortName}' not found.");
         }
 
-        await vodEnricher.EnrichVodsAsync(league.ShortName);
+        await vodEnricher.EnrichVodsAsync(league.ShortName, ongoingOnly: false);
         return Ok($"VOD enrichment finished for {league.ShortName}");
+    }
+
+    /// <summary>
+    /// Enriches VODs only for ongoing tournaments in the given league.
+    /// </summary>
+    [HttpPost("vods/{leagueShortName}/ongoing")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ImportOngoingVodsAsync(string leagueShortName)
+    {
+        var league = await FindLeagueByShortNameAsync(leagueShortName);
+        if (league == null)
+        {
+            return NotFound($"League '{leagueShortName}' not found.");
+        }
+
+        await vodEnricher.EnrichVodsAsync(league.ShortName, ongoingOnly: true);
+        return Ok($"Ongoing VOD enrichment finished for {league.ShortName}");
     }
 
     [HttpPost("backfill-game-ids/{leagueShortName}")]
@@ -150,6 +168,68 @@ public class ImportController(
         }
 
         return Ok($"Game detail import complete for {ongoingTournaments.Count} ongoing tournaments.");
+    }
+
+    /// <summary>
+    /// Imports game details for the given league. Use ongoingOnly=false for historical backfill.
+    /// </summary>
+    [HttpPost("game-details/{leagueShortName}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ImportGameDetailsForLeagueAsync(string leagueShortName, [FromQuery] bool ongoingOnly = true)
+    {
+        var league = await FindLeagueByShortNameAsync(leagueShortName);
+        if (league == null)
+        {
+            return NotFound($"League '{leagueShortName}' not found.");
+        }
+
+        var tournamentsQuery = dbContext.Tournaments
+            .Where(t => t.LeagueId == league.Id && t.LiquipediaSlug != null);
+
+        if (ongoingOnly)
+        {
+            tournamentsQuery = tournamentsQuery
+                .Where(t => t.Status == TournamentStatus.Ongoing);
+        }
+
+        var tournaments = await tournamentsQuery
+            .OrderByDescending(t => t.StartsAtUtc)
+            .ToListAsync();
+
+        Console.WriteLine($"Found {tournaments.Count} tournament(s) for {league.ShortName} (ongoingOnly={ongoingOnly})");
+
+        foreach (var tournament in tournaments)
+        {
+            Console.WriteLine($"Importing game details for: {tournament.Name}");
+            await gameDetailImportService.ImportGameDetailsForTournamentAsync(tournament.LiquipediaSlug!);
+        }
+
+        return Ok($"Game detail import complete for {tournaments.Count} tournament(s) in {league.ShortName}.");
+    }
+
+    /// <summary>
+    /// Imports game details for one specific tournament by local database id.
+    /// </summary>
+    [HttpPost("game-details/tournament/{tournamentId:int}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ImportGameDetailsForTournamentIdAsync(int tournamentId)
+    {
+        var tournament = await dbContext.Tournaments
+            .Where(t => t.Id == tournamentId)
+            .Select(t => new { t.Id, t.Name, t.LiquipediaSlug })
+            .FirstOrDefaultAsync();
+
+        if (tournament == null)
+            return NotFound($"Tournament {tournamentId} not found.");
+
+        if (string.IsNullOrWhiteSpace(tournament.LiquipediaSlug))
+            return BadRequest($"Tournament {tournamentId} has no Liquipedia slug.");
+
+        await gameDetailImportService.ImportGameDetailsForTournamentAsync(tournament.LiquipediaSlug);
+        return Ok($"Game detail import complete for tournament {tournament.Name} ({tournament.Id}).");
     }
     
     /// <summary>

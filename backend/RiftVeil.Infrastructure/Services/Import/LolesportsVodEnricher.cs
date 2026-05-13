@@ -23,9 +23,10 @@ public class LolesportsVodEnricher(
         ["LEC"] = "lec",
         ["LCS"] = "lcs",
         ["LCK"] = "lck",
+        ["LPL"] = "lpl",
     };
 
-    public async Task EnrichVodsAsync(string leagueShortName)
+    public async Task EnrichVodsAsync(string leagueShortName, bool ongoingOnly = false)
     {
         logger.LogInformation("Starting VOD enrichment for {LeagueShortName}", leagueShortName);
 
@@ -54,8 +55,15 @@ public class LolesportsVodEnricher(
         var lolesportsTournaments = await GetLolesportsTournamentsAsync(lolesportsLeagueId);
         logger.LogInformation("Found {Count} lolesports tournaments for {LeagueShortName}", lolesportsTournaments.Count, leagueShortName);
 
-        var ourTournaments = await dbContext.Tournaments
-            .Where(tournament => tournament.LeagueId == league.Id)
+        var tournamentsQuery = dbContext.Tournaments
+            .Where(tournament => tournament.LeagueId == league.Id);
+
+        if (ongoingOnly)
+        {
+            tournamentsQuery = tournamentsQuery.Where(tournament => tournament.Status == TournamentStatus.Ongoing);
+        }
+
+        var ourTournaments = await tournamentsQuery
             .Include(tournament => tournament.Matches).ThenInclude(match => match.Team1)
             .Include(tournament => tournament.Matches).ThenInclude(match => match.Team2)
             .Include(tournament => tournament.Matches).ThenInclude(match => match.Games).ThenInclude(game => game.Vods)
