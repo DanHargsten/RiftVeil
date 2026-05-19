@@ -2,7 +2,8 @@
    DESIGN TOKENS
    ================================================================================================ */
 :root {
-    --font-standard: "Inter", system-ui, sans-serif;
+    --font-standard: "Space Grotesk", "Inter", system-ui, sans-serif;
+    --font-logo: "Orbitron", "Space Grotesk", sans-serif;
     
     --bg: #131213;
     --surface-1: #191819;
@@ -23,7 +24,7 @@
     /* Status colors */
     --live:             oklch(0.625 0.203 17.97);
     --live-soft:        oklch(0.625 0.203 17.97 / 0.2); 
-    --live-text:        oklch(0.792 0.101 10.283);
+    --live-text:        oklch(0.675 0.175 10.283);
     --status-finished:  oklch(0.65 0.14 145);
     --status-upcoming:  oklch(0.762 0.148 97.235);
 }
