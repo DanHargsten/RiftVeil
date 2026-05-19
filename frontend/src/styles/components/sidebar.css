@@ -13,6 +13,9 @@
     top: 0;
     align-self: start;
     height: calc(100dvh - 3.25rem);
+    min-height: calc(100dvh - 3.25rem);
+    background: var(--bg);
+    border-right: 1px solid var(--border);
 }
 
 .sidebar__header {

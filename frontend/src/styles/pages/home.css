@@ -15,15 +15,7 @@
 }
 
 .home--with-sidebar::before {
-    content: "";
-    position: fixed;
-    top: 3.25rem;
-    bottom: 0;
-    left: var(--home-sidebar-width);
-    width: 1px;
-    background: var(--border);
-    pointer-events: none;
-    z-index: 18;
+    display: none;
 }
 
 .home--with-sidebar > .sidebar {
@@ -35,7 +27,6 @@
     min-width: var(--home-sidebar-width);
     height: auto;
     z-index: 17;
-    background: var(--bg);
 }
 
 .home__content {
