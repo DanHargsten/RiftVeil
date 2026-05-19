@@ -26,8 +26,8 @@
 }
 
 .match-card__league-logo {
-    width: 26px;
-    height: 26px;
+    width: 30px;
+    height: 30px;
     object-fit: contain;
     flex-shrink: 0;
 }
@@ -50,11 +50,14 @@
 }
 
 .match-card__tournament-league,
-.match-card__tournament-separator,
 .match-card__tournament-stage {
-    font-size: 0.8rem;
-    font-weight: 400;
+    font-size: 0.9rem;
     color: var(--text-muted);
+}
+
+.match-card__tournament-separator {
+    font-size: 0.9rem;
+    color: var(--text-muted-extra);
 }
 
 /* ================================================================================================
@@ -84,9 +87,25 @@
     text-align: left;
 }
 
+.match-card__team--winner .match-card__team-short {
+    color: var(--text);
+}
+
+.match-card__team--winner .match-card__team-full {
+    color: var(--text-muted);
+}
+
+.match-card__team--winner .match-card__team-logo {
+    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--primary) 22%, transparent));
+}
+
+.match-card__team--loser {
+    opacity: 0.58;
+}
+
 .match-card__team-logo {
-    width: 46px;
-    height: 46px;
+    width: 50px;
+    height: 50px;
     object-fit: contain;
     flex-shrink: 0;
 }
@@ -98,8 +117,7 @@
 }
 
 .match-card__team-short {
-    font-size: 1rem;
-    font-weight: 600;
+    font-size: 1.2rem;
     line-height: 1;
     white-space: nowrap;
     overflow: hidden;
@@ -126,14 +144,14 @@
 }
 
 .match-card__vs-text {
-    font-size: 1rem;
+    font-size: 1.2rem;
     color: var(--text-muted);
     font-weight: 500;
 }
 
 .match-card__vs-separator {
     width: 2px;
-    height: 26px;
+    height: 30px;
     background: var(--text-muted);
     display: block;
     margin-inline: 0.4rem;
@@ -168,7 +186,7 @@
 }
 
 .match-card__spoiler-toggle-text {
-    font-size: 0.75rem;
+    font-size: 0.8rem;    
     color: var(--text-muted-extra);
 }
 
@@ -208,15 +226,26 @@
 }
 
 .match-card__vods-label {
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     color: var(--text-muted);
     flex-shrink: 0;
 }
 
 .match-card__vods-empty {
-    font-size: 0.75rem;
-    padding-left: 0.5rem;
-    color: var(--text-muted-extra);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.match-card__start-time {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.match-card__start-time-value {
+    margin-left: 0.2rem;
+    color: var(--primary);
+    font-weight: 700;
 }
 
 .match-card__watch-live {
@@ -224,12 +253,10 @@
     align-items: center;
     gap: 0.35rem;
     font-size: 0.7rem;
-    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--live-text);
-    background: var(--live-soft);
-    border: 1px solid color-mix(in oklch, var(--live) 30%, transparent);
+    background: transparent;
     padding: 0.22rem 0.55rem;
     border-radius: 0.3rem;
     text-decoration: none;
@@ -250,15 +277,15 @@
 }
 
 .match-card__vod-btn {
-    width: 42px;
+    width: 40px;
     height: 28px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     border: 1px solid var(--border);
     color: var(--primary);
     border-radius: 0.375rem;
-    padding: 0.3rem 0 0.3rem 0.3rem;
+    padding: 0;
     transition: color 0.2s ease, background 0.2s ease;
     flex-shrink: 0;
 }
@@ -285,15 +312,19 @@
 }
 
 .match-card__vod-number {
-    font-size: 1.1rem;
-    font-weight: 700;
+    font-size: 1rem;
+    font-weight: 600;
     color: var(--text-muted);
+    line-height: 1;
+    font-family: system-ui, sans-serif;
 }
 
 .match-card__vod-play {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    opacity: 0.8;
+    justify-content: center;
+    line-height: 1;
+    opacity: 0.9;
 }
 
 .match-card__match-meta {
@@ -304,9 +335,14 @@
 }
 
 .match-card__round,
-.match-card__match-meta-separator,
 .match-card__best-of {
-    font-size: 0.75rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.match-card__match-meta-separator {
+    font-size: 0.8rem;
     color: var(--text-muted-extra);
     flex-shrink: 0;
 }
@@ -331,4 +367,9 @@
     width: 3px;
     background: var(--live);
     pointer-events: none;
+}
+
+/* When the live stripe is visible, push left-side content in a bit. */
+.match-card--live .match-card__header {
+    padding-left: 0.6rem;
 }

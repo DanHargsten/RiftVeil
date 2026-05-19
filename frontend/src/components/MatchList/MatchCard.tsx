@@ -29,6 +29,8 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
         isFinished &&
         match.team1Score != null &&
         match.team2Score != null;
+    const team1IsWinner = canShowScore ? match.team1Score! > match.team2Score! : false;
+    const team2IsWinner = canShowScore ? match.team2Score! > match.team1Score! : false;
 
     const handleEyeClick = (e: MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation(); // Prevent click from bubbling to any parent link/card handler
@@ -104,7 +106,9 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
             <div className="match-card__main">
 
                 {/* TEAM 1 */}
-                <div className="match-card__team match-card__team--left">
+                <div className={`match-card__team match-card__team--left ${
+                    team1IsWinner ? "match-card__team--winner" : team2IsWinner ? "match-card__team--loser" : ""
+                }`}>
                     <TeamLogo shortName={match.team1ShortName} />
                     <div className="match-card__team-info">
                         <span className="match-card__team-short">{match.team1ShortName}</span>
@@ -150,7 +154,9 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
                 </div>
 
                 {/* TEAM 2 */}
-                <div className="match-card__team match-card__team--right">
+                <div className={`match-card__team match-card__team--right ${
+                    team2IsWinner ? "match-card__team--winner" : team1IsWinner ? "match-card__team--loser" : ""
+                }`}>
                     <TeamLogo shortName={match.team2ShortName} />
                     <div className="match-card__team-info">
                         <span className="match-card__team-short">{match.team2ShortName}</span>
@@ -174,12 +180,13 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
                             className="match-card__watch-live"
                             aria-label={`Watch ${match.leagueShortName} live on lolesports.com (opens in new tab)`}
                         >
-                            <PlayIcon size={12} aria-hidden="true" />
+                            <PlayIcon size={15} aria-hidden="true" />
                             Watch live
                         </a>
                     ) : (
-                        <time dateTime={match.startsAtUtc} className="match-card__vods-empty">
-                            Starting {getTimeDisplay()}
+                        <time dateTime={match.startsAtUtc} className="match-card__start-time">
+                            Starting
+                            <span className="match-card__start-time-value">{getTimeDisplay()}</span>
                         </time>
                     )}
                 </div>
@@ -249,6 +256,7 @@ function VodButtons({ match, canShowScore }: { match: MatchListItem; canShowScor
 
     return (
         <>
+            <span className="match-card__vods-label">Watch VODs:</span>
             {Array.from({ length: count }, (_, i) => {
                 const game = match.games.find((listedGame) => listedGame.gameNumber === i + 1);
                 return game?.vodUrl ? (
@@ -262,7 +270,7 @@ function VodButtons({ match, canShowScore }: { match: MatchListItem; canShowScor
                         aria-label={`Watch Game ${i + 1} VOD`}
                     >
                         <span className="match-card__vod-number">{i + 1}</span>
-                        <span className="match-card__vod-play"><PlayIcon size={20} aria-hidden="true" /></span>
+                        <span className="match-card__vod-play"><PlayIcon size={18} aria-hidden="true" /></span>
                     </a>
                 ) : (
                     <button
@@ -272,7 +280,7 @@ function VodButtons({ match, canShowScore }: { match: MatchListItem; canShowScor
                         aria-disabled="true"
                     >
                         <span className="match-card__vod-number">{i + 1}</span>
-                        <span className="match-card__vod-play"><PlayIcon size={20} aria-hidden="true" /></span>
+                        <span className="match-card__vod-play"><PlayIcon size={16} aria-hidden="true" /></span>
                     </button>
                 );
             })}
