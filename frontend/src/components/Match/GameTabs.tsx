@@ -4,15 +4,13 @@ interface GameTabsProps {
     games: GameListItem[];
     currentGame: GameListItem | undefined;
     onSelect: (gameNumber: number) => void;
-    getWinnerShort: (winningTeam: number | null) => string | null;
 }
 
-export function GameTabs({ games, currentGame, onSelect, getWinnerShort }: GameTabsProps) {
+export function GameTabs({ games, currentGame, onSelect }: GameTabsProps) {
     return (
         <div className="match-detail__tabs" role="tablist" aria-label="Games in this match">
             {games.map((game) => {
                 const isActive = currentGame?.gameNumber === game.gameNumber;
-                const winnerShort = getWinnerShort(game.winningTeam);
 
                 return (
                     <button
@@ -26,9 +24,6 @@ export function GameTabs({ games, currentGame, onSelect, getWinnerShort }: GameT
                         onClick={() => onSelect(game.gameNumber)}
                     >
                         <span className="match-detail__tab-number">Game {game.gameNumber}</span>
-                        {winnerShort && (
-                            <span className="match-detail__tab-winner">{winnerShort} win</span>
-                        )}
                     </button>
                 );
             })}

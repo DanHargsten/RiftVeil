@@ -1,7 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { GameObjectives } from "@/components/Match/GameObjectives.tsx";
 import { GamePanel } from "@/components/Match/GamePanel.tsx";
 import { GameTabs } from "@/components/Match/GameTabs.tsx";
 import { MatchHero } from "@/components/Match/MatchHero.tsx";
@@ -66,12 +65,6 @@ export function MatchDetail() {
         );
     }
 
-    const getGameWinnerShort = (winningTeam: number | null) => {
-        if (winningTeam === 1) return match.team1ShortName;
-        if (winningTeam === 2) return match.team2ShortName;
-        return null;
-    };
-
     async function handleDevImportGameDetails() {
         if (!currentGame || devImportBusy) return;
         setDevImportBusy(true);
@@ -104,40 +97,18 @@ export function MatchDetail() {
     return (
         <div className="page">
             <div className="match-detail__outer">
-                <aside className="match-detail__sidebar match-detail__sidebar--left">
-                    <section
-                        className="match-detail__section"
-                        aria-labelledby="match-detail-objectives-title"
-                    >
-                        <h2 id="match-detail-objectives-title" className="match-detail__section-title">
-                            Global objectives
-                        </h2>
-                        {currentGame ? (
-                            <GameObjectives
-                                match={match}
-                                gameDetails={gameDetails}
-                                loading={gameLoading}
-                                error={gameDetailsError}
-                            />
-                        ) : (
-                            <div className="match-detail__objectives-body match-detail__objectives-body--state">
-                                <span className="match-detail__objectives-muted">No game selected.</span>
-                            </div>
-                        )}
-                    </section>
-                </aside>
-
                 <div className="match-detail">
                     <MatchHero
                         match={match}
                         from={from}
                         backLabel={backLabel}
-                    />
-                    <GameTabs
-                        games={playedGames}
-                        currentGame={currentGame}
-                        onSelect={setSelectedGame}
-                        getWinnerShort={getGameWinnerShort}
+                        footer={(
+                            <GameTabs
+                                games={playedGames}
+                                currentGame={currentGame}
+                                onSelect={setSelectedGame}
+                            />
+                        )}
                     />
                     {currentGame && (
                         <GamePanel
@@ -150,20 +121,6 @@ export function MatchDetail() {
                         />
                     )}
                 </div>
-
-                <aside className="match-detail__sidebar match-detail__sidebar--right">
-                    <section
-                        className="match-detail__section"
-                        aria-labelledby="match-detail-highlights-title"
-                    >
-                        <h2 id="match-detail-highlights-title" className="match-detail__section-title">
-                            Highlights
-                        </h2>
-                        <div className="match-detail__placeholder-body">
-                            <span>Coming soon</span>
-                        </div>
-                    </section>
-                </aside>
             </div>
         </div>
     );

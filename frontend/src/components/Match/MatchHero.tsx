@@ -1,4 +1,5 @@
 ﻿import { Link } from "react-router-dom";
+import type { ReactNode } from "react";
 import { LeagueLogo, TeamLogo } from "@/components/common/Logos.tsx";
 import type { MatchDetails } from "@/lib/api.ts";
 
@@ -6,9 +7,10 @@ interface MatchHeroProps {
     match: MatchDetails;
     from: string;
     backLabel: string;
+    footer?: ReactNode;
 }
 
-export function MatchHero({ match, from, backLabel }: MatchHeroProps) {
+export function MatchHero({ match, from, backLabel, footer }: MatchHeroProps) {
     const team1Wins = match.team1Score ?? 0;
     const team2Wins = match.team2Score ?? 0;
     const team1IsWinner = team1Wins > team2Wins;
@@ -88,6 +90,7 @@ export function MatchHero({ match, from, backLabel }: MatchHeroProps) {
                     </div>
                 </div>
             </div>
+            {footer ? <div className="match-detail__hero-footer">{footer}</div> : null}
         </header>
     );
 }
