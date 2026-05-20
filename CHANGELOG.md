@@ -6,6 +6,47 @@ For class-level detail, heuristics, and file references, see [`docs/technical-lo
 
 Early months (2026-01 through ~2026-04-13) are summarised at a high level; the project log was backfilled from memory and commits before day-by-day notes started.
 
+## 2026-05-20
+
+### Added
+
+- **CBLOL and LCP** — new leagues in DB seed, Admin import/backfill selectors, Leaguepedia import mapping, and LoLesports VOD slug map. Tournament import falls back to `OverviewPage LIKE "{SHORT}/%"` when Cargo `League` returns no rows (same pattern as LPL).
+- **LCK seed** — `LCK` is now ensured on startup like the other major leagues (was selectable in Admin but missing from the default seed).
+- **Team logos from Leaguepedia** — `Team.IconLogoUrl` (square/isotype) plus richer `LogoUrl` from Cargo `Teams.Image`; match list/detail APIs expose `team*LogoUrl` and `team*IconLogoUrl`.
+- **Admin — Teams tab** — list/search teams, edit metadata, per-row **Sync LP**, orphan delete, and problem filters (missing icon/logo/short).
+- **Admin — scoped imports** — default **last 7 days** for matches, VODs, and game details; **Backfill** tab with game IDs, game sides, and team metadata jobs.
+- **Import API** — `POST /api/import/matches/{league}/recent`, `POST /api/import/vods/{league}/recent`, `POST /api/import/backfill-teams`, `GET/PATCH /api/teams`, sync and delete endpoints.
+
+### Changed
+
+- **Team logo display** — UI resolves `local {short}-square.png` → `{short}.png` → remote icon URL → placeholder, with on-error fallback chain.
+- **Admin layout** — `/admin` split into Import, Backfill, and Teams tabs (keyboard-friendly tablist and live regions for job status).
+- **Leaguepedia team preload** — wider Cargo region list and `OverviewPage` on import/backfill; square icon URLs verified via authenticated Fandom `Special:FilePath` when possible.
+
+### Notes
+
+- Add league logos at `frontend/public/logos/leagues/cblol.png` and `lcp.png` (placeholder is used until then). Restart the API after deploy so `DbInitializer` inserts the new league rows.
+- Apply EF migration **`AddTeamIconLogoUrl`** before using team backfill or the Teams admin tab.
+
+## 2026-05-19
+
+### Added
+
+- **Match detail — lane scoreboard** — player stats are shown as lane-by-lane matchups (top through support) in one table, with role icons and champion/item art loaded from the current Data Dragon patch.
+- **Match detail — draft summary** — team logos, KDA and gold totals with icons, and a WIN badge on the winning side above the draft picks.
+
+### Changed
+
+- **Typography** — site-wide font stack updated to **Space Grotesk** with **Orbitron** on the navbar brand.
+- **Match detail layout** — single centred column; game tabs sit under the match hero; **Global objectives** and **Highlights** live inside the active game panel (side columns removed).
+- **Match cards** — winning team is emphasised and the loser is subdued when scores are visible; clearer upcoming start time and an explicit **Watch VODs** label when game links exist.
+- **Home sidebar** — tournament sidebar owns its right border and background so the divider stays aligned while scrolling.
+- **Item and champion icons** — match views use the latest **Data Dragon** patch from Riot’s CDN instead of a fixed hard-coded version.
+
+### Notes
+
+- The lane scoreboard hides the damage column on match detail for now; damage remains available in the component for other views.
+
 ## 2026-05-13
 
 ### Added

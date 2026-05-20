@@ -62,3 +62,33 @@ Hard-coded delays in **`LeaguepediaImportService`** were replaced with **`League
 ## Game detail import filters
 
 - **`ImportGameDetailsForTournamentAsync`** only processes games with **`Game.WinningTeam != null`** so unplayed phantom bracket games (e.g. undecided BO3 game 3) do not trigger Cargo round-trips.
+
+---
+
+## Team metadata: Cargo `Teams.Image`, `LogoUrl`, and `IconLogoUrl`
+
+Leaguepedia stores a single **`Teams.Image`** filename (often a wordmark, e.g. `FlyQuestlogo profile.png`). RiftVeil maps it as follows:
+
+- **`Team.LogoUrl`** — `Special:FilePath` URL for the Cargo filename as-is (wordmark/profile).
+- **`Team.IconLogoUrl`** — square/isotype when Leaguepedia naming allows (`*logo square.png`), derived from the wordmark via **`LeaguepediaImageUrls.ToSquareLogoFileName`**, optionally verified with **`LeaguepediaClient.FilePathUrlExistsAsync`** (same bot session as Cargo).
+
+Import and **`BackfillTeamMetadataAsync`** preload Cargo **`Teams`** rows (broader region list than the old short-name-only cache). Teams with no square filename pattern are reported in **`TeamBackfillResultDto.MissingIconLogo`** for manual follow-up in Admin.
+
+### Migration
+
+Apply **`AddTeamIconLogoUrl`** before running team backfill or opening the Admin Teams tab. Existing DBs keep working for reads once migrated.
+
+### Frontend resolution order (icon variant)
+
+1. `frontend/public/logos/teams/{short}-square.png`
+2. `{short}.png`
+3. `IconLogoUrl` from API
+4. `placeholder.png`
+
+Wordmarks use `{short}.png` → `LogoUrl` → placeholder. See **`frontend/src/lib/teamLogo.ts`**.
+
+---
+
+## Scoped import windows (`ImportTournamentFilter`)
+
+**`ImportTournamentFilter.DefaultRecentDays`** (7) drives **recent** match/VOD/game-detail jobs: tournaments whose schedule overlaps the last N days (ongoing + just finished). Ongoing-only paths use **`WhereOngoing`** / **`WhereOngoingByStatus`** depending on the job. Tournament list import still loads the full league from Leaguepedia regardless of match scope.

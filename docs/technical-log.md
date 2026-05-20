@@ -6,6 +6,30 @@ Entries are **newest first**, same structure as before this split.
 
 ---
 
+## 2026-05-20
+
+### Added
+
+- **`Team.IconLogoUrl`** + EF migration **`AddTeamIconLogoUrl`**; **`LeaguepediaImageUrls`**, **`LeaguepediaTeamLogoVerifier`**, **`ImportTournamentFilter`**.
+- **`LeaguepediaImportService`**: Cargo team preload (`Image`, `OverviewPage`, regions), **`BackfillTeamMetadataAsync`**, **`SyncTeamMetadataFromLeaguepediaAsync`**, **`ImportRecentMatchesAsync`**; tournament **`OverviewPage`** fallback generalised beyond LPL (uses league short name).
+- **`ImportController`**: recent match/VOD routes, team backfill endpoints, **`recentDays`** on game-details league import.
+- **`TeamsController`** + DTOs under **`Application/Dtos/Teams/`**; **`LeaguepediaImageUrlsTests`**.
+- **`DbInitializer`**: **LCK**, **CBLOL**, **LCP**; **`LolesportsVodEnricher`**: CBLOL/LCP slugs, **`recentDays`** VOD scope.
+- Frontend **`AdminImportTab`**, **`AdminBackfillTab`**, **`AdminTeamsTab`**, **`adminShared`**, **`adminHelpers`**; **`teamLogo.ts`** resolution chain; match DTOs/projections include logo fields.
+- Refreshed **`frontend/public/logos/teams/*.png`** assets (wordmarks; optional **`-square`** siblings).
+
+### Changed
+
+- **`Admin.tsx`**: tabbed shell (`role="tablist"` / **`tabpanel`**); import default scope **recent 7 days**.
+- **`Logos.tsx`**: **`TeamLogo`** uses API URLs + multi-step **`onError`** fallback.
+- **`LeaguepediaClient`**: **`FilePathUrlExistsAsync`** (HEAD/Range GET under Cargo semaphore).
+- Dev logging: suppress noisy EF SQL and **`HttpClient`** categories in **`appsettings.Development.json`**.
+
+### Notes
+
+- Do not commit **`.cursor/`**, unused **`frontend/public/backgrounds/`**, or orphan **`zzlol-stat-cs.png`** unless wired up.
+- **`TeamsController`** / verifier files were normalised to single-line spacing (editor had inserted blank lines between every line).
+
 ## 2026-05-13
 
 ### Added
