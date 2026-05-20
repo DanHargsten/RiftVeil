@@ -24,9 +24,14 @@ public class LolesportsVodEnricher(
         ["LCS"] = "lcs",
         ["LCK"] = "lck",
         ["LPL"] = "lpl",
+        ["CBLOL"] = "cblol",
+        ["LCP"] = "lcp",
     };
 
-    public async Task EnrichVodsAsync(string leagueShortName, bool ongoingOnly = false)
+    public async Task EnrichVodsAsync(
+        string leagueShortName,
+        bool ongoingOnly = false,
+        int? recentDays = null)
     {
         logger.LogInformation("Starting VOD enrichment for {LeagueShortName}", leagueShortName);
 
@@ -55,12 +60,21 @@ public class LolesportsVodEnricher(
         var lolesportsTournaments = await GetLolesportsTournamentsAsync(lolesportsLeagueId);
         logger.LogInformation("Found {Count} lolesports tournaments for {LeagueShortName}", lolesportsTournaments.Count, leagueShortName);
 
-        var tournamentsQuery = dbContext.Tournaments
+        var utcNow = DateTimeOffset.UtcNow;
+        IQueryable<Tournament> tournamentsQuery = dbContext.Tournaments
             .Where(tournament => tournament.LeagueId == league.Id);
 
-        if (ongoingOnly)
+        if (recentDays is > 0)
         {
-            tournamentsQuery = tournamentsQuery.Where(tournament => tournament.Status == TournamentStatus.Ongoing);
+            tournamentsQuery = ImportTournamentFilter.WhereRecent(tournamentsQuery, utcNow, recentDays.Value);
+            logger.LogInformation(
+                "VOD scope: tournaments overlapping the last {RecentDays} day(s)",
+                recentDays.Value);
+        }
+        else if (ongoingOnly)
+        {
+            tournamentsQuery = ImportTournamentFilter.WhereOngoingByStatus(tournamentsQuery);
+            logger.LogInformation("VOD scope: ongoing tournaments only");
         }
 
         var ourTournaments = await tournamentsQuery

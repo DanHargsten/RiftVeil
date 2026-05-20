@@ -15,7 +15,10 @@ public static class DbInitializer
     {
         EnsureLeague(context, "EMEA Championship", "LEC", "EMEA", "lec");
         EnsureLeague(context, "North America Championship", "LCS", "NA", "lcs");
+        EnsureLeague(context, "LoL Champions Korea", "LCK", "Korea", "lck");
         EnsureLeague(context, "LoL Pro League", "LPL", "China", "lpl");
+        EnsureLeague(context, "Campeonato Brasileiro de LoL", "CBLOL", "Brazil", "cblol");
+        EnsureLeague(context, "LoL Championship Pacific", "LCP", "Asia-Pacific", "lcp");
         EnsureLeague(context, "International Championship", "INTL", "Global", "international");
 
         context.SaveChanges();

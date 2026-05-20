@@ -1,21 +1,32 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using RiftVeil.Domain.Entities;
 using RiftVeil.Domain.Enums;
+using RiftVeil.Application.Dtos.Teams;
 using RiftVeil.Infrastructure.Data;
 
 namespace RiftVeil.Infrastructure.Services.Import;
+
+internal sealed record TeamCargoData(
+    string? Short,
+    string? LogoUrl,
+    string? IconLogoUrl,
+    string? Region,
+    string? OverviewPage,
+    bool MissingIconLogo);
 
 /// <summary>
 /// Imports tournaments, matches, games, and teams from Leaguepedia into the database.
 /// </summary>
 public class LeaguepediaImportService(
     LeaguepediaClient client,
+    LeaguepediaTeamLogoVerifier logoVerifier,
     RiftVeilDbContext dbContext,
     IOptions<LeaguepediaClientOptions> leaguepediaOptions)
 {
     private readonly LeaguepediaClientOptions _leaguepediaOptions = leaguepediaOptions.Value;
-    private readonly Dictionary<string, string?> _shortNameCache = new();
+    private readonly Dictionary<string, TeamCargoData?> _teamCargoCache = new(StringComparer.Ordinal);
 
     private class ImportStats
     {
@@ -40,7 +51,7 @@ public class LeaguepediaImportService(
     /// <summary>
     /// Imports tournaments for the given league from Leaguepedia.
     /// </summary>
-    public async Task ImportTournamentsAsync(string leagueName, int leagueId)
+    public async Task ImportTournamentsAsync(string leagueName, int leagueId, string leagueShortName)
     {
         var stats = new ImportStats();
         var results = await client.QueryAsync(
@@ -51,15 +62,16 @@ public class LeaguepediaImportService(
             limit: 20
         );
 
-        // Leaguepedia occasionally uses inconsistent League labels for LPL rows.
-        // If strict League filter returns no rows, fallback to OverviewPage prefix.
-        if (results.Count == 0 && string.Equals(leagueName, "LPL", StringComparison.OrdinalIgnoreCase))
+        // Leaguepedia League labels are inconsistent for some regions (e.g. LPL, CBLOL, LCP).
+        if (results.Count == 0)
         {
-            Console.WriteLine("  No tournaments found for League=\"LPL\". Falling back to OverviewPage LIKE \"LPL/%\".");
+            var prefix = leagueShortName.Trim().ToUpperInvariant();
+            Console.WriteLine(
+                $"  No tournaments found for League=\"{leagueName}\". Falling back to OverviewPage LIKE \"{prefix}/%\".");
             results = await client.QueryAsync(
                 tables: "Tournaments",
                 fields: "Name,DateStart,Date,League,Region,OverviewPage",
-                where: "OverviewPage LIKE \"LPL/%\"",
+                where: $"OverviewPage LIKE \"{prefix}/%\"",
                 orderBy: "DateStart DESC",
                 limit: 20
             );
@@ -132,6 +144,8 @@ public class LeaguepediaImportService(
     /// </summary>
     public async Task ImportMatchesAsync(int leagueId)
     {
+        await PreloadTeamCargoAsync();
+
         var matchStats = new ImportStats();
         var gameStats = new ImportStats();
 
@@ -152,19 +166,53 @@ public class LeaguepediaImportService(
     }
 
     /// <summary>
-    /// Imports matches only for currently ongoing tournaments.
+    /// Imports matches for tournaments active in the last <paramref name="recentDays"/> days
+    /// (ongoing plus recently completed).
     /// </summary>
-    public async Task ImportOngoingMatchesAsync(int leagueId)
+    public async Task ImportRecentMatchesAsync(int leagueId, int recentDays = ImportTournamentFilter.DefaultRecentDays)
     {
+        await PreloadTeamCargoAsync();
+
         var matchStats = new ImportStats();
         var gameStats = new ImportStats();
 
         var now = DateTimeOffset.UtcNow;
-        var tournaments = await dbContext.Tournaments
-            .Where(tournament => tournament.LeagueId == leagueId
-                        && tournament.LiquipediaSlug != null
-                        && tournament.StartsAtUtc <= now
-                        && (tournament.EndsAtUtc == null || tournament.EndsAtUtc >= now))
+        var tournaments = await ImportTournamentFilter
+            .WhereRecent(
+                dbContext.Tournaments.Where(tournament => tournament.LeagueId == leagueId),
+                now,
+                recentDays)
+            .ToListAsync();
+
+        Console.WriteLine($"  Found {tournaments.Count} tournament(s) in the last {recentDays} day(s)");
+
+        foreach (var tournament in tournaments)
+        {
+            var importedCount = await ImportMatchesForTournamentAsync(tournament, matchStats, gameStats);
+
+            if (importedCount > 0)
+                await DelayBetweenTournamentsAsync();
+        }
+
+        matchStats.Print($"Matches (last {recentDays} days)");
+        gameStats.Print($"Games (last {recentDays} days)");
+    }
+
+    /// <summary>
+    /// Imports matches only for currently ongoing tournaments.
+    /// </summary>
+    public async Task ImportOngoingMatchesAsync(int leagueId)
+    {
+        await PreloadTeamCargoAsync();
+
+        var matchStats = new ImportStats();
+        var gameStats = new ImportStats();
+
+        var now = DateTimeOffset.UtcNow;
+        var tournaments = await ImportTournamentFilter
+            .WhereOngoing(
+                dbContext.Tournaments.Where(tournament => tournament.LeagueId == leagueId),
+                now)
             .ToListAsync();
 
         Console.WriteLine($"  Found {tournaments.Count} ongoing tournament(s)");
@@ -428,33 +476,140 @@ public class LeaguepediaImportService(
         await dbContext.SaveChangesAsync();
     }
 
-    private async Task PreloadTeamShortNamesAsync()
+    /// <summary>
+    /// Fills logo URLs, region, short name, and overview page from Leaguepedia Cargo <c>Teams</c>.
+    /// </summary>
+    public async Task<TeamBackfillResultDto> BackfillTeamMetadataAsync(int? leagueId = null, bool overwrite = false)
     {
-        var regions = new[] { "Europe", "EMEA", "CIS", "Turkey", "Korea", "North America", "China" };
+        var teamsQuery = dbContext.Teams.AsQueryable();
+        if (leagueId.HasValue)
+        {
+            teamsQuery = teamsQuery.Where(team =>
+                dbContext.Matches.Any(match =>
+                    match.Tournament.LeagueId == leagueId.Value
+                    && (match.Team1Id == team.Id || match.Team2Id == team.Id)));
+        }
 
-        // No per-region spacer — LeaguepediaClient already applies PostSuccessDelayMilliseconds
-        // after each successful response, and the process-wide semaphore guarantees serial execution.
+        var teams = await teamsQuery.OrderBy(team => team.Name).ToListAsync();
+        var updated = 0;
+        var skipped = 0;
+        var notFound = 0;
+        var missingIconLogo = new List<TeamMissingIconDto>();
+
+        Console.WriteLine($"  Backfilling team metadata for {teams.Count} team(s)...");
+
+        foreach (var team in teams)
+        {
+            if (!overwrite
+                && !string.IsNullOrWhiteSpace(team.Region)
+                && !string.IsNullOrWhiteSpace(team.ExternalId)
+                && !string.IsNullOrWhiteSpace(team.LogoUrl)
+                && !string.IsNullOrWhiteSpace(team.IconLogoUrl))
+            {
+                skipped++;
+                continue;
+            }
+
+            var (synced, missingIcon) = await SyncTeamMetadataInternalAsync(team, overwrite);
+            if (synced)
+            {
+                updated++;
+                if (missingIcon)
+                    missingIconLogo.Add(new TeamMissingIconDto(team.Id, team.Name, team.ShortName));
+            }
+            else
+            {
+                notFound++;
+            }
+        }
+
+        await dbContext.SaveChangesAsync();
+
+        Console.WriteLine(
+            $"  Team metadata: {updated} updated, {skipped} skipped, {notFound} not found, {missingIconLogo.Count} missing icon URL");
+
+        if (missingIconLogo.Count > 0)
+        {
+            Console.WriteLine(
+                $"  Missing icon URL (no square filename in Cargo Image): {string.Join(", ", missingIconLogo.Select(t => t.ShortName))}");
+        }
+
+        return new TeamBackfillResultDto(teams.Count, updated, skipped, notFound, missingIconLogo);
+    }
+
+    /// <summary>
+    /// Loads Cargo <c>Teams</c> row for <paramref name="team"/> and applies metadata.
+    /// Returns false when Leaguepedia has no matching team.
+    /// </summary>
+    public async Task<bool> SyncTeamMetadataFromLeaguepediaAsync(Team team, bool overwrite = false)
+    {
+        var (synced, _) = await SyncTeamMetadataInternalAsync(team, overwrite);
+        return synced;
+    }
+
+    private async Task<(bool Synced, bool MissingIconLogo)> SyncTeamMetadataInternalAsync(
+        Team team,
+        bool overwrite)
+    {
+        var cargo = await ResolveTeamCargoAsync(team);
+        if (cargo == null)
+            return (false, false);
+
+        await ApplyTeamCargoAsync(team, cargo, overwrite);
+        return (true, cargo.MissingIconLogo);
+    }
+
+    private async Task<bool> IsShortNameAvailableAsync(int teamId, string shortName) =>
+        !await IsShortNameTakenAsync(teamId, shortName);
+
+    private async Task<bool> IsShortNameTakenAsync(int excludeTeamId, string shortName)
+    {
+        if (dbContext.Teams.Local.Any(t =>
+                t.ShortName == shortName && (excludeTeamId == 0 || t.Id != excludeTeamId)))
+        {
+            return true;
+        }
+
+        return await dbContext.Teams.AnyAsync(t =>
+            t.ShortName == shortName && t.Id != excludeTeamId);
+    }
+
+    private async Task<string> AllocateImportShortNameAsync(string teamName, string? cargoShort)
+    {
+        if (!string.IsNullOrWhiteSpace(cargoShort) && !await IsShortNameTakenAsync(0, cargoShort))
+            return cargoShort;
+
+        for (var n = 1; n < 10_000; n++)
+        {
+            var candidate = $"UNK{n}";
+            if (!await IsShortNameTakenAsync(0, candidate))
+                return candidate;
+        }
+
+        throw new InvalidOperationException($"Could not allocate a unique short name for '{teamName}'.");
+    }
+
+    private async Task PreloadTeamCargoAsync()
+    {
+        if (_teamCargoCache.Count > 0)
+            return;
+
+        var regions = new[] { "Europe", "EMEA", "CIS", "Turkey", "Korea", "North America", "China", "Americas", "Asia Pacific", "SEA" };
+
         foreach (var region in regions)
         {
             var results = await client.QueryAsync(
                 tables: "Teams",
-                fields: "Name,Short",
+                fields: "Name,Short,Image,Region,OverviewPage",
                 where: $"Region=\"{region}\"",
-                limit: 100
+                limit: 500
             );
 
             foreach (var row in results)
-            {
-                var name = row.GetProperty("Name").GetString();
-                var shortName = row.GetProperty("Short").GetString();
-                if (!string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(shortName))
-                {
-                    _shortNameCache[name] = shortName.Trim().ToUpperInvariant();
-                }
-            }
+                await CacheTeamCargoRowAsync(row, verifyIconUrl: false);
         }
 
-        Console.WriteLine($"  Preloaded {_shortNameCache.Count} team short names");
+        Console.WriteLine($"  Preloaded {_teamCargoCache.Count} team Cargo row(s) (icon URLs derived, no HTTP verify)");
     }
 
     private readonly Dictionary<string, Team> _teamCache = new();
@@ -466,30 +621,30 @@ public class LeaguepediaImportService(
         if (_teamCache.TryGetValue(teamName, out var cachedTeam))
             return cachedTeam;
 
-        var team = await dbContext.Teams.FirstOrDefaultAsync(team => team.Name == teamName);
+        var team = await dbContext.Teams.FirstOrDefaultAsync(t => t.Name == teamName);
 
         if (team == null)
         {
-            string shortName;
-            if (_shortNameCache.TryGetValue(teamName, out var cached) && cached != null)
+            var cachedCargo = await ResolveTeamCargoForNameAsync(teamName);
+            var shortName = await AllocateImportShortNameAsync(teamName, cachedCargo?.Short);
+            if (string.IsNullOrWhiteSpace(cachedCargo?.Short))
             {
-                shortName = cached;
-            }
-            else
-            {
-                shortName = await LookupShortNameAsync(teamName)
-                            ?? teamName.Replace(" ", "")[..Math.Min(teamName.Replace(" ", "").Length, 3)].ToUpperInvariant();
-
-                if (shortName.Length <= 3)
-                    Console.WriteLine($"  Warning: Using fallback short name '{shortName}' for '{teamName}' — fix manually");
+                Console.WriteLine(
+                    $"  MANUAL_CHECK_REQUIRED: '{teamName}' — no Leaguepedia Teams row; assigned short '{shortName}'. Set name/short in Admin and run Sync LP");
             }
 
-            var shortNameExists = await dbContext.Teams.AnyAsync(team => team.ShortName == shortName);
-            if (shortNameExists)
-                shortName = shortName[..Math.Min(shortName.Length, 17)] + dbContext.Teams.Local.Count;
-
-            team = new Team(teamName, shortName);
+            team = new Team(
+                teamName,
+                shortName,
+                region: cachedCargo?.Region,
+                logoUrl: cachedCargo?.LogoUrl,
+                iconLogoUrl: cachedCargo?.IconLogoUrl,
+                externalId: cachedCargo?.OverviewPage);
             dbContext.Teams.Add(team);
+            await dbContext.SaveChangesAsync();
+        }
+        else if ((await SyncTeamMetadataInternalAsync(team, overwrite: false)).Synced)
+        {
             await dbContext.SaveChangesAsync();
         }
 
@@ -497,39 +652,206 @@ public class LeaguepediaImportService(
         return team;
     }
 
-    private async Task<string?> LookupShortNameAsync(string teamName)
+    private async Task CacheTeamCargoRowAsync(JsonElement row, bool verifyIconUrl = false)
     {
-        if (_shortNameCache.TryGetValue(teamName, out var cached))
+        var cargo = await BuildTeamCargoDataAsync(row, verifyIconUrl);
+        if (cargo == null)
+            return;
+
+        var name = row.GetProperty("Name").GetString()!;
+        _teamCargoCache[name] = cargo;
+
+        if (!string.IsNullOrWhiteSpace(cargo.OverviewPage)
+            && !string.Equals(cargo.OverviewPage, name, StringComparison.Ordinal))
+        {
+            _teamCargoCache[cargo.OverviewPage] = cargo;
+        }
+    }
+
+    private async Task<TeamCargoData?> BuildTeamCargoDataAsync(JsonElement row, bool verifyIconUrl = true)
+    {
+        var name = row.GetProperty("Name").GetString();
+        if (string.IsNullOrWhiteSpace(name))
+            return null;
+
+        var shortName = row.TryGetProperty("Short", out var shortProp) ? shortProp.GetString() : null;
+        var normalizedShort = string.IsNullOrWhiteSpace(shortName) ? null : shortName.Trim().ToUpperInvariant();
+
+        var image = row.TryGetProperty("Image", out var imageProp) ? imageProp.GetString() : null;
+        var logoUrl = LeaguepediaImageUrls.TeamLogoFromCargoImage(image);
+        var canDeriveSquare = LeaguepediaImageUrls.ToSquareLogoFileName(image) != null;
+        var iconLogoUrl = verifyIconUrl
+            ? await logoVerifier.ResolveVerifiedIconUrlAsync(image)
+            : LeaguepediaImageUrls.TeamMarkFromCargoImage(image);
+        // Missing only when Cargo has an image but no square filename can be derived (not HTTP failures).
+        var missingIcon = !string.IsNullOrWhiteSpace(image) && !canDeriveSquare;
+
+        var region = row.TryGetProperty("Region", out var regionProp) ? regionProp.GetString()?.Trim() : null;
+        var overviewPage = row.TryGetProperty("OverviewPage", out var overviewProp) ? overviewProp.GetString()?.Trim() : null;
+
+        return new TeamCargoData(normalizedShort, logoUrl, iconLogoUrl, region, overviewPage, missingIcon);
+    }
+
+    private async Task<bool> ApplyTeamCargoAsync(Team team, TeamCargoData cargo, bool overwrite)
+    {
+        var changed = false;
+
+        if ((overwrite || string.IsNullOrWhiteSpace(team.LogoUrl)) && !string.IsNullOrWhiteSpace(cargo.LogoUrl))
+        {
+            team.SetLogoUrl(cargo.LogoUrl);
+            changed = true;
+        }
+
+        var iconUrl = cargo.IconLogoUrl
+            ?? LeaguepediaImageUrls.TeamMarkFromLogoUrl(team.LogoUrl)
+            ?? LeaguepediaImageUrls.TeamMarkFromLogoUrl(cargo.LogoUrl);
+        if ((overwrite || string.IsNullOrWhiteSpace(team.IconLogoUrl)) && !string.IsNullOrWhiteSpace(iconUrl))
+        {
+            team.SetIconLogoUrl(iconUrl);
+            changed = true;
+        }
+
+        if ((overwrite || string.IsNullOrWhiteSpace(team.Region)) && !string.IsNullOrWhiteSpace(cargo.Region))
+        {
+            team.SetRegion(cargo.Region);
+            changed = true;
+        }
+
+        if ((overwrite || string.IsNullOrWhiteSpace(team.ExternalId)) && !string.IsNullOrWhiteSpace(cargo.OverviewPage))
+        {
+            team.SetExternalId(cargo.OverviewPage);
+            changed = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(cargo.Short)
+            && (overwrite
+                || string.IsNullOrWhiteSpace(team.ShortName)
+                || team.ShortName.Equals("UNK", StringComparison.OrdinalIgnoreCase)
+                || LooksLikeGuessedShort(team.ShortName, team.Name)))
+        {
+            var sameShort = team.ShortName.Equals(cargo.Short, StringComparison.OrdinalIgnoreCase);
+            if (sameShort || await IsShortNameAvailableAsync(team.Id, cargo.Short))
+            {
+                if (!sameShort)
+                    team.SetShortName(cargo.Short);
+                changed = true;
+            }
+            else
+            {
+                Console.WriteLine(
+                    $"  Skipped short '{cargo.Short}' for '{team.Name}' (already used by another team)");
+            }
+        }
+
+        return changed;
+    }
+
+    private Task<TeamCargoData?> ResolveTeamCargoAsync(Team team) =>
+        ResolveTeamCargoAsync(team.Name, team.ShortName, team.ExternalId);
+
+    private Task<TeamCargoData?> ResolveTeamCargoForNameAsync(string teamName) =>
+        ResolveTeamCargoAsync(teamName, shortName: null, externalId: null);
+
+    private async Task<TeamCargoData?> ResolveTeamCargoAsync(
+        string teamName,
+        string? shortName,
+        string? externalId)
+    {
+        if (_teamCargoCache.TryGetValue(teamName, out var cached))
             return cached;
 
-        // LeaguepediaClient.QueryAsync already paces requests; no extra delay needed here.
         try
         {
-            var results = await client.QueryAsync(
-                tables: "Teams",
-                fields: "Name,Short",
-                where: $"Name=\"{teamName}\"",
-                limit: 1
-            );
-
-            if (results.Count > 0)
+            foreach (var where in BuildTeamCargoWhereClauses(teamName, shortName, externalId))
             {
-                var shortName = results[0].GetProperty("Short").GetString();
-                if (!string.IsNullOrWhiteSpace(shortName))
-                {
-                    var normalized = shortName.Trim().ToUpperInvariant();
-                    _shortNameCache[teamName] = normalized;
-                    return normalized;
-                }
+                var results = await client.QueryAsync(
+                    tables: "Teams",
+                    fields: "Name,Short,Image,Region,OverviewPage",
+                    where: where,
+                    limit: 1);
+
+                if (results.Count == 0)
+                    continue;
+
+                var cargo = await BuildTeamCargoDataAsync(results[0]);
+                _teamCargoCache[teamName] = cargo;
+                await CacheTeamCargoRowAsync(results[0]);
+                return cargo;
             }
+
+            _teamCargoCache[teamName] = null;
+            return null;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"  Warning: Could not look up short name for '{teamName}': {ex.Message}");
+            Console.WriteLine($"  Warning: Could not look up team Cargo for '{teamName}': {ex.Message}");
+            _teamCargoCache[teamName] = null;
+            return null;
+        }
+    }
+
+    private static IEnumerable<string> BuildTeamCargoWhereClauses(
+        string teamName,
+        string? shortName,
+        string? externalId)
+    {
+        yield return $"Name=\"{EscapeCargoValue(teamName)}\"";
+
+        var stripped = StripDisambiguationSuffix(teamName);
+        if (stripped != null && !stripped.Equals(teamName, StringComparison.Ordinal))
+            yield return $"Name=\"{EscapeCargoValue(stripped)}\"";
+
+        if (!string.IsNullOrWhiteSpace(externalId))
+            yield return $"OverviewPage=\"{EscapeCargoValue(externalId)}\"";
+
+        var overviewSlug = ToWikiOverviewSlug(teamName);
+        if (!string.IsNullOrEmpty(overviewSlug))
+            yield return $"OverviewPage=\"{EscapeCargoValue(overviewSlug)}\"";
+
+        if (stripped != null)
+        {
+            var strippedSlug = ToWikiOverviewSlug(stripped);
+            if (!string.IsNullOrEmpty(strippedSlug) && !strippedSlug.Equals(overviewSlug, StringComparison.Ordinal))
+                yield return $"OverviewPage=\"{EscapeCargoValue(strippedSlug)}\"";
         }
 
-        _shortNameCache[teamName] = null;
-        return null;
+        if (teamName.Length >= 4)
+            yield return $"Name LIKE \"%{EscapeCargoValue(teamName)}%\"";
+
+        if (stripped != null && stripped.Length >= 4)
+            yield return $"Name LIKE \"%{EscapeCargoValue(stripped)}%\"";
+
+        // Last resort: short may be correct even when it matches a 3-letter name prefix (e.g. DNF for DN Freecs).
+        if (!string.IsNullOrWhiteSpace(shortName)
+            && !shortName.Equals("UNK", StringComparison.OrdinalIgnoreCase)
+            && shortName.Length is >= 2 and <= 6)
+        {
+            yield return $"Short=\"{EscapeCargoValue(shortName)}\"";
+        }
+    }
+
+    private static string ToWikiOverviewSlug(string teamName) =>
+        teamName.Trim().Replace(' ', '_');
+
+    private static string EscapeCargoValue(string value) => value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+
+    private static string? StripDisambiguationSuffix(string name)
+    {
+        var open = name.LastIndexOf(" (", StringComparison.Ordinal);
+        if (open <= 0 || !name.EndsWith(')'))
+            return null;
+
+        return name[..open].Trim();
+    }
+
+    private static bool LooksLikeGuessedShort(string shortName, string teamName)
+    {
+        var compact = teamName.Replace(" ", "", StringComparison.Ordinal).ToUpperInvariant();
+        if (compact.Length < 3)
+            return false;
+
+        var guess = compact[..3];
+        return shortName.Equals(guess, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

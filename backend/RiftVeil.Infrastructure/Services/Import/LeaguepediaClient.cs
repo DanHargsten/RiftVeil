@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 
@@ -216,6 +218,56 @@ public class LeaguepediaClient(HttpClient httpClient, IOptions<LeaguepediaClient
 
         var shifted = (long)baseMs << exp;
         return (int)Math.Min(shifted, cap);
+    }
+
+    /// <summary>
+    /// Ensures bot login (if configured) before non-API Fandom requests.
+    /// </summary>
+    public Task EnsureSessionAsync() => EnsureLoggedInAsync();
+
+    /// <summary>
+    /// Checks that a <c>Special:FilePath</c> URL responds successfully (uses the same authenticated session as Cargo).
+    /// </summary>
+    public async Task<bool> FilePathUrlExistsAsync(string? filePathUrl, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(filePathUrl))
+            return false;
+
+        await EnsureLoggedInAsync();
+
+        await Semaphore.WaitAsync(cancellationToken);
+        try
+        {
+            using var headRequest = new HttpRequestMessage(HttpMethod.Head, filePathUrl);
+            using var headResponse = await httpClient.SendAsync(
+                headRequest,
+                HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken);
+
+            if (headResponse.IsSuccessStatusCode)
+                return true;
+
+            if (headResponse.StatusCode is not (HttpStatusCode.MethodNotAllowed
+                or HttpStatusCode.Forbidden
+                or HttpStatusCode.NotImplemented))
+            {
+                return false;
+            }
+
+            using var getRequest = new HttpRequestMessage(HttpMethod.Get, filePathUrl);
+            getRequest.Headers.Range = new RangeHeaderValue(0, 0);
+            using var getResponse = await httpClient.SendAsync(
+                getRequest,
+                HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken);
+
+            return getResponse.IsSuccessStatusCode
+                   || getResponse.StatusCode == HttpStatusCode.PartialContent;
+        }
+        finally
+        {
+            Semaphore.Release();
+        }
     }
 
     // =====================================================================
