@@ -61,6 +61,7 @@ public class RiftVeilDbContext(DbContextOptions<RiftVeilDbContext> options) : Db
             entity.Property(team => team.ShortName).IsRequired().HasMaxLength(20);
             entity.Property(team => team.Region).HasMaxLength(100);
             entity.Property(team => team.LogoUrl).HasMaxLength(2048);
+            entity.Property(team => team.IconLogoUrl).HasMaxLength(2048);
             entity.Property(team => team.ExternalId).HasMaxLength(100);
 
             entity.HasIndex(team => team.ShortName).IsUnique();
