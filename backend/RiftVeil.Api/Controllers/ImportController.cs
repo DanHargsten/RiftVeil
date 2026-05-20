@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using RiftVeil.Application.Dtos.Teams;
 using RiftVeil.Domain.Entities;
 using RiftVeil.Domain.Enums;
 using RiftVeil.Infrastructure.Data;
@@ -40,7 +41,7 @@ public class ImportController(
             return BadRequest($"No Leaguepedia mapping for '{leagueShortName}'.");
         }
 
-        await importService.ImportTournamentsAsync(leaguepediaName, league.Id);
+        await importService.ImportTournamentsAsync(leaguepediaName, league.Id, league.ShortName);
 
         return Ok("Import complete.");
     }
@@ -83,6 +84,26 @@ public class ImportController(
     }
 
     /// <summary>
+    /// Imports matches for tournaments that overlap the last <paramref name="days"/> days.
+    /// </summary>
+    [HttpPost("matches/{leagueShortName}/recent")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ImportRecentMatchesAsync(
+        string leagueShortName,
+        [FromQuery] int days = ImportTournamentFilter.DefaultRecentDays)
+    {
+        var league = await FindLeagueByShortNameAsync(leagueShortName);
+        if (league == null)
+        {
+            return NotFound($"League '{leagueShortName}' not found.");
+        }
+
+        await importService.ImportRecentMatchesAsync(league.Id, days);
+        return Ok($"Match import complete for the last {days} day(s).");
+    }
+
+    /// <summary>
     /// Enriches games with VOD links from the lolesports API for the given league.
     /// </summary>
     /// <param name="leagueShortName">League short name (e.g. LEC, LCS, LCK).</param>
@@ -117,6 +138,56 @@ public class ImportController(
 
         await vodEnricher.EnrichVodsAsync(league.ShortName, ongoingOnly: true);
         return Ok($"Ongoing VOD enrichment finished for {league.ShortName}");
+    }
+
+    /// <summary>
+    /// Enriches VODs for tournaments that overlap the last <paramref name="days"/> days.
+    /// </summary>
+    [HttpPost("vods/{leagueShortName}/recent")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ImportRecentVodsAsync(
+        string leagueShortName,
+        [FromQuery] int days = ImportTournamentFilter.DefaultRecentDays)
+    {
+        var league = await FindLeagueByShortNameAsync(leagueShortName);
+        if (league == null)
+        {
+            return NotFound($"League '{leagueShortName}' not found.");
+        }
+
+        await vodEnricher.EnrichVodsAsync(league.ShortName, recentDays: days);
+        return Ok($"VOD enrichment finished for the last {days} day(s) in {league.ShortName}.");
+    }
+
+    /// <summary>
+    /// Backfills team LogoUrl, IconLogoUrl, Region, Short, and ExternalId from Leaguepedia for all teams.
+    /// </summary>
+    [HttpPost("backfill-teams")]
+    [ProducesResponseType(typeof(TeamBackfillResultDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<TeamBackfillResultDto>> BackfillAllTeamMetadataAsync(
+        [FromQuery] bool overwrite = false)
+    {
+        var result = await importService.BackfillTeamMetadataAsync(leagueId: null, overwrite);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Backfills team metadata for teams that appear in matches for the given league.
+    /// </summary>
+    [HttpPost("backfill-teams/{leagueShortName}")]
+    [ProducesResponseType(typeof(TeamBackfillResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TeamBackfillResultDto>> BackfillTeamMetadataForLeagueAsync(
+        string leagueShortName,
+        [FromQuery] bool overwrite = false)
+    {
+        var league = await FindLeagueByShortNameAsync(leagueShortName);
+        if (league == null)
+            return NotFound($"League '{leagueShortName}' not found.");
+
+        var result = await importService.BackfillTeamMetadataAsync(league.Id, overwrite);
+        return Ok(result);
     }
 
     [HttpPost("backfill-game-ids/{leagueShortName}")]
@@ -176,7 +247,10 @@ public class ImportController(
     [HttpPost("game-details/{leagueShortName}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> ImportGameDetailsForLeagueAsync(string leagueShortName, [FromQuery] bool ongoingOnly = true)
+    public async Task<IActionResult> ImportGameDetailsForLeagueAsync(
+        string leagueShortName,
+        [FromQuery] bool ongoingOnly = true,
+        [FromQuery] int? recentDays = null)
     {
         var league = await FindLeagueByShortNameAsync(leagueShortName);
         if (league == null)
@@ -184,20 +258,31 @@ public class ImportController(
             return NotFound($"League '{leagueShortName}' not found.");
         }
 
-        var tournamentsQuery = dbContext.Tournaments
-            .Where(t => t.LeagueId == league.Id && t.LiquipediaSlug != null);
+        var utcNow = DateTimeOffset.UtcNow;
+        var tournamentsQuery = dbContext.Tournaments.Where(t => t.LeagueId == league.Id);
 
-        if (ongoingOnly)
+        string scopeLabel;
+        if (recentDays is > 0)
         {
-            tournamentsQuery = tournamentsQuery
-                .Where(t => t.Status == TournamentStatus.Ongoing);
+            tournamentsQuery = ImportTournamentFilter.WhereRecent(tournamentsQuery, utcNow, recentDays.Value);
+            scopeLabel = $"last {recentDays.Value} day(s)";
+        }
+        else if (ongoingOnly)
+        {
+            tournamentsQuery = ImportTournamentFilter.WhereOngoingByStatus(tournamentsQuery);
+            scopeLabel = "ongoing";
+        }
+        else
+        {
+            tournamentsQuery = tournamentsQuery.Where(t => t.LiquipediaSlug != null);
+            scopeLabel = "all";
         }
 
         var tournaments = await tournamentsQuery
             .OrderByDescending(t => t.StartsAtUtc)
             .ToListAsync();
 
-        Console.WriteLine($"Found {tournaments.Count} tournament(s) for {league.ShortName} (ongoingOnly={ongoingOnly})");
+        Console.WriteLine($"Found {tournaments.Count} tournament(s) for {league.ShortName} ({scopeLabel})");
 
         foreach (var tournament in tournaments)
         {
@@ -205,8 +290,19 @@ public class ImportController(
             await gameDetailImportService.ImportGameDetailsForTournamentAsync(tournament.LiquipediaSlug!);
         }
 
-        return Ok($"Game detail import complete for {tournaments.Count} tournament(s) in {league.ShortName}.");
+        return Ok($"Game detail import complete for {tournaments.Count} tournament(s) in {league.ShortName} ({scopeLabel}).");
     }
+
+    /// <summary>
+    /// Imports game details for tournaments overlapping the last <paramref name="days"/> days.
+    /// </summary>
+    [HttpPost("game-details/{leagueShortName}/recent")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public Task<IActionResult> ImportRecentGameDetailsAsync(
+        string leagueShortName,
+        [FromQuery] int days = ImportTournamentFilter.DefaultRecentDays) =>
+        ImportGameDetailsForLeagueAsync(leagueShortName, ongoingOnly: false, recentDays: days);
 
     /// <summary>
     /// Imports game details for one specific tournament by local database id.
@@ -286,6 +382,8 @@ public class ImportController(
         "LCS" => "League of Legends Championship Series",
         "LCK" => "LoL Champions Korea",
         "LPL" => "LPL",
+        "CBLOL" => "CBLOL",
+        "LCP" => "LCP",
         _ => null
     };
 }

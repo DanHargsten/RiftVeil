@@ -61,6 +61,8 @@ builder.Services.AddHttpClient<LolesportsClient>(client =>
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36");
 });
 
+builder.Services.AddScoped<LeaguepediaTeamLogoVerifier>();
+
 // Import and VOD enrichment (uses HTTP clients above).
 builder.Services.AddScoped<LolesportsVodEnricher>();
 builder.Services.AddScoped<LeaguepediaImportService>();
