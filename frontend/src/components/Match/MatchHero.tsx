@@ -54,7 +54,12 @@ export function MatchHero({ match, from, backLabel, footer }: MatchHeroProps) {
                         <span className="match-detail__team-full">{match.team1Name}</span>
                     </div>
                     <div className="match-detail__team-logo-wrap">
-                        <TeamLogo shortName={match.team1ShortName} className="match-detail__team-logo" />
+                        <TeamLogo
+                            shortName={match.team1ShortName}
+                            logoUrl={match.team1LogoUrl}
+                            iconLogoUrl={match.team1IconLogoUrl}
+                            className="match-detail__team-logo"
+                        />
                     </div>
                 </div>
 
@@ -82,7 +87,12 @@ export function MatchHero({ match, from, backLabel, footer }: MatchHeroProps) {
                 <div
                     className={`match-detail__team match-detail__team--right ${team2IsWinner ? "match-detail__team--winner" : team1IsWinner ? "match-detail__team--loser" : ""}`}>
                     <div className="match-detail__team-logo-wrap">
-                        <TeamLogo shortName={match.team2ShortName} className="match-detail__team-logo" />
+                        <TeamLogo
+                            shortName={match.team2ShortName}
+                            logoUrl={match.team2LogoUrl}
+                            iconLogoUrl={match.team2IconLogoUrl}
+                            className="match-detail__team-logo"
+                        />
                     </div>
                     <div className="match-detail__team-identity">
                         <span className="match-detail__team-short">{match.team2ShortName}</span>

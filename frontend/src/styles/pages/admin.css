@@ -10,11 +10,44 @@
     padding-top: 0.25rem;
 }
 
+.admin--teams {
+    width: min(1120px, 100%);
+}
+
 .admin__title {
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--text);
     margin: 0;
+}
+
+.admin__tabs {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.admin__tab {
+    padding: 0.45rem 0.9rem;
+    font-size: 0.84rem;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface-2);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.admin__tab:hover {
+    color: var(--text);
+    border-color: var(--border-strong);
+}
+
+.admin__tab--active {
+    border-color: var(--primary-border);
+    background: var(--primary-soft);
+    color: var(--primary-text);
 }
 
 /* ================================================================================================
@@ -213,6 +246,249 @@
     cursor: not-allowed;
 }
 
+.admin__run-btn--secondary {
+    border-color: var(--border-strong);
+    background: var(--surface-2);
+    color: var(--text);
+}
+
+.admin__backfill-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.admin__section--wide {
+    overflow-x: auto;
+}
+
+.admin__teams-stats {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.75rem 1rem;
+}
+
+.admin__problems {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    padding: 0.45rem 0.65rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface-2);
+}
+
+.admin__problems-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted-extra);
+}
+
+.admin__problems-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.admin__problem-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.admin__problem-chip:hover {
+    background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.admin__problem-chip--active {
+    border-color: var(--primary-border);
+    background: color-mix(in srgb, var(--primary-soft) 35%, transparent);
+    color: var(--text);
+}
+
+.admin__problem-chip--warn .admin__problem-chip-count {
+    color: var(--live-text);
+}
+
+.admin__problem-chip-count {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+
+.admin__cell-warn {
+    color: var(--live-text);
+    font-weight: 600;
+}
+
+.admin__stat-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.admin__stat-chip:hover {
+    border-color: var(--border-strong);
+}
+
+.admin__stat-chip--active {
+    color: var(--text);
+    border-color: var(--primary-border);
+    background: color-mix(in srgb, var(--primary-soft) 40%, var(--surface-2));
+}
+
+.admin__stat-chip--warn.admin__stat-chip--active {
+    border-color: color-mix(in srgb, var(--live-text) 50%, var(--border));
+    background: color-mix(in srgb, var(--live-text) 10%, var(--surface-2));
+}
+
+.admin__stat-chip-count {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.admin__stat-chip--warn .admin__stat-chip-count {
+    color: var(--live-text);
+}
+
+.admin__teams-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.admin__field--inline {
+    border-top: none;
+    padding-top: 0;
+}
+
+.admin__teams-search {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    max-width: 320px;
+}
+
+.admin__input {
+    width: 100%;
+    max-width: 520px;
+    padding: 0.5rem 0.625rem;
+    font-size: 0.9rem;
+    color: var(--text);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    outline: none;
+}
+
+.admin__input:focus {
+    border-color: var(--primary-border);
+    box-shadow: 0 0 0 1px var(--primary-soft);
+}
+
+.admin__input--cell {
+    max-width: none;
+    min-width: 5rem;
+    padding: 0.3rem 0.45rem;
+    font-size: 0.82rem;
+}
+
+.admin__teams-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+
+.admin__teams-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.84rem;
+}
+
+.admin__teams-table th,
+.admin__teams-table td {
+    padding: 0.5rem 0.65rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+.admin__teams-table th {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted-extra);
+    background: var(--surface-2);
+}
+
+.admin__teams-table tr:last-child td {
+    border-bottom: none;
+}
+
+.admin__teams-url {
+    max-width: 8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin__teams-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.admin__mini-btn {
+    padding: 0.28rem 0.55rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: 1px solid var(--primary-border);
+    border-radius: 4px;
+    background: var(--primary-interactive);
+    color: var(--primary-text);
+    cursor: pointer;
+}
+
+.admin__mini-btn--muted {
+    border-color: var(--border);
+    background: var(--surface-2);
+    color: var(--text-muted);
+}
+
+.admin__mini-btn--danger {
+    border-color: color-mix(in srgb, var(--live-text) 45%, var(--border));
+    background: color-mix(in srgb, var(--live-text) 12%, var(--surface-2));
+    color: var(--live-text);
+}
+
+.admin__mini-btn--danger:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--live-text) 22%, var(--surface-2));
+}
+
 /* Results log */
 .admin__results {
     display: flex;
@@ -245,10 +521,57 @@
     flex-shrink: 0;
 }
 
-.admin__result-error {
-    font-size: 0.8rem;
+.admin__result-title {
+    font-weight: 600;
+    min-width: 8rem;
+}
+
+.admin__results-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.admin__results-block {
+    padding: 0.75rem 1rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+
+.admin__result-error-block {
+    margin: 0.5rem 0 0 1.625rem;
+    font-size: 0.84rem;
+    line-height: 1.45;
     color: var(--live-text);
-    margin-left: auto;
+}
+
+.admin__backfill-summary {
+    margin-top: 0.65rem;
+    padding-top: 0.65rem;
+    border-top: 1px solid var(--border);
+}
+
+.admin__backfill-stat {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.875rem;
+}
+
+.admin__backfill-stat-label {
+    color: var(--text-muted);
+}
+
+.admin__backfill-stat-value {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.admin__backfill-stat-value--warn {
+    color: var(--live-text);
 }
 
 /* Spinner */
@@ -264,4 +587,27 @@
 
 @keyframes admin-spin {
     to { transform: rotate(360deg); }
+}
+
+.admin__teams-row--warn td:first-child {
+    box-shadow: inset 3px 0 0 var(--live-text);
+}
+
+.admin__missing-icons {
+    margin-top: 0.5rem;
+    font-size: 0.84rem;
+}
+
+.admin__missing-icons summary {
+    cursor: pointer;
+    color: var(--live-text);
+    font-weight: 600;
+}
+
+.admin__missing-icons-list {
+    margin: 0.5rem 0 0;
+    padding-left: 1.25rem;
+    font-size: 0.82rem;
+    max-height: 12rem;
+    overflow-y: auto;
 }

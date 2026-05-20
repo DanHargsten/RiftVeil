@@ -109,7 +109,11 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
                 <div className={`match-card__team match-card__team--left ${
                     team1IsWinner ? "match-card__team--winner" : team2IsWinner ? "match-card__team--loser" : ""
                 }`}>
-                    <TeamLogo shortName={match.team1ShortName} />
+                    <TeamLogo
+                        shortName={match.team1ShortName}
+                        logoUrl={match.team1LogoUrl}
+                        iconLogoUrl={match.team1IconLogoUrl}
+                    />
                     <div className="match-card__team-info">
                         <span className="match-card__team-short">{match.team1ShortName}</span>
                         <span className="match-card__team-full">{match.team1Name}</span>
@@ -157,7 +161,11 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
                 <div className={`match-card__team match-card__team--right ${
                     team2IsWinner ? "match-card__team--winner" : team1IsWinner ? "match-card__team--loser" : ""
                 }`}>
-                    <TeamLogo shortName={match.team2ShortName} />
+                    <TeamLogo
+                        shortName={match.team2ShortName}
+                        logoUrl={match.team2LogoUrl}
+                        iconLogoUrl={match.team2IconLogoUrl}
+                    />
                     <div className="match-card__team-info">
                         <span className="match-card__team-short">{match.team2ShortName}</span>
                         <span className="match-card__team-full">{match.team2Name}</span>

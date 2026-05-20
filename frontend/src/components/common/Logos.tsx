@@ -1,18 +1,56 @@
+import { useEffect, useState } from "react";
+import {
+    resolveTeamLogoSrc,
+    teamLogoFallbackSrc,
+    type TeamLogoVariant,
+} from "@/lib/teamLogo.ts";
+
 type LogoProps = {
     shortName: string;
     size?: number;
     className?: string;
 };
 
-export function TeamLogo({ shortName, size = 32, className }: LogoProps) {
+type TeamLogoProps = LogoProps & {
+    logoUrl?: string | null;
+    iconLogoUrl?: string | null;
+    variant?: TeamLogoVariant;
+};
+
+export function TeamLogo({
+    shortName,
+    logoUrl,
+    iconLogoUrl,
+    size = 32,
+    className,
+    variant = "icon",
+}: TeamLogoProps) {
+    const [src, setSrc] = useState(() =>
+        resolveTeamLogoSrc(logoUrl, iconLogoUrl, shortName, variant));
+
+    useEffect(() => {
+        setSrc(resolveTeamLogoSrc(logoUrl, iconLogoUrl, shortName, variant));
+    }, [logoUrl, iconLogoUrl, shortName, variant]);
+
     return (
         <img
-            src={`/logos/teams/${shortName.trim().toLowerCase()}.png`}
+            src={src}
             alt=""
             width={size}
             height={size}
             className={className ?? "match-card__team-logo"}
-            onError={(e) => { e.currentTarget.src = "/logos/teams/placeholder.png"; }}
+            onError={() => {
+                setSrc((current) => {
+                    const next = teamLogoFallbackSrc(
+                        current,
+                        shortName,
+                        logoUrl,
+                        iconLogoUrl,
+                        variant,
+                    );
+                    return next === current ? current : next;
+                });
+            }}
             loading="lazy"
             decoding="async"
         />

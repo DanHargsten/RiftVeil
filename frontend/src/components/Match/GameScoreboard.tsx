@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useItemLookup } from "@/hooks/useItemLookup.ts";
 import type { PlayerStatsDto } from "@/lib/api.ts";
+import { resolveTeamLogoSrc, teamLogoFallbackSrc } from "@/lib/teamLogo.ts";
 import statCsIcon from "@/assets/icons/lol-icons/lol-stat-cs.png";
 import statDamageIcon from "@/assets/icons/lol-icons/lol-stat-damage.png";
 import statGoldIcon from "@/assets/icons/lol-icons/lol-stat-gold.png";
@@ -17,6 +18,12 @@ interface GameScoreboardProps {
     team1Players: PlayerStatsDto[];
     team2Players: PlayerStatsDto[];
     team1Side: string | null;
+    team1ShortName: string;
+    team2ShortName: string;
+    team1LogoUrl?: string | null;
+    team2LogoUrl?: string | null;
+    team1IconLogoUrl?: string | null;
+    team2IconLogoUrl?: string | null;
     showDamage?: boolean;
 }
 
@@ -24,11 +31,23 @@ export function GameScoreboard({
     team1Players,
     team2Players,
     team1Side,
+    team1ShortName,
+    team2ShortName,
+    team1LogoUrl,
+    team2LogoUrl,
+    team1IconLogoUrl,
+    team2IconLogoUrl,
     showDamage = true,
 }: GameScoreboardProps) {
     const { getItemIconUrl, ddragonVersion, hasResolvedVersion } = useItemLookup();
 
     const blueFirst = team1Side == null || team1Side.toLowerCase() === "blue";
+    const leftTeamShortName = blueFirst ? team1ShortName : team2ShortName;
+    const rightTeamShortName = blueFirst ? team2ShortName : team1ShortName;
+    const leftTeamLogoUrl = blueFirst ? team1LogoUrl : team2LogoUrl;
+    const rightTeamLogoUrl = blueFirst ? team2LogoUrl : team1LogoUrl;
+    const leftTeamIconLogoUrl = blueFirst ? team1IconLogoUrl : team2IconLogoUrl;
+    const rightTeamIconLogoUrl = blueFirst ? team2IconLogoUrl : team1IconLogoUrl;
     const leftPlayersByRole = allocatePlayersByRole(blueFirst ? team1Players : team2Players);
     const rightPlayersByRole = allocatePlayersByRole(blueFirst ? team2Players : team1Players);
     const roleRows = ROLE_ORDER.map((role) => ({
@@ -54,7 +73,22 @@ export function GameScoreboard({
                 <div className="scoreboard__matchup-center-label">Lane matchups</div>
             </header>
 
-            <table className="scoreboard__table scoreboard__table--matchups">
+            <div className="scoreboard__table-wrap">
+                <div className="scoreboard__watermark-zone scoreboard__watermark-zone--left" aria-hidden="true">
+                    <TeamWatermark
+                        shortName={leftTeamShortName}
+                        logoUrl={leftTeamLogoUrl}
+                        iconLogoUrl={leftTeamIconLogoUrl}
+                    />
+                </div>
+                <div className="scoreboard__watermark-zone scoreboard__watermark-zone--right" aria-hidden="true">
+                    <TeamWatermark
+                        shortName={rightTeamShortName}
+                        logoUrl={rightTeamLogoUrl}
+                        iconLogoUrl={rightTeamIconLogoUrl}
+                    />
+                </div>
+                <table className="scoreboard__table scoreboard__table--matchups">
                 <caption className="sr-only">
                     Lane-by-lane player comparison with KDA, creep score, gold and items.
                 </caption>
@@ -106,6 +140,7 @@ export function GameScoreboard({
                     ))}
                 </tbody>
             </table>
+            </div>
         </section>
     );
 }
@@ -121,6 +156,44 @@ const ROLE_META: Record<LaneRole, { label: string; icon: string }> = {
     bot: { label: "Bot", icon: roleBotIcon },
     support: { label: "Support", icon: roleSupportIcon },
 };
+
+function TeamWatermark({
+    shortName,
+    logoUrl,
+    iconLogoUrl,
+}: {
+    shortName: string;
+    logoUrl?: string | null;
+    iconLogoUrl?: string | null;
+}) {
+    const [src, setSrc] = useState(() =>
+        resolveTeamLogoSrc(logoUrl, iconLogoUrl, shortName, "icon"));
+
+    useEffect(() => {
+        setSrc(resolveTeamLogoSrc(logoUrl, iconLogoUrl, shortName, "icon"));
+    }, [logoUrl, iconLogoUrl, shortName]);
+
+    return (
+        <img
+            src={src}
+            alt=""
+            aria-hidden="true"
+            className="scoreboard__team-watermark"
+            onError={() => {
+                setSrc((current) => {
+                    const next = teamLogoFallbackSrc(
+                        current,
+                        shortName,
+                        logoUrl,
+                        iconLogoUrl,
+                        "icon",
+                    );
+                    return next === current ? current : next;
+                });
+            }}
+        />
+    );
+}
 
 function ScoreboardHeaderCell({
     label,

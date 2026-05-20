@@ -87,7 +87,12 @@ export function GamePanel({
                         <h2 id="match-detail-draft-heading" className="sr-only">Draft</h2>
                         <div className="match-detail__section-header">
                             <span className="match-detail__section-team match-detail__section-team--with-logo">
-                                <TeamLogo shortName={match.team1ShortName} className="match-detail__section-team-logo" />
+                                <TeamLogo
+                                    shortName={match.team1ShortName}
+                                    logoUrl={match.team1LogoUrl}
+                                    iconLogoUrl={match.team1IconLogoUrl}
+                                    className="match-detail__section-team-logo"
+                                />
                                 <span className="match-detail__section-kda" aria-label={`${match.team1ShortName} kills, deaths and assists`}>
                                     <img src={statKdaIcon} alt="" aria-hidden="true" className="match-detail__section-stat-icon" />
                                     <span>
@@ -130,7 +135,12 @@ export function GamePanel({
                                         {gameDetails.team2Players.reduce((s, p) => s + p.assists, 0)}
                                     </span>
                                 </span>
-                                <TeamLogo shortName={match.team2ShortName} className="match-detail__section-team-logo" />
+                                <TeamLogo
+                                    shortName={match.team2ShortName}
+                                    logoUrl={match.team2LogoUrl}
+                                    iconLogoUrl={match.team2IconLogoUrl}
+                                    className="match-detail__section-team-logo"
+                                />
                             </span>
                         </div>
                         <GameDraft
@@ -154,12 +164,20 @@ export function GamePanel({
                             />
                         </section>
                         <div className="match-detail__section-divider" aria-hidden="true" />
+                        <section className="match-detail__section match-detail__section--scoreboard">
                         <GameScoreboard
                             team1Players={gameDetails.team1Players}
                             team2Players={gameDetails.team2Players}
                             team1Side={gameDetails.team1Side}
+                            team1ShortName={match.team1ShortName}
+                            team2ShortName={match.team2ShortName}
+                            team1LogoUrl={match.team1LogoUrl}
+                            team2LogoUrl={match.team2LogoUrl}
+                            team1IconLogoUrl={match.team1IconLogoUrl}
+                            team2IconLogoUrl={match.team2IconLogoUrl}
                             showDamage={false}
                         />
+                        </section>
                         <section
                             className="match-detail__section match-detail__section--compact"
                             aria-labelledby="match-detail-highlights-title"

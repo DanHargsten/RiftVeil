@@ -12,6 +12,12 @@
     margin-inline: auto;
 }
 
+/* Lane matchups table needs more horizontal room than hero/bans */
+.match-detail__section--scoreboard {
+    max-width: none;
+    width: 100%;
+}
+
 .match-detail__outer {
     width: 100%;
 }

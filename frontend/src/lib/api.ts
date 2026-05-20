@@ -6,10 +6,7 @@ function truncateDetail(text: string, max: number): string {
   return `${t.slice(0, max)}…`;
 }
 
-/** Fetches JSON from a relative API endpoint (e.g., /api/...). */
-export async function fetchApi<T>(endpoint: string): Promise<T> {
-  const response = await fetch(endpoint);
-
+async function parseJsonResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const bodyText = await response.text();
     const detail =
@@ -19,6 +16,41 @@ export async function fetchApi<T>(endpoint: string): Promise<T> {
   }
 
   return response.json();
+}
+
+/** Fetches JSON from a relative API endpoint (e.g., /api/...). */
+export async function fetchApi<T>(endpoint: string): Promise<T> {
+  const response = await fetch(endpoint);
+  return parseJsonResponse<T>(response);
+}
+
+export async function postApi<T>(endpoint: string, body?: unknown): Promise<T> {
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: body !== undefined ? { "Content-Type": "application/json" } : undefined,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  return parseJsonResponse<T>(response);
+}
+
+export async function patchApi<T>(endpoint: string, body: unknown): Promise<T> {
+  const response = await fetch(endpoint, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return parseJsonResponse<T>(response);
+}
+
+export async function deleteApi(endpoint: string): Promise<void> {
+  const response = await fetch(endpoint, { method: "DELETE" });
+  if (!response.ok) {
+    const bodyText = await response.text();
+    const detail =
+      bodyText.length > 0 ? truncateDetail(bodyText, API_ERROR_BODY_MAX) : "";
+    const suffix = detail ? `: ${detail}` : "";
+    throw new Error(`API error: ${response.status}${suffix}`);
+  }
 }
 
 /** Single game within a match (e.g., Game 1 of a Bo3). */
@@ -42,6 +74,10 @@ export interface MatchListItem {
   team2Name: string;
   team1ShortName: string;
   team2ShortName: string;
+  team1LogoUrl?: string | null;
+  team2LogoUrl?: string | null;
+  team1IconLogoUrl?: string | null;
+  team2IconLogoUrl?: string | null;
   startsAtUtc: string;
   bestOf: number;
   status: "Scheduled" | "Live" | "Finished" | "Cancelled";
@@ -212,6 +248,73 @@ export const leaguesApi = {
 export const tournamentsApi = {
   getAll: () => fetchApi<TournamentListItem[]>("/api/tournaments"),
   getById: (id: number) => fetchApi<TournamentDetails>(`/api/tournaments/${id}`),
+};
+
+export interface TeamListItem {
+  id: number;
+  name: string;
+  shortName: string;
+  region: string | null;
+  logoUrl: string | null;
+  iconLogoUrl: string | null;
+  externalId: string | null;
+  matchCount: number;
+}
+
+export interface TeamMissingIcon {
+  id: number;
+  name: string;
+  shortName: string;
+}
+
+export interface TeamBackfillResult {
+  total: number;
+  updated: number;
+  skipped: number;
+  notFound: number;
+  missingIconLogo: TeamMissingIcon[];
+}
+
+export interface UpdateTeamRequest {
+  name?: string | null;
+  shortName?: string | null;
+  region?: string | null;
+  logoUrl?: string | null;
+  iconLogoUrl?: string | null;
+  externalId?: string | null;
+}
+
+export const teamsApi = {
+  getAll: (params?: { search?: string; leagueShortName?: string; missingIconLogo?: boolean }) => {
+    const qs = new URLSearchParams();
+    if (params?.search) qs.set("search", params.search);
+    if (params?.leagueShortName) qs.set("leagueShortName", params.leagueShortName);
+    if (params?.missingIconLogo) qs.set("missingIconLogo", "true");
+    const query = qs.toString();
+    return fetchApi<TeamListItem[]>(`/api/teams${query ? `?${query}` : ""}`);
+  },
+  getById: (id: number) => fetchApi<TeamListItem>(`/api/teams/${id}`),
+  update: (id: number, body: UpdateTeamRequest) => patchApi<TeamListItem>(`/api/teams/${id}`, body),
+  syncLeaguepedia: (id: number, overwrite = false) =>
+    postApi<TeamListItem>(`/api/teams/${id}/sync-leaguepedia?overwrite=${overwrite}`),
+  delete: (id: number) => deleteApi(`/api/teams/${id}`),
+};
+
+export const importBackfillApi = {
+  gameIds: (leagueShortName: string) =>
+    postApi<{ gamesUpdated: number; tournamentsSkipped: number }>(
+      `/api/import/backfill-game-ids/${leagueShortName}`,
+    ),
+  gameSides: (leagueShortName: string) =>
+    postApi<{ gamesUpdated: number; tournamentsSkipped: number }>(
+      `/api/import/backfill-game-sides/${leagueShortName}`,
+    ),
+  teams: (leagueShortName?: string, overwrite = false) => {
+    const base = leagueShortName && leagueShortName !== "ALL"
+      ? `/api/import/backfill-teams/${leagueShortName}`
+      : "/api/import/backfill-teams";
+    return postApi<TeamBackfillResult>(`${base}?overwrite=${overwrite}`);
+  },
 };
 
 export const gamesApi = {
