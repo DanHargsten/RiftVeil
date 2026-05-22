@@ -4,6 +4,7 @@ Short-term list for practical fixes that are smaller than the scoped items in `f
 
 ## UI / UX
 
+- [ ] **Mobile / responsive layout (prio):** Frontend targets desktop only for now; viewport `@media` rules were removed. Reintroduce breakpoints for match detail, damage breakdown, sidebar, home, and match list when prioritised.
 - [ ] Sidebar: when a league has many tournaments, make the list scrollable instead of clipping.
 - [ ] Sidebar structure: group tournaments by year (`LEC -> 2026, 2025, 2024`) before split/stage labels.
 - [ ] Sidebar readability: avoid very long flat lists like `2026 Spring Playoffs, 2026 Spring, 2026 Versus...`.
@@ -18,4 +19,5 @@ Short-term list for practical fixes that are smaller than the scoped items in `f
 
 - [x] Team `logoUrl` / `iconLogoUrl` from Leaguepedia + local `{short}-square.png` / `{short}.png` fallback chain in match UI.
 - [ ] League `logoUrl` in API (local league PNGs still primary).
-- [ ] Add `frontend/public/logos/leagues/cblol.png` and `lcp.png`.
+- [x] Add `frontend/public/logos/leagues/cblol.png` and `lcp.png`.
+- [ ] **TBD team logo:** add/fix a placeholder logo for undetermined bracket slots (TBD opponents) so match cards and detail pages don't show a broken or wrong fallback.

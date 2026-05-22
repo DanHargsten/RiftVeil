@@ -22,9 +22,19 @@
     --primary-text:         oklch(0.80 0.10 185);
 
     /* Status colors */
+    --danger:           oklch(0.72 0.18 25);
     --live:             oklch(0.625 0.203 17.97);
     --live-soft:        oklch(0.625 0.203 17.97 / 0.2); 
     --live-text:        oklch(0.675 0.175 10.283);
     --status-finished:  oklch(0.65 0.14 145);
     --status-upcoming:  oklch(0.762 0.148 97.235);
+
+    /* LoL side colours (display left = blue side, right = red side) */
+    --lol-blue: #5ba3ff;
+    --lol-red: #f05858;
+    --damage-bar-left: var(--lol-blue);
+    --damage-bar-right: var(--lol-red);
+    --damage-bar-height: 0.8rem;
+    --damage-bar-track-gap: 0.85rem;
+    --damage-bar-name-width: 5.5rem;
 }

@@ -6,6 +6,27 @@ For class-level detail, heuristics, and file references, see [`docs/technical-lo
 
 Early months (2026-01 through ~2026-04-13) are summarised at a high level; the project log was backfilled from memory and commits before day-by-day notes started.
 
+## 2026-05-22
+
+### Added
+
+- **Match detail — damage breakdown** — lane-by-lane damage bars beside global objectives, with Game vs Team scaling and blue/red side layout aligned to the scoreboard.
+- **Match detail — hero footer** — game tabs, VOD link, and dev import controls sit under the match hero instead of inside the game panel.
+- **League logos** — `cblol.png` and `lcp.png` under `frontend/public/logos/leagues/`.
+- **Team logos** — refreshed wordmarks and new regional team assets (including square variants for scoreboard/draft headers).
+
+### Changed
+
+- **Match detail layout** — stacked game panel (draft + scoreboard, then objectives + damage); large team watermarks in the hero; VOD moved to hero footer.
+- **Game panel refactor** — display order follows blue/red side; logic extracted into colocated utils (`laneMatchupUtils`, `damageBarUtils`, `draftUtils`, `scoreboardUtils`, `matchDisplayUtils`).
+- **Desktop-first CSS** — viewport `@media` rules removed from home, league, match list, sidebar, match detail, and game details for now.
+- **League hub** — when the selected tournament is ongoing, only the active round expands by default.
+- **React Query Devtools** — shown only when `VITE_SHOW_QUERY_DEVTOOLS=true`.
+
+### Notes
+
+- Responsive/mobile layout is tracked in `docs/todo.md`. Bracket-aware spoiler protection is scoped in `docs/future-projects.md`.
+
 ## 2026-05-20
 
 ### Added
@@ -25,7 +46,6 @@ Early months (2026-01 through ~2026-04-13) are summarised at a high level; the p
 
 ### Notes
 
-- Add league logos at `frontend/public/logos/leagues/cblol.png` and `lcp.png` (placeholder is used until then). Restart the API after deploy so `DbInitializer` inserts the new league rows.
 - Apply EF migration **`AddTeamIconLogoUrl`** before using team backfill or the Teams admin tab.
 
 ## 2026-05-19

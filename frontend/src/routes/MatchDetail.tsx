@@ -1,8 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
+import { GameHeroFooter } from "@/components/Match/GameHeroFooter.tsx";
 import { GamePanel } from "@/components/Match/GamePanel.tsx";
-import { GameTabs } from "@/components/Match/GameTabs.tsx";
 import { MatchHero } from "@/components/Match/MatchHero.tsx";
 import { gamesApi, matchesApi } from "@/lib/api.ts";
 
@@ -103,10 +103,11 @@ export function MatchDetail() {
                         from={from}
                         backLabel={backLabel}
                         footer={(
-                            <GameTabs
+                            <GameHeroFooter
                                 games={playedGames}
                                 currentGame={currentGame}
                                 onSelect={setSelectedGame}
+                                devImport={devImport}
                             />
                         )}
                     />
@@ -117,7 +118,6 @@ export function MatchDetail() {
                             gameDetails={gameDetails}
                             gameLoading={gameLoading}
                             gameDetailsError={gameDetailsError}
-                            devImport={devImport}
                         />
                     )}
                 </div>

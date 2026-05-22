@@ -60,18 +60,14 @@ export function League() {
     const roundGroups = groupByRound(matches ?? []);
 
     const now = new Date();
+    const selectedTournament = tournaments?.find(
+        tournament => tournament.id === activeTournamentId,
+    );
+    const activeRoundKey = findActiveRound(roundGroups, now);
 
-    // Default open round: latest round that has a finished or in-progress match
-    const defaultOpenRound = (() => {
-        const withPlayed = roundGroups.filter(roundGroup =>
-            roundGroup.matches.some(
-                match =>
-                    match.status === "Finished" || new Date(match.startsAtUtc) <= now,
-            ),
-        );
-        if (withPlayed.length > 0) return withPlayed[withPlayed.length - 1].round;
-        return roundGroups[0]?.round ?? null;
-    })();
+    // Only auto-open the round that is currently in progress; finished/upcoming tournaments stay collapsed
+    const defaultOpenRound =
+        selectedTournament?.status === "Ongoing" ? activeRoundKey : null;
 
     // null = never toggled (use default), string = user-selected round, "CLOSED" = explicitly collapsed
     const [openRound, setOpenRound] = useState<string | null>(null);
@@ -135,16 +131,15 @@ export function League() {
                 )}
                 {roundGroups.map(group => {
                     const isOpen = activeRound === group.round;
-                    const allFinished = group.matches.every(match => match.status === "Finished");
-                    const allUpcoming = group.matches.every(match => match.status === "Scheduled");
-                    const isCurrentRound = group.round === defaultOpenRound;
+                    const roundStatus = getRoundStatus(group.matches, now);
+                    const isCurrentRound = group.round === activeRoundKey;
                     const dayGroups = groupByDay(group.matches);
                     const roundPanelId = `league-round-panel-${group.round.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
 
                     return (
                         <div
                             key={group.round}
-                            className={`league-page__round ${allFinished ? "league-page__round--finished" : ""} ${allUpcoming ? "league-page__round--upcoming" : ""}`}
+                            className={`league-page__round ${roundStatus === "done" ? "league-page__round--finished" : ""} ${roundStatus === "upcoming" ? "league-page__round--upcoming" : ""}`}
                         >
                             <h2 className="league-page__round-heading">
                                 <button
@@ -155,26 +150,20 @@ export function League() {
                                     aria-controls={roundPanelId}
                                 >
                                     <span className="league-page__round-title">{group.round}</span>
-                                    <span className="league-page__round-meta">
-                                        <span className="league-page__round-dates">
-                                            {getRoundDateRange(group.matches)}
-                                        </span>
-                                        {allFinished && (
-                                            <span className="league-page__round-badge league-page__round-badge--done">
-                                                Done
-                                            </span>
-                                        )}
-                                        {allUpcoming && (
-                                            <span className="league-page__round-badge league-page__round-badge--upcoming">
-                                                Upcoming
-                                            </span>
-                                        )}
-                                        {isCurrentRound && !allFinished && !allUpcoming && (
-                                            <span className="league-page__round-badge league-page__round-badge--current">
-                                                Current
-                                            </span>
-                                        )}
+                                    <span className="league-page__round-dates">
+                                        {getRoundDateRange(group.matches)}
                                     </span>
+                                    {roundStatus ? (
+                                        <span
+                                            className={`league-page__round-badge league-page__round-badge--${roundStatus}`}
+                                        >
+                                            {roundStatus === "done"
+                                                ? "Done"
+                                                : roundStatus === "upcoming"
+                                                    ? "Upcoming"
+                                                    : "Current"}
+                                        </span>
+                                    ) : null}
                                     <svg
                                         className={`league-page__round-chevron ${isOpen ? "league-page__round-chevron--open" : ""}`}
                                         width="16"
@@ -239,6 +228,43 @@ export function League() {
             </div>
         </div>
     );
+}
+
+function findActiveRound(
+    roundGroups: { round: string; matches: MatchListItem[] }[],
+    now: Date,
+): string | null {
+    for (let index = roundGroups.length - 1; index >= 0; index -= 1) {
+        if (isRoundActive(roundGroups[index].matches, now)) {
+            return roundGroups[index].round;
+        }
+    }
+    return null;
+}
+
+function isRoundActive(matches: MatchListItem[], now: Date): boolean {
+    if (matches.some(match => match.status === "Live")) return true;
+
+    const allFinished = matches.every(match => match.status === "Finished");
+    const allUpcoming = matches.every(match => match.status === "Scheduled");
+    if (allFinished || allUpcoming) return false;
+
+    const hasStarted = matches.some(
+        match => match.status === "Finished" || new Date(match.startsAtUtc) <= now,
+    );
+    const hasRemaining = matches.some(
+        match => match.status === "Scheduled" || match.status === "Live",
+    );
+    return hasStarted && hasRemaining;
+}
+
+type RoundStatus = "done" | "upcoming" | "current";
+
+function getRoundStatus(matches: MatchListItem[], now: Date): RoundStatus | null {
+    if (matches.every(match => match.status === "Finished")) return "done";
+    if (matches.every(match => match.status === "Scheduled")) return "upcoming";
+    if (isRoundActive(matches, now)) return "current";
+    return null;
 }
 
 function groupByRound(matches: MatchListItem[]) {

@@ -410,3 +410,46 @@ The app should still render safely even when a logo is missing.
 
 Current manual flow is usable and low risk. This project improves maintainability and scaling,
 but is not blocking core match/tournament functionality.
+
+---
+
+## 8. Bracket-aware spoiler protection
+
+### Problem
+
+Spoiler mode today hides **scores** for finished matches, but upcoming bracket matchups can still
+reveal **who plays whom** before earlier rounds are resolved. Example: a semifinal card may show
+both team names even if the user has not watched (or revealed) the quarterfinal that decides one
+of those slots.
+
+That breaks the intended spoiler experience for playoffs — users should not learn a future
+opponent from a later-round fixture.
+
+### Goal
+
+Upcoming matches whose participants depend on unresolved earlier games should stay hidden (or show
+neutral placeholders) until the prerequisite match(es) are no longer spoiler-sensitive for that
+user.
+
+### Rough approach
+
+- Model bracket dependencies per tournament stage (which match feeds which slot).
+- Treat a matchup as spoiler-safe only when all upstream matches are either:
+  - not yet played, **and** we don't know participants yet, or
+  - already revealed by the user (per-match reveal), or
+  - finished with spoilers globally enabled / explicitly shown.
+- UI: show `TBD` / generic placeholders for undetermined or locked slots; reuse the TBD logo work
+  in `todo.md`.
+- Extend `useSpoilerPrefs` (or a sibling hook) with bracket context — not just
+  `revealedMatchIds`, but "this slot is unlocked because upstream match X was revealed".
+
+### Open questions
+
+- Do we get bracket linkage from Leaguepedia import, or infer from round names + schedule?
+- Should revealing a quarterfinal auto-unlock only that semifinal slot, or the whole round?
+- Same rules on home, league hub, and match detail cross-links?
+
+### Why later
+
+Needs bracket metadata and clearer product rules. Current per-match score hiding is enough for
+regular season; this matters most for playoffs and double-elim formats.

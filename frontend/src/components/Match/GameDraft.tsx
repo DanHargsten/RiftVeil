@@ -1,3 +1,4 @@
+import { resolveDraftSides } from "@/components/Match/draftUtils.ts";
 import type { DraftEntryDto } from "@/lib/api.ts";
 
 interface GameDraftProps {
@@ -5,106 +6,76 @@ interface GameDraftProps {
     team1Side: string | null;
 }
 
-export function GameDraft({
-    draft,
-    team1Side,
-}: GameDraftProps) {
-    const blueIsTeam1 = team1Side === "Blue";
-
-    const leftBans = draft
-        .filter((entry) => entry.teamNumber === (blueIsTeam1 ? 1 : 2) && entry.phase === "Ban")
-        .sort((a, b) => a.sequenceNumber - b.sequenceNumber);
-    const rightBans = draft
-        .filter((entry) => entry.teamNumber === (blueIsTeam1 ? 2 : 1) && entry.phase === "Ban")
-        .sort((a, b) => a.sequenceNumber - b.sequenceNumber);
-    const leftPicks = draft
-        .filter((entry) => entry.teamNumber === (blueIsTeam1 ? 1 : 2) && entry.phase === "Pick")
-        .sort((a, b) => a.sequenceNumber - b.sequenceNumber);
-    const rightPicks = draft
-        .filter((entry) => entry.teamNumber === (blueIsTeam1 ? 2 : 1) && entry.phase === "Pick")
-        .sort((a, b) => a.sequenceNumber - b.sequenceNumber);
-
-    const banOrder = new Map(
-        [...draft]
-            .filter((entry) => entry.phase === "Ban")
-            .sort((a, b) => a.sequenceNumber - b.sequenceNumber)
-            .map((entry, i) => [entry.sequenceNumber, i + 1])
-    );
-
-    const pickOrder = new Map(
-        [...draft]
-            .filter((entry) => entry.phase === "Pick")
-            .sort((a, b) => a.sequenceNumber - b.sequenceNumber)
-            .map((entry, i) => [entry.sequenceNumber, i + 1])
-    );
-
+export function GameDraft({ draft, team1Side }: GameDraftProps) {
     if (draft.length === 0) {
-        return (
-            <p className="draft__empty">Draft data not available for this game.</p>
-        );
+        return <p className="draft__empty">Draft data not available for this game.</p>;
     }
+
+    const sides = resolveDraftSides(draft, team1Side);
 
     return (
         <section className="draft" aria-label="Champion draft">
-            {/* Bans and picks with center separator */}
             <div className="draft__body">
-                <div className="draft__left">
-                    <div className="draft__bans draft__bans--left">
-                        <div className="draft__bans-icons">
-                            {leftBans.map(entry => (
-                                <DraftChampIcon
-                                    key={entry.sequenceNumber}
-                                    champion={entry.champion}
-                                    phase="Ban"
-                                    size={40}
-                                    sequenceNumber={banOrder.get(entry.sequenceNumber)}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                    <div className="draft__pick-icons draft__pick-icons--left">
-                        {[...leftPicks].map(entry => (
-                            <DraftChampIcon
-                                key={entry.sequenceNumber}
-                                champion={entry.champion}
-                                phase="Pick"
-                                size={50}
-                                sequenceNumber={pickOrder.get(entry.sequenceNumber)}
-                            />
-                        ))}
-                    </div>
-                </div>
-
+                <DraftSide
+                    align="left"
+                    bans={sides.leftBans}
+                    picks={sides.leftPicks}
+                    banOrder={sides.banOrder}
+                    pickOrder={sides.pickOrder}
+                />
                 <div className="draft__separator" aria-hidden="true" />
-
-                <div className="draft__right">
-                    <div className="draft__bans draft__bans--right">
-                        <div className="draft__bans-icons">
-                            {rightBans.map(entry => (
-                                <DraftChampIcon
-                                    key={entry.sequenceNumber}
-                                    champion={entry.champion}
-                                    phase="Ban"
-                                    size={40}
-                                    sequenceNumber={banOrder.get(entry.sequenceNumber)}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                    <div className="draft__pick-icons draft__pick-icons--right">
-                        {rightPicks.map(entry => (
-                            <DraftChampIcon
-                                key={entry.sequenceNumber}
-                                champion={entry.champion}
-                                phase="Pick"
-                                size={50}
-                                sequenceNumber={pickOrder.get(entry.sequenceNumber)}
-                            />
-                        ))}
-                    </div>
-                </div>
+                <DraftSide
+                    align="right"
+                    bans={sides.rightBans}
+                    picks={sides.rightPicks}
+                    banOrder={sides.banOrder}
+                    pickOrder={sides.pickOrder}
+                />
             </div>
         </section>
+    );
+}
+
+function DraftSide({
+    align,
+    bans,
+    picks,
+    banOrder,
+    pickOrder,
+}: {
+    align: "left" | "right";
+    bans: DraftEntryDto[];
+    picks: DraftEntryDto[];
+    banOrder: Map<number, number>;
+    pickOrder: Map<number, number>;
+}) {
+    return (
+        <div className={`draft__${align}`}>
+            <div className={`draft__bans draft__bans--${align}`}>
+                <div className="draft__bans-icons">
+                    {bans.map((entry) => (
+                        <DraftChampIcon
+                            key={entry.sequenceNumber}
+                            champion={entry.champion}
+                            phase="Ban"
+                            size={40}
+                            sequenceNumber={banOrder.get(entry.sequenceNumber)}
+                        />
+                    ))}
+                </div>
+            </div>
+            <div className={`draft__pick-icons draft__pick-icons--${align}`}>
+                {picks.map((entry) => (
+                    <DraftChampIcon
+                        key={entry.sequenceNumber}
+                        champion={entry.champion}
+                        phase="Pick"
+                        size={50}
+                        sequenceNumber={pickOrder.get(entry.sequenceNumber)}
+                    />
+                ))}
+            </div>
+        </div>
     );
 }
 
@@ -121,10 +92,11 @@ function DraftChampIcon({
 }) {
     const normalized = champion.replace(/[^a-zA-Z0-9]/g, "");
     const url = `https://ddragon.leagueoflegends.com/cdn/15.8.1/img/champion/${normalized}.png`;
+    const phaseClass = phase.toLowerCase();
 
     return (
         <div
-            className={`draft__champ-icon draft__champ-icon--${phase.toLowerCase()}`}
+            className={`draft__champ-icon draft__champ-icon--${phaseClass}`}
             style={{ width: size, height: size }}
             title={champion}
         >
@@ -133,13 +105,11 @@ function DraftChampIcon({
                 alt={champion}
                 width={size}
                 height={size}
-                onError={e => {
-                    (e.target as HTMLImageElement).style.opacity = "0";
+                onError={(event) => {
+                    (event.target as HTMLImageElement).style.opacity = "0";
                 }}
             />
-            {phase === "Pick" && (
-                <span className="draft__champ-seq">{sequenceNumber}</span>
-            )}
+            {phase === "Pick" ? <span className="draft__champ-seq">{sequenceNumber}</span> : null}
         </div>
     );
 }

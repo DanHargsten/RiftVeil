@@ -21,7 +21,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <App />
-      {import.meta.env.DEV ? (
+      {import.meta.env.DEV && import.meta.env.VITE_SHOW_QUERY_DEVTOOLS === "true" ? (
         <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
       ) : null}
     </QueryClientProvider>

@@ -32,12 +32,14 @@ export function TeamLogo({
         setSrc(resolveTeamLogoSrc(logoUrl, iconLogoUrl, shortName, variant));
     }, [logoUrl, iconLogoUrl, shortName, variant]);
 
+    const dimensionProps =
+        variant === "full" ? { height: size } : { width: size, height: size };
+
     return (
         <img
             src={src}
             alt=""
-            width={size}
-            height={size}
+            {...dimensionProps}
             className={className ?? "match-card__team-logo"}
             onError={() => {
                 setSrc((current) => {

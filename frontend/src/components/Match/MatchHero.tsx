@@ -1,6 +1,7 @@
 ﻿import { Link } from "react-router-dom";
 import type { ReactNode } from "react";
 import { LeagueLogo, TeamLogo } from "@/components/common/Logos.tsx";
+import { scoreOutcomeClass, teamOutcomeClass } from "@/components/Match/matchDisplayUtils.ts";
 import type { MatchDetails } from "@/lib/api.ts";
 
 interface MatchHeroProps {
@@ -17,9 +18,23 @@ export function MatchHero({ match, from, backLabel, footer }: MatchHeroProps) {
     const team2IsWinner = team2Wins > team1Wins;
     const leagueShortName = match.tournament.leagueShortName;
     const tournamentStage = match.tournament.stage;
+    const leaguePath = `/leagues/${leagueShortName.toLowerCase()}`;
 
     return (
         <header className="match-detail__hero">
+            <HeroWatermark
+                side="left"
+                shortName={match.team1ShortName}
+                logoUrl={match.team1LogoUrl}
+                iconLogoUrl={match.team1IconLogoUrl}
+            />
+            <HeroWatermark
+                side="right"
+                shortName={match.team2ShortName}
+                logoUrl={match.team2LogoUrl}
+                iconLogoUrl={match.team2IconLogoUrl}
+            />
+
             <h1 className="sr-only">
                 Match: {match.team1Name} vs {match.team2Name}
                 {tournamentStage ? ` — ${tournamentStage}` : ""}
@@ -29,78 +44,99 @@ export function MatchHero({ match, from, backLabel, footer }: MatchHeroProps) {
                 <Link to={from} className="match-detail__back-link">
                     {backLabel}
                 </Link>
+                <span className="match-detail__meta-sep" aria-hidden="true">·</span>
                 <div className="match-detail__league-info">
-                    <LeagueLogo shortName={leagueShortName} className="match-detail__league-logo" />
-                    <span className="match-detail__league-name">{leagueShortName}</span>
-                    {tournamentStage && (
+                    <Link to={leaguePath} className="match-detail__league-link">
+                        <LeagueLogo shortName={leagueShortName} className="match-detail__league-logo" />
+                        <span className="match-detail__league-name">{leagueShortName}</span>
+                    </Link>
+                    {tournamentStage ? (
                         <>
-                            <span className="match-detail__meta-sep">·</span>
+                            <span className="match-detail__meta-sep" aria-hidden="true">·</span>
                             <span className="match-detail__tournament-stage">{tournamentStage}</span>
                         </>
-                    )}
-                    <span className="match-detail__meta-sep">·</span>
+                    ) : null}
+                    <span className="match-detail__meta-sep" aria-hidden="true">·</span>
                     <span className="match-detail__best-of">Best of {match.bestOf}</span>
                 </div>
             </div>
 
-            {/* Teams + Score */}
             <div className="match-detail__scoreline">
-
-                {/* Team 1 */}
-                <div
-                    className={`match-detail__team match-detail__team--left ${team1IsWinner ? "match-detail__team--winner" : team2IsWinner ? "match-detail__team--loser" : ""}`}>
-                    <div className="match-detail__team-identity">
-                        <span className="match-detail__team-short">{match.team1ShortName}</span>
-                        <span className="match-detail__team-full">{match.team1Name}</span>
-                    </div>
-                    <div className="match-detail__team-logo-wrap">
-                        <TeamLogo
-                            shortName={match.team1ShortName}
-                            logoUrl={match.team1LogoUrl}
-                            iconLogoUrl={match.team1IconLogoUrl}
-                            className="match-detail__team-logo"
-                        />
-                    </div>
-                </div>
-
-                {/* Score */}
+                <HeroTeamBlock
+                    align="left"
+                    shortName={match.team1ShortName}
+                    fullName={match.team1Name}
+                    outcomeClass={teamOutcomeClass(team1IsWinner, team2IsWinner)}
+                />
                 <div className="match-detail__score-block">
                     <div className="match-detail__score">
-                        <span
-                            className={`match-detail__score-num ${team1IsWinner ? "match-detail__score-num--winner" : ""}`}>
+                        <span className={`match-detail__score-num ${scoreOutcomeClass(team1IsWinner)}`}>
                             {team1Wins}
                         </span>
                         <span className="match-detail__score-divider">–</span>
-                        <span
-                            className={`match-detail__score-num ${team2IsWinner ? "match-detail__score-num--winner" : ""}`}>
+                        <span className={`match-detail__score-num ${scoreOutcomeClass(team2IsWinner)}`}>
                             {team2Wins}
                         </span>
                     </div>
-                    {(team1IsWinner || team2IsWinner) && (
-                        <span className="match-detail__winner-label">
-                            {team1IsWinner ? match.team1ShortName : match.team2ShortName} wins
-                        </span>
-                    )}
                 </div>
-
-                {/* Team 2 */}
-                <div
-                    className={`match-detail__team match-detail__team--right ${team2IsWinner ? "match-detail__team--winner" : team1IsWinner ? "match-detail__team--loser" : ""}`}>
-                    <div className="match-detail__team-logo-wrap">
-                        <TeamLogo
-                            shortName={match.team2ShortName}
-                            logoUrl={match.team2LogoUrl}
-                            iconLogoUrl={match.team2IconLogoUrl}
-                            className="match-detail__team-logo"
-                        />
-                    </div>
-                    <div className="match-detail__team-identity">
-                        <span className="match-detail__team-short">{match.team2ShortName}</span>
-                        <span className="match-detail__team-full">{match.team2Name}</span>
-                    </div>
-                </div>
+                <HeroTeamBlock
+                    align="right"
+                    shortName={match.team2ShortName}
+                    fullName={match.team2Name}
+                    outcomeClass={teamOutcomeClass(team2IsWinner, team1IsWinner)}
+                />
             </div>
             {footer ? <div className="match-detail__hero-footer">{footer}</div> : null}
         </header>
+    );
+}
+
+function HeroWatermark({
+    side,
+    shortName,
+    logoUrl,
+    iconLogoUrl,
+}: {
+    side: "left" | "right";
+    shortName: string;
+    logoUrl?: string | null;
+    iconLogoUrl?: string | null;
+}) {
+    return (
+        <div
+            className={`match-detail__hero-watermark match-detail__hero-watermark--${side}`}
+            aria-hidden="true"
+        >
+            <TeamLogo
+                shortName={shortName}
+                logoUrl={logoUrl}
+                iconLogoUrl={iconLogoUrl}
+                size={224}
+                className="match-detail__hero-watermark-logo"
+            />
+        </div>
+    );
+}
+
+function HeroTeamBlock({
+    align,
+    shortName,
+    fullName,
+    outcomeClass,
+}: {
+    align: "left" | "right";
+    shortName: string;
+    fullName: string;
+    outcomeClass: string;
+}) {
+    const outcomeSuffix = outcomeClass ? ` ${outcomeClass}` : "";
+
+    return (
+        <div className={`match-detail__team match-detail__team--${align}${outcomeSuffix}`}>
+            <div className="match-detail__team-identity">
+                <span className="match-detail__team-short">{shortName}</span>
+                <span className="match-detail__team-full">{fullName}</span>
+            </div>
+        </div>
     );
 }
