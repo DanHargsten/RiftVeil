@@ -10,7 +10,8 @@
     padding-top: 0.25rem;
 }
 
-.admin--teams {
+.admin--teams,
+.admin--vods {
     width: min(1120px, 100%);
 }
 
@@ -610,4 +611,55 @@
     font-size: 0.82rem;
     max-height: 12rem;
     overflow-y: auto;
+}
+
+/* ================================================================================================
+   GAME VODS TAB
+   ================================================================================================ */
+.admin__vods-form {
+    padding: 1.25rem;
+}
+
+.admin__vods-load-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    align-items: center;
+}
+
+.admin__vods-match-id {
+    max-width: 10rem;
+}
+
+.admin__vods-match {
+    margin-top: 1rem;
+}
+
+.admin__vods-match-title {
+    margin: 0 0 0.75rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.admin__vods-link {
+    color: var(--primary-text);
+    font-weight: 600;
+}
+
+.admin__vods-empty {
+    color: var(--text-muted-extra);
+    font-size: 0.82rem;
+}
+
+.admin__vods-input-url {
+    min-width: 14rem;
+}
+
+.admin__vods-input-offset {
+    max-width: 6rem;
+}
+
+.admin__vods-row-error {
+    margin: 0.35rem 0 0;
+    font-size: 0.75rem;
 }

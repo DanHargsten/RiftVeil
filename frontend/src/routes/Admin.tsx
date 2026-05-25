@@ -1,14 +1,16 @@
 ﻿import { useState } from "react";
 import { AdminBackfillTab } from "@/components/Admin/AdminBackfillTab.tsx";
+import { AdminGameVodsTab } from "@/components/Admin/AdminGameVodsTab.tsx";
 import { AdminImportTab } from "@/components/Admin/AdminImportTab.tsx";
 import { AdminTeamsTab } from "@/components/Admin/AdminTeamsTab.tsx";
 
-type AdminTab = "import" | "backfill" | "teams";
+type AdminTab = "import" | "backfill" | "teams" | "vods";
 
 const TABS: { id: AdminTab; label: string }[] = [
     { id: "import", label: "Import" },
     { id: "backfill", label: "Repair" },
     { id: "teams", label: "Teams" },
+    { id: "vods", label: "Game VODs" },
 ];
 
 export function Admin() {
@@ -44,6 +46,7 @@ export function Admin() {
                     {activeTab === "import" && <AdminImportTab />}
                     {activeTab === "backfill" && <AdminBackfillTab />}
                     {activeTab === "teams" && <AdminTeamsTab />}
+                    {activeTab === "vods" && <AdminGameVodsTab />}
                 </div>
             </div>
         </div>

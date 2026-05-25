@@ -53,12 +53,26 @@ export async function deleteApi(endpoint: string): Promise<void> {
   }
 }
 
+/** Single VOD row on match detail responses. */
+export interface GameVodItem {
+  id: number;
+  provider: string;
+  locale: string | null;
+  url: string;
+  offsetSeconds?: number | null;
+  draftOffsetSeconds?: number | null;
+}
+
 /** Single game within a match (e.g., Game 1 of a Bo3). */
 export interface GameListItem {
   id: number;
   gameNumber: number;
   winningTeam: number | null;
   vodUrl: string | null;
+  vodBaseUrl?: string | null;
+  vodDraftOffsetSeconds?: number | null;
+  vodGameStartOffsetSeconds?: number | null;
+  vods?: GameVodItem[] | null;
 }
 
 /** Match summary for list views. */
@@ -317,7 +331,24 @@ export const importBackfillApi = {
   },
 };
 
+export interface GameVodUpdateResult {
+  gameId: number;
+  gameNumber: number;
+  vodUrl: string | null;
+  baseUrl: string | null;
+  draftOffsetSeconds: number | null;
+  gameStartOffsetSeconds: number | null;
+}
+
 export const gamesApi = {
   getDetails: (gameId: number) =>
     fetchApi<GameDetailsDto>(`/api/games/${gameId}/details`),
+
+  updateVod: (gameId: number, body: {
+    url: string | null;
+    draftOffsetSeconds?: number | null;
+    gameStartOffsetSeconds?: number | null;
+    offsetSeconds?: number;
+  }) =>
+    patchApi<GameVodUpdateResult>(`/api/games/${gameId}/vod`, body),
 };
