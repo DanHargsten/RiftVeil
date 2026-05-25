@@ -25,13 +25,23 @@ function statValue(stats: TeamStatsDto | null | undefined, field: ObjectiveField
     return stats?.[field] ?? 0;
 }
 
-function objectivesBodyClass(team1Side: string | null | undefined): string {
-    if (team1Side == null) {
-        return "match-detail__objectives-body";
-    }
-    return isBlueSideFirst(team1Side)
-        ? "match-detail__objectives-body match-detail__objectives-body--blue-t1"
-        : "match-detail__objectives-body match-detail__objectives-body--red-t1";
+function resolveObjectiveSides(
+    match: MatchDetails,
+    gameDetails: GameDetailsDto,
+): {
+    leftName: string;
+    rightName: string;
+    leftStats: TeamStatsDto | null | undefined;
+    rightStats: TeamStatsDto | null | undefined;
+} {
+    const blueFirst = isBlueSideFirst(gameDetails.team1Side);
+
+    return {
+        leftName: blueFirst ? match.team1ShortName : match.team2ShortName,
+        rightName: blueFirst ? match.team2ShortName : match.team1ShortName,
+        leftStats: blueFirst ? gameDetails.team1Stats : gameDetails.team2Stats,
+        rightStats: blueFirst ? gameDetails.team2Stats : gameDetails.team1Stats,
+    };
 }
 
 export function GameObjectives({ match, gameDetails, loading, error }: GameObjectivesProps) {
@@ -63,16 +73,18 @@ export function GameObjectives({ match, gameDetails, loading, error }: GameObjec
         );
     }
 
+    const sides = resolveObjectiveSides(match, gameDetails);
+
     return (
         <div
-            className={objectivesBodyClass(gameDetails.team1Side)}
+            className="match-detail__objectives-body"
             role="group"
             aria-labelledby="match-detail-objectives-title"
         >
             <div className="match-detail__objectives-head">
-                <span className="match-detail__objectives-head-score">{match.team1ShortName}</span>
+                <span className="match-detail__objectives-head-score">{sides.leftName}</span>
                 <span className="match-detail__objectives-head-mid" aria-hidden="true" />
-                <span className="match-detail__objectives-head-score">{match.team2ShortName}</span>
+                <span className="match-detail__objectives-head-score">{sides.rightName}</span>
             </div>
             <div className="match-detail__objectives-list">
                 {OBJECTIVE_ROWS.map((row) => (
@@ -80,10 +92,10 @@ export function GameObjectives({ match, gameDetails, loading, error }: GameObjec
                         key={row.field}
                         label={row.label}
                         field={row.field}
-                        team1Name={match.team1ShortName}
-                        team2Name={match.team2ShortName}
-                        team1Value={statValue(t1, row.field)}
-                        team2Value={statValue(t2, row.field)}
+                        leftName={sides.leftName}
+                        rightName={sides.rightName}
+                        leftValue={statValue(sides.leftStats, row.field)}
+                        rightValue={statValue(sides.rightStats, row.field)}
                     />
                 ))}
             </div>
@@ -102,31 +114,31 @@ function ObjectivesState({ children }: { children: ReactNode }) {
 function ObjectiveRow({
     label,
     field,
-    team1Name,
-    team2Name,
-    team1Value,
-    team2Value,
+    leftName,
+    rightName,
+    leftValue,
+    rightValue,
 }: {
     label: string;
     field: ObjectiveField;
-    team1Name: string;
-    team2Name: string;
-    team1Value: number;
-    team2Value: number;
+    leftName: string;
+    rightName: string;
+    leftValue: number;
+    rightValue: number;
 }) {
-    const ariaLabel = `${label}: ${team1Name} ${team1Value}, ${team2Name} ${team2Value}`;
+    const ariaLabel = `${label}: ${leftName} ${leftValue}, ${rightName} ${rightValue}`;
 
     return (
         <div className="match-detail__objectives-row" aria-label={ariaLabel}>
-            <div className="match-detail__objectives-score match-detail__objectives-score--t1">
-                {team1Value}
+            <div className="match-detail__objectives-score match-detail__objectives-score--left">
+                {leftValue}
             </div>
             <div className="match-detail__objectives-mid">
                 <ObjectiveRowIcon field={field} />
                 <span className="match-detail__objectives-label">{label}</span>
             </div>
-            <div className="match-detail__objectives-score match-detail__objectives-score--t2">
-                {team2Value}
+            <div className="match-detail__objectives-score match-detail__objectives-score--right">
+                {rightValue}
             </div>
         </div>
     );

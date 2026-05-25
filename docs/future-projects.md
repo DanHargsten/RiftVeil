@@ -168,12 +168,13 @@ If a real graph becomes a hard requirement, it gets blocked on the same data sou
 
 ---
 
-## 5. Objectives sidebar (already has data, needs UI)
+## 5. Objectives sidebar — element splits (optional follow-up)
 
-The match page has an empty "Objectives" sidebar. Per-team objective totals
-(barons, dragons split by element, void grubs, herald, towers, inhibitors) are already imported
-into `GameTeamStats` — just need a presentational component reading the existing
-`GET /api/games/{id}/details` payload. Small UI ticket, not an architecture project.
+**Shipped (2026-05-25):** `GameObjectives` on match detail shows per-team totals for towers,
+dragons (aggregate), barons, and void grubs from `GameTeamStats` / `GET /api/games/{id}/details`.
+
+**Still optional later:** dragon splits by element (cloud / infernal / …), herald, inhibitors,
+and richer objective tooltips — data exists in Cargo but is not surfaced in the current UI.
 
 ---
 

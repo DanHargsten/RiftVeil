@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { TbdTeamIcon } from "@/components/common/Icons.tsx";
+import { isTbdTeam } from "@/lib/teamDisplayUtils.ts";
 import {
     resolveTeamLogoSrc,
     teamLogoFallbackSrc,
@@ -25,6 +27,33 @@ export function TeamLogo({
     className,
     variant = "icon",
 }: TeamLogoProps) {
+    if (isTbdTeam(shortName)) {
+        const tbdClass = [className ?? "match-card__team-logo", "team-logo--tbd"]
+            .filter(Boolean)
+            .join(" ");
+        return <TbdTeamIcon size={size} className={tbdClass} title="To Be Decided" />;
+    }
+
+    return (
+        <TeamLogoImage
+            shortName={shortName}
+            logoUrl={logoUrl}
+            iconLogoUrl={iconLogoUrl}
+            size={size}
+            className={className}
+            variant={variant}
+        />
+    );
+}
+
+function TeamLogoImage({
+    shortName,
+    logoUrl,
+    iconLogoUrl,
+    size,
+    className,
+    variant,
+}: TeamLogoProps & { variant: TeamLogoVariant }) {
     const [src, setSrc] = useState(() =>
         resolveTeamLogoSrc(logoUrl, iconLogoUrl, shortName, variant));
 

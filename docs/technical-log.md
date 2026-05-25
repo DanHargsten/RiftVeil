@@ -6,6 +6,24 @@ Entries are **newest first**, same structure as before this split.
 
 ---
 
+## 2026-05-25
+
+### Added
+
+- **`GameVod.DraftOffsetSeconds`**, nullable **`OffsetSeconds`**, EF migration **`AddGameVodDraftOffset`**; **`GameVodUrls`** (YouTube/Twitch parse, strip/apply `t=` offsets); **`Game.ApplyManualVod`**, **`RemoveManualVods`**.
+- **`PATCH /api/games/{id}/vod`** + **`UpdateGameVodRequest`**, **`GameVodUpdateResultDto`**; match detail **`GameDto`** exposes **`VodBaseUrl`**, draft/game-start offset fields.
+- **`LeaguepediaImportService`**: **`GameId`** on game create/update via **`ApplyExistingGameFromCargoRow`**; **`FindExistingTeamAsync`** for wiki disambiguation names; **`SyncTeamMetadataAfterMatchImportAsync`**; backfill game IDs/sides delegate to **`ResyncGamesFromCargoForLeagueAsync`**.
+- Frontend **`vodPlaybackUtils`**, **`vodTimestampUtils`**, **`AdminGameVodsTab`**, **`MatchDevMenu`**; hero **`GameHeroFooter`** split VOD links; **`GameObjectives`**, draft team stat columns, **`DamageBarsViewToggle`** in panel header.
+
+### Changed
+
+- **`AdminBackfillTab`** → **Repair** (team metadata only); **`ImportController`** doc comments for game cargo re-sync routes.
+- **`GameDetailImportService`**: clearer error when **`ExternalId`** is missing.
+
+### Notes
+
+- Do not commit unused **`frontend/public/backgrounds/`** or orphan **`zzlol-stat-cs.png`** unless wired up (scoreboard uses **`lol-stat-cs.png`**).
+
 ## 2026-05-20
 
 ### Added

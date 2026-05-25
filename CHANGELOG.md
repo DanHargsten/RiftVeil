@@ -6,6 +6,27 @@ For class-level detail, heuristics, and file references, see [`docs/technical-lo
 
 Early months (2026-01 through ~2026-04-13) are summarised at a high level; the project log was backfilled from memory and commits before day-by-day notes started.
 
+## 2026-05-25
+
+### Added
+
+- **Manual game VODs** — admin and local dev can set YouTube/Twitch links with optional **draft start** and **game start** timestamps; hero footer shows one link or split **Draft phase** / **Game start** chips when both offsets are set.
+- **Admin — Game VODs tab** — load a match by ID and edit VOD URL + timestamps per game.
+- **Match detail — dev menu** — floating panel (dev builds only) for series game-details import and quick VOD edits.
+- **Match detail — global objectives** — towers, dragons, barons, and void grubs beside the damage breakdown.
+- **Match detail — draft stats** — team KDA and gold totals flanking the draft grid; game duration in the section header.
+
+### Changed
+
+- **Match import** — Cargo sync now fills Leaguepedia **GameId**, blue/red sides, winner, and VOD on create/update; team metadata refreshes after each league import.
+- **Admin Repair tab** — renamed from Backfill; game ID/side jobs removed (covered by match import); team metadata refresh remains.
+- **Damage breakdown** — Game/Team toggle moved to the section header (shared with objectives row).
+
+### Notes
+
+- Apply EF migration **`AddGameVodDraftOffset`** before using manual VOD offsets.
+- Hover tooltips for stats/items are tracked in `docs/todo.md`.
+
 ## 2026-05-22
 
 ### Added

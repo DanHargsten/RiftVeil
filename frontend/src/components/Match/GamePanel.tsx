@@ -1,5 +1,6 @@
 ﻿import type { ReactNode } from "react";
-import { GameDamageBars } from "@/components/Match/GameDamageBars.tsx";
+import { useState } from "react";
+import { DamageBarsViewToggle, GameDamageBars, type TertiaryDamageView } from "@/components/Match/GameDamageBars.tsx";
 import { GameDraft } from "@/components/Match/GameDraft.tsx";
 import { GameObjectives } from "@/components/Match/GameObjectives.tsx";
 import { GameScoreboard } from "@/components/Match/GameScoreboard.tsx";
@@ -11,8 +12,6 @@ import {
     sumPlayerStat,
 } from "@/components/Match/matchDisplayUtils.ts";
 import { TeamLogo } from "@/components/common/Logos.tsx";
-import statGoldIcon from "@/assets/icons/lol-icons/lol-stat-gold.png";
-import statKdaIcon from "@/assets/icons/lol-icons/lol-stat-kda.png";
 import type { GameDetailsDto, GameListItem, MatchDetails, PlayerStatsDto } from "@/lib/api.ts";
 
 interface GamePanelProps {
@@ -65,12 +64,13 @@ export function GamePanel({
 }: GamePanelProps) {
     const panelId = "match-detail-game-panel";
     const tabLabelId = `match-detail-tab-${currentGame.id}`;
+    const [damageView, setDamageView] = useState<TertiaryDamageView>("game");
 
     if (gameLoading) {
         return (
             <GamePanelShell id={panelId} labelledBy={tabLabelId}>
-                <div className="match-detail-loading">
-                    <div className="match-detail-loading__spinner" />
+                <div className="match-detail-loading" role="status" aria-live="polite">
+                    <div className="match-detail-loading__spinner" aria-hidden="true" />
                     <span>Loading game data...</span>
                 </div>
             </GamePanelShell>
@@ -108,8 +108,12 @@ export function GamePanel({
                     gameNumber={currentGame.gameNumber}
                     gameDurationLabel={gameDurationLabel}
                 />
-                <GameDraft draft={gameDetails.draft} team1Side={gameDetails.team1Side} />
-                <div className="match-detail__section-divider" aria-hidden="true" />
+                <GameDraft
+                    draft={gameDetails.draft}
+                    team1Side={gameDetails.team1Side}
+                    leftTeam={buildDraftTeamStats(gameSideTeams.left)}
+                    rightTeam={buildDraftTeamStats(gameSideTeams.right)}
+                />
                 <h2 id="match-detail-scoreboard-heading" className="sr-only">Scoreboard</h2>
                 <div className="match-detail__subsection match-detail__subsection--scoreboard">
                     <GameScoreboard
@@ -132,6 +136,7 @@ export function GamePanel({
                     </div>
                     <div className="match-detail__stats-header match-detail__stats-header--damage">
                         <h3>Damage breakdown</h3>
+                        <DamageBarsViewToggle tertiaryView={damageView} onViewChange={setDamageView} />
                     </div>
                     <section
                         className="match-detail__subsection match-detail__subsection--objectives-side"
@@ -148,6 +153,7 @@ export function GamePanel({
                         team1Players={gameDetails.team1Players}
                         team2Players={gameDetails.team2Players}
                         team1Side={gameDetails.team1Side}
+                        tertiaryView={damageView}
                     />
                 </div>
                 <div className="match-detail__section-divider" aria-hidden="true" />
@@ -188,6 +194,14 @@ function GamePanelShell({
     );
 }
 
+function buildDraftTeamStats(team: GameSideTeam) {
+    return {
+        shortName: team.shortName,
+        kda: formatTeamKda(team.players),
+        gold: formatGoldStat(sumPlayerStat(team.players, "goldEarned")),
+    };
+}
+
 function DraftScoreboardHeader({
     left,
     right,
@@ -203,66 +217,33 @@ function DraftScoreboardHeader({
 }) {
     const leftWon = winningTeam === left.teamNum;
     const rightWon = winningTeam === right.teamNum;
-    const leftKda = formatTeamKda(left.players);
-    const rightKda = formatTeamKda(right.players);
-    const leftGold = formatGoldStat(sumPlayerStat(left.players, "goldEarned"));
-    const rightGold = formatGoldStat(sumPlayerStat(right.players, "goldEarned"));
 
     return (
         <div className="match-detail__section-header">
-            <GamePanelTeamSummary
-                team={left}
-                kda={leftKda}
-                gold={leftGold}
-                showWinBadge={leftWon}
-                align="left"
-            />
+            <GamePanelTeamHeader team={left} showWinBadge={leftWon} align="left" />
             <div className="match-detail__section-center">
                 <span className="match-detail__section-game-label">
                     Game {gameNumber}
                     {gameDurationLabel ? <> - {gameDurationLabel}</> : null}
                 </span>
             </div>
-            <GamePanelTeamSummary
-                team={right}
-                kda={rightKda}
-                gold={rightGold}
-                showWinBadge={rightWon}
-                align="right"
-            />
+            <GamePanelTeamHeader team={right} showWinBadge={rightWon} align="right" />
         </div>
     );
 }
 
-function GamePanelTeamSummary({
+function GamePanelTeamHeader({
     team,
-    kda,
-    gold,
     showWinBadge,
     align,
 }: {
     team: GameSideTeam;
-    kda: string;
-    gold: string;
     showWinBadge: boolean;
     align: "left" | "right";
 }) {
     const isRight = align === "right";
     const teamClass = `match-detail__section-team match-detail__section-team--with-logo${isRight ? " match-detail__section-team--right" : ""}`;
-
     const winBadge = showWinBadge ? <span className="match-detail__section-win-badge">WIN</span> : null;
-    const kdaBlock = (
-        <span className="match-detail__section-kda" aria-label={`${team.shortName} kills, deaths and assists`}>
-            <img src={statKdaIcon} alt="" aria-hidden="true" className="match-detail__section-stat-icon" />
-            <span>{kda}</span>
-        </span>
-    );
-    const goldBlock = (
-        <span className="match-detail__section-gold" aria-label={`${team.shortName} total gold`}>
-            <img src={statGoldIcon} alt="" aria-hidden="true" className="match-detail__section-stat-icon" />
-            <span>{gold}</span>
-        </span>
-    );
     const logo = (
         <TeamLogo
             shortName={team.shortName}
@@ -271,13 +252,13 @@ function GamePanelTeamSummary({
             className="match-detail__section-team-logo"
         />
     );
+    const name = <span className="match-detail__section-team-name">{team.shortName}</span>;
 
     if (isRight) {
         return (
             <span className={teamClass}>
                 {winBadge}
-                {goldBlock}
-                {kdaBlock}
+                {name}
                 {logo}
             </span>
         );
@@ -286,8 +267,7 @@ function GamePanelTeamSummary({
     return (
         <span className={teamClass}>
             {logo}
-            {kdaBlock}
-            {goldBlock}
+            {name}
             {winBadge}
         </span>
     );

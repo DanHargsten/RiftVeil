@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 
 import type { PlayerStatsDto } from "@/lib/api.ts";
 import {
@@ -24,23 +24,46 @@ const TERTIARY_VIEWS: { id: TertiaryDamageView; label: string }[] = [
     { id: "team", label: "Team" },
 ];
 
-const TERTIARY_PANEL_TITLES: Record<TertiaryDamageView, string> = {
-    game: "Game total",
-    team: "Team breakdown",
-};
+export type { TertiaryDamageView };
+
+export function DamageBarsViewToggle({
+    tertiaryView,
+    onViewChange,
+}: {
+    tertiaryView: TertiaryDamageView;
+    onViewChange: (view: TertiaryDamageView) => void;
+}) {
+    return (
+        <div role="tablist" aria-label="Game or team damage" className="damage-bars__modes">
+            {TERTIARY_VIEWS.map(({ id, label }) => (
+                <button
+                    key={id}
+                    type="button"
+                    role="tab"
+                    aria-selected={tertiaryView === id}
+                    className={modeButtonClass(tertiaryView === id)}
+                    onClick={() => onViewChange(id)}
+                >
+                    {label}
+                </button>
+            ))}
+        </div>
+    );
+}
 
 interface GameDamageBarsProps {
     team1Players: PlayerStatsDto[];
     team2Players: PlayerStatsDto[];
     team1Side: string | null;
+    tertiaryView: TertiaryDamageView;
 }
 
 export function GameDamageBars({
     team1Players,
     team2Players,
     team1Side,
+    tertiaryView,
 }: GameDamageBarsProps) {
-    const [tertiaryView, setTertiaryView] = useState<TertiaryDamageView>("game");
     const roleRows = useMemo(
         () => buildLaneMatchupRows(team1Players, team2Players, team1Side),
         [team1Players, team2Players, team1Side],
@@ -53,10 +76,6 @@ export function GameDamageBars({
     return (
         <div className="damage-bars damage-bars--grid-cells">
             <div className="damage-bars__matchup" role="group" aria-label="Damage breakdown charts">
-                <DamageBarsHeader
-                    tertiaryView={tertiaryView}
-                    onViewChange={setTertiaryView}
-                />
                 <div className="damage-bars__matchup-rows">
                     {roleRows.map((row) => (
                         <DamageMatchupRow
@@ -65,38 +84,6 @@ export function GameDamageBars({
                             tertiaryView={tertiaryView}
                             scales={scales}
                         />
-                    ))}
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function DamageBarsHeader({
-    tertiaryView,
-    onViewChange,
-}: {
-    tertiaryView: TertiaryDamageView;
-    onViewChange: (view: TertiaryDamageView) => void;
-}) {
-    return (
-        <div className="damage-bars__matchup-labels">
-            <span className="damage-bars__view-label">Lane matchup</span>
-            <span className="damage-bars__matchup-rail-head" aria-hidden="true" />
-            <div className="damage-bars__matchup-labels-actions">
-                <span className="damage-bars__view-label">{TERTIARY_PANEL_TITLES[tertiaryView]}</span>
-                <div role="tablist" aria-label="Game or team damage" className="damage-bars__modes">
-                    {TERTIARY_VIEWS.map(({ id, label }) => (
-                        <button
-                            key={id}
-                            type="button"
-                            role="tab"
-                            aria-selected={tertiaryView === id}
-                            className={modeButtonClass(tertiaryView === id)}
-                            onClick={() => onViewChange(id)}
-                        >
-                            {label}
-                        </button>
                     ))}
                 </div>
             </div>

@@ -1,12 +1,22 @@
 import { resolveDraftSides } from "@/components/Match/draftUtils.ts";
+import statGoldIcon from "@/assets/icons/lol-icons/lol-stat-gold.png";
+import statKdaIcon from "@/assets/icons/lol-icons/lol-stat-kda.png";
 import type { DraftEntryDto } from "@/lib/api.ts";
+
+export interface DraftTeamStats {
+    shortName: string;
+    kda: string;
+    gold: string;
+}
 
 interface GameDraftProps {
     draft: DraftEntryDto[];
     team1Side: string | null;
+    leftTeam: DraftTeamStats;
+    rightTeam: DraftTeamStats;
 }
 
-export function GameDraft({ draft, team1Side }: GameDraftProps) {
+export function GameDraft({ draft, team1Side, leftTeam, rightTeam }: GameDraftProps) {
     if (draft.length === 0) {
         return <p className="draft__empty">Draft data not available for this game.</p>;
     }
@@ -16,6 +26,7 @@ export function GameDraft({ draft, team1Side }: GameDraftProps) {
     return (
         <section className="draft" aria-label="Champion draft">
             <div className="draft__body">
+                <DraftTeamStatsColumn align="left" teamStats={leftTeam} />
                 <DraftSide
                     align="left"
                     bans={sides.leftBans}
@@ -31,6 +42,7 @@ export function GameDraft({ draft, team1Side }: GameDraftProps) {
                     banOrder={sides.banOrder}
                     pickOrder={sides.pickOrder}
                 />
+                <DraftTeamStatsColumn align="right" teamStats={rightTeam} />
             </div>
         </section>
     );
@@ -76,6 +88,57 @@ function DraftSide({
                 ))}
             </div>
         </div>
+    );
+}
+
+function DraftTeamStatsColumn({
+    align,
+    teamStats,
+}: {
+    align: "left" | "right";
+    teamStats: DraftTeamStats;
+}) {
+    const { shortName, kda, gold } = teamStats;
+    const mirrored = align === "right";
+
+    return (
+        <div className={`draft__team-stats draft__team-stats--${align}`}>
+            <DraftTeamStat
+                type="kda"
+                value={kda}
+                shortName={shortName}
+                mirrored={mirrored}
+            />
+            <DraftTeamStat
+                type="gold"
+                value={gold}
+                shortName={shortName}
+                mirrored={mirrored}
+            />
+        </div>
+    );
+}
+
+function DraftTeamStat({
+    type,
+    value,
+    shortName,
+    mirrored,
+}: {
+    type: "kda" | "gold";
+    value: string;
+    shortName: string;
+    mirrored: boolean;
+}) {
+    const icon = type === "kda" ? statKdaIcon : statGoldIcon;
+    const label = type === "kda" ? "kills, deaths and assists" : "total gold";
+    const statClass = `draft__team-stat draft__team-stat--${type}${mirrored ? " draft__team-stat--mirrored" : ""}`;
+
+    return (
+        <span className={statClass} aria-label={`${shortName} ${label}`}>
+            <img src={icon} alt="" aria-hidden="true" className="draft__team-stat-icon" />
+            <span>{value}</span>
+        </span>
     );
 }
 

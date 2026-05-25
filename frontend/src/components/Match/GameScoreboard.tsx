@@ -39,21 +39,14 @@ export function GameScoreboard({
 
     if (!hasResolvedVersion) {
         return (
-            <section className="scoreboard" role="region" aria-label="Player lane matchups">
-                <header className="scoreboard__matchup-header">
-                    <div className="scoreboard__matchup-center-label">Lane matchups</div>
-                </header>
+            <section className="scoreboard" role="region" aria-label="Player scoreboard">
                 <div className="scoreboard__loading-state">Loading assets...</div>
             </section>
         );
     }
 
     return (
-        <section className="scoreboard" role="region" aria-label="Player lane matchups">
-            <header className="scoreboard__matchup-header">
-                <div className="scoreboard__matchup-center-label">Lane matchups</div>
-            </header>
-
+        <section className="scoreboard" role="region" aria-label="Player scoreboard">
             <div className="scoreboard__table-wrap">
                 <table className="scoreboard__table scoreboard__table--matchups">
                     <caption className="sr-only">

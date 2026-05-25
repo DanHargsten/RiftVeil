@@ -2,6 +2,7 @@ import type { MouseEvent } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { PlayIcon, TimeCircle, VisibilityOffIcon } from "@/components/common/Icons.tsx";
 import { LeagueLogo, TeamLogo } from "@/components/common/Logos.tsx";
+import { formatTeamDisplayNames, isTbdTeam } from "@/lib/teamDisplayUtils.ts";
 import type { MatchListItem } from "@/lib/api.ts";
 
 type SpoilerPrefs = {
@@ -59,10 +60,13 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
         return matchDate.toLocaleDateString(undefined, { month: "short", day: "numeric" });
     };
 
+    const team1Display = formatTeamDisplayNames(match.team1ShortName, match.team1Name);
+    const team2Display = formatTeamDisplayNames(match.team2ShortName, match.team2Name);
+
     return (
         <article className={`match-card ${getStatusClass()}`} aria-labelledby={`match-title-${match.id}`}>
             <h3 id={`match-title-${match.id}`} className="sr-only">
-                {match.team1ShortName} vs {match.team2ShortName} — {match.leagueShortName}
+                {team1Display.short} vs {team2Display.short} — {match.leagueShortName}
             </h3>
             
             {/* ========== HEADER ========== */}
@@ -106,7 +110,9 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
             <div className="match-card__main">
 
                 {/* TEAM 1 */}
-                <div className={`match-card__team match-card__team--left ${
+                <div className={`match-card__team match-card__team--left${
+                    isTbdTeam(match.team1ShortName) ? " match-card__team--tbd" : ""
+                } ${
                     team1IsWinner ? "match-card__team--winner" : team2IsWinner ? "match-card__team--loser" : ""
                 }`}>
                     <TeamLogo
@@ -115,8 +121,8 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
                         iconLogoUrl={match.team1IconLogoUrl}
                     />
                     <div className="match-card__team-info">
-                        <span className="match-card__team-short">{match.team1ShortName}</span>
-                        <span className="match-card__team-full">{match.team1Name}</span>
+                        <span className="match-card__team-short">{team1Display.short}</span>
+                        <span className="match-card__team-full">{team1Display.full}</span>
                     </div>
                 </div>
 
@@ -158,7 +164,9 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
                 </div>
 
                 {/* TEAM 2 */}
-                <div className={`match-card__team match-card__team--right ${
+                <div className={`match-card__team match-card__team--right${
+                    isTbdTeam(match.team2ShortName) ? " match-card__team--tbd" : ""
+                } ${
                     team2IsWinner ? "match-card__team--winner" : team1IsWinner ? "match-card__team--loser" : ""
                 }`}>
                     <TeamLogo
@@ -167,8 +175,8 @@ export function MatchCard({ match, spoilers, onReveal, onHide }: MatchCardProps)
                         iconLogoUrl={match.team2IconLogoUrl}
                     />
                     <div className="match-card__team-info">
-                        <span className="match-card__team-short">{match.team2ShortName}</span>
-                        <span className="match-card__team-full">{match.team2Name}</span>
+                        <span className="match-card__team-short">{team2Display.short}</span>
+                        <span className="match-card__team-full">{team2Display.full}</span>
                     </div>
                 </div>
             </div>

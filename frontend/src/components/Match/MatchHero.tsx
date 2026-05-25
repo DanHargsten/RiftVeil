@@ -2,6 +2,7 @@
 import type { ReactNode } from "react";
 import { LeagueLogo, TeamLogo } from "@/components/common/Logos.tsx";
 import { scoreOutcomeClass, teamOutcomeClass } from "@/components/Match/matchDisplayUtils.ts";
+import { formatTeamDisplayNames } from "@/lib/teamDisplayUtils.ts";
 import type { MatchDetails } from "@/lib/api.ts";
 
 interface MatchHeroProps {
@@ -9,9 +10,10 @@ interface MatchHeroProps {
     from: string;
     backLabel: string;
     footer?: ReactNode;
+    devMenu?: ReactNode;
 }
 
-export function MatchHero({ match, from, backLabel, footer }: MatchHeroProps) {
+export function MatchHero({ match, from, backLabel, footer, devMenu }: MatchHeroProps) {
     const team1Wins = match.team1Score ?? 0;
     const team2Wins = match.team2Score ?? 0;
     const team1IsWinner = team1Wins > team2Wins;
@@ -19,9 +21,12 @@ export function MatchHero({ match, from, backLabel, footer }: MatchHeroProps) {
     const leagueShortName = match.tournament.leagueShortName;
     const tournamentStage = match.tournament.stage;
     const leaguePath = `/leagues/${leagueShortName.toLowerCase()}`;
+    const team1Display = formatTeamDisplayNames(match.team1ShortName, match.team1Name);
+    const team2Display = formatTeamDisplayNames(match.team2ShortName, match.team2Name);
 
     return (
         <header className="match-detail__hero">
+            {devMenu ? <div className="match-detail__hero-dev">{devMenu}</div> : null}
             <HeroWatermark
                 side="left"
                 shortName={match.team1ShortName}
@@ -36,7 +41,7 @@ export function MatchHero({ match, from, backLabel, footer }: MatchHeroProps) {
             />
 
             <h1 className="sr-only">
-                Match: {match.team1Name} vs {match.team2Name}
+                Match: {team1Display.full} vs {team2Display.full}
                 {tournamentStage ? ` — ${tournamentStage}` : ""}
             </h1>
 
@@ -64,8 +69,8 @@ export function MatchHero({ match, from, backLabel, footer }: MatchHeroProps) {
             <div className="match-detail__scoreline">
                 <HeroTeamBlock
                     align="left"
-                    shortName={match.team1ShortName}
-                    fullName={match.team1Name}
+                    shortName={team1Display.short}
+                    fullName={team1Display.full}
                     outcomeClass={teamOutcomeClass(team1IsWinner, team2IsWinner)}
                 />
                 <div className="match-detail__score-block">
@@ -81,8 +86,8 @@ export function MatchHero({ match, from, backLabel, footer }: MatchHeroProps) {
                 </div>
                 <HeroTeamBlock
                     align="right"
-                    shortName={match.team2ShortName}
-                    fullName={match.team2Name}
+                    shortName={team2Display.short}
+                    fullName={team2Display.full}
                     outcomeClass={teamOutcomeClass(team2IsWinner, team1IsWinner)}
                 />
             </div>

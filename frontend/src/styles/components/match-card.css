@@ -110,6 +110,20 @@
     flex-shrink: 0;
 }
 
+.team-logo--tbd {
+    color: var(--text-muted-extra);
+    opacity: 0.72;
+    flex-shrink: 0;
+}
+
+.match-card__team--tbd .match-card__team-short {
+    color: var(--text-muted);
+}
+
+.match-card__team--tbd .match-card__team-full {
+    color: var(--text-muted-extra);
+}
+
 .match-card__team-info {
     display: flex;
     flex-direction: column;

@@ -4,6 +4,7 @@ Short-term list for practical fixes that are smaller than the scoped items in `f
 
 ## UI / UX
 
+- [ ] **Match detail tooltips:** On hover, show contextual stats and labels for interactive elements (items, runes, champions, objectives, damage bars, draft picks/bans, etc.) instead of relying on bare icons or truncated values.
 - [ ] **Mobile / responsive layout (prio):** Frontend targets desktop only for now; viewport `@media` rules were removed. Reintroduce breakpoints for match detail, damage breakdown, sidebar, home, and match list when prioritised.
 - [ ] Sidebar: when a league has many tournaments, make the list scrollable instead of clipping.
 - [ ] Sidebar structure: group tournaments by year (`LEC -> 2026, 2025, 2024`) before split/stage labels.
@@ -12,7 +13,7 @@ Short-term list for practical fixes that are smaller than the scoped items in `f
 
 ## Import / data flow
 
-- [x] Add backfill actions (`game ids`, `game sides`, `team metadata`) as explicit admin actions — **Backfill** tab at `/admin`.
+- [x] Add backfill actions (`game ids`, `game sides`, `team metadata`) as explicit admin actions — match import now syncs game Cargo rows; **Repair** tab keeps optional team-metadata refresh.
 - [ ] Improve admin helper text around Game Details prerequisites (`played games`, `ExternalId`).
 
 ## Media / logos
