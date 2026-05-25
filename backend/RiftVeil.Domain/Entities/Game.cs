@@ -157,12 +157,55 @@ public class Game : BaseEntity
         VodUrl = vodUrl;
     }
 
+    /// <summary>
+    /// Removes admin-entered VOD rows (locale <c>manual</c>).
+    /// </summary>
+    public bool RemoveManualVods()
+    {
+        var manualVods = Vods.Where(vod => vod.Locale == "manual").ToList();
+        if (manualVods.Count == 0)
+            return false;
+
+        foreach (var vod in manualVods)
+            Vods.Remove(vod);
+
+        return true;
+    }
+
+    /// <summary>
+    /// Stores an admin override VOD with optional draft and game-start offsets.
+    /// </summary>
+    public GameVod ApplyManualVod(
+        VodProvider provider,
+        string url,
+        string? parameter,
+        int? draftOffsetSeconds,
+        int? gameStartOffsetSeconds)
+    {
+        RemoveManualVods();
+
+        var baseUrl = GameVodUrls.WithoutPlaybackOffset(url);
+        var added = AddGameVod(
+                provider,
+                baseUrl,
+                "manual",
+                parameter,
+                gameStartOffsetSeconds,
+                draftOffsetSeconds,
+                priority: -10)
+            ?? throw new InvalidOperationException("Could not add manual VOD row.");
+
+        SetVodUrl(ResolveManualPlaybackUrl(baseUrl, draftOffsetSeconds, gameStartOffsetSeconds, provider));
+        return added;
+    }
+
     public GameVod? AddGameVod(
         VodProvider provider,
         string url,
         string? locale = null,
         string? parameter = null,
-        int offsetSeconds = 0,
+        int? offsetSeconds = null,
+        int? draftOffsetSeconds = null,
         int priority = 0)
     {
         var normalizedLocale = ValidationUtils.NormalizeOptional(locale);
@@ -172,9 +215,24 @@ public class Game : BaseEntity
             return null;
         }
 
-        var vod = new GameVod(Id, provider, url, normalizedLocale, parameter, offsetSeconds, priority);
+        var vod = new GameVod(Id, provider, url, normalizedLocale, parameter, offsetSeconds, draftOffsetSeconds, priority);
         Vods.Add(vod);
         return vod;
+    }
+
+    internal static string ResolveManualPlaybackUrl(
+        string baseUrl,
+        int? draftOffsetSeconds,
+        int? gameStartOffsetSeconds,
+        VodProvider provider)
+    {
+        if (gameStartOffsetSeconds.HasValue)
+            return GameVodUrls.WithOffset(baseUrl, gameStartOffsetSeconds.Value, provider);
+
+        if (draftOffsetSeconds.HasValue)
+            return GameVodUrls.WithOffset(baseUrl, draftOffsetSeconds.Value, provider);
+
+        return baseUrl;
     }
 
     /// <summary>

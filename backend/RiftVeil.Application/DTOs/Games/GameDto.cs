@@ -12,7 +12,10 @@ public record GameDto(
     int GameNumber,
     int? WinningTeam,
     string? VodUrl,
-    List<GameVodDto>? Vods = null
+    List<GameVodDto>? Vods = null,
+    string? VodBaseUrl = null,
+    int? VodDraftOffsetSeconds = null,
+    int? VodGameStartOffsetSeconds = null
 );
 
 /// <summary>
@@ -22,5 +25,7 @@ public record GameVodDto(
     int Id,
     VodProvider Provider,
     string? Locale,
-    string Url
+    string Url,
+    int? OffsetSeconds = null,
+    int? DraftOffsetSeconds = null
 );

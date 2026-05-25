@@ -72,7 +72,7 @@ public static class TournamentProjections
                 m.Round,
                 m.Games
                     .OrderBy(g => g.GameNumber)
-                    .Select(g => new GameDto(g.Id, g.GameNumber, g.WinningTeam, g.VodUrl, null))
+                    .Select(g => new GameDto(g.Id, g.GameNumber, g.WinningTeam, g.VodUrl, null, null, null, null))
                     .ToList()
             ))]
         );

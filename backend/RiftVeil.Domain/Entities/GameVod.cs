@@ -33,9 +33,14 @@ public class GameVod : BaseEntity
     public string? Parameter { get; private set; }
 
     /// <summary>
-    /// Offset in seconds into the VOD where the game starts.
+    /// Offset in seconds into the VOD where the game starts; null when not configured.
     /// </summary>
-    public int OffsetSeconds { get; private set; }
+    public int? OffsetSeconds { get; private set; }
+
+    /// <summary>
+    /// Optional offset in seconds where the draft phase starts (manual VOD only).
+    /// </summary>
+    public int? DraftOffsetSeconds { get; private set; }
 
     /// <summary>
     /// Lower = more preferred. Allows admin override of auto-detection priority.
@@ -51,11 +56,18 @@ public class GameVod : BaseEntity
         string url,
         string? locale = null,
         string? parameter = null,
-        int offsetSeconds = 0,
+        int? offsetSeconds = null,
+        int? draftOffsetSeconds = null,
         int priority = 0)
     {
         if (string.IsNullOrWhiteSpace(url))
             throw new ArgumentException("URL is required", nameof(url));
+
+        if (offsetSeconds is < 0)
+            throw new ArgumentOutOfRangeException(nameof(offsetSeconds), "Offset cannot be negative.");
+
+        if (draftOffsetSeconds is < 0)
+            throw new ArgumentOutOfRangeException(nameof(draftOffsetSeconds), "Draft offset cannot be negative.");
 
         GameId = gameId;
         Provider = provider;
@@ -63,6 +75,7 @@ public class GameVod : BaseEntity
         Locale = ValidationUtils.NormalizeOptional(locale);
         Parameter = ValidationUtils.NormalizeOptional(parameter);
         OffsetSeconds = offsetSeconds;
+        DraftOffsetSeconds = draftOffsetSeconds;
         Priority = priority;
     }
 }
