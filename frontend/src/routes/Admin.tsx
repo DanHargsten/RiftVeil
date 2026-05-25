@@ -7,7 +7,7 @@ type AdminTab = "import" | "backfill" | "teams";
 
 const TABS: { id: AdminTab; label: string }[] = [
     { id: "import", label: "Import" },
-    { id: "backfill", label: "Backfill" },
+    { id: "backfill", label: "Repair" },
     { id: "teams", label: "Teams" },
 ];
 

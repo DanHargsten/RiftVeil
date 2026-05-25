@@ -85,7 +85,7 @@ public class GameDetailImportService(
         if (string.IsNullOrEmpty(game.ExternalId))
         {
             throw new InvalidOperationException(
-                "Game has no ExternalId; run backfill (POST api/import/backfill-game-ids/{league}) first.");
+                "Game has no Leaguepedia GameId. Re-run match import for this tournament, then try again.");
         }
 
         var slug = game.Match.Tournament.LiquipediaSlug;

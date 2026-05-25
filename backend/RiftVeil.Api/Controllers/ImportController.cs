@@ -190,6 +190,10 @@ public class ImportController(
         return Ok(result);
     }
 
+    /// <summary>
+    /// Re-syncs game rows from Leaguepedia Cargo (GameId, sides, winner, VOD).
+    /// Match import already does this; use for repairing older databases.
+    /// </summary>
     [HttpPost("backfill-game-ids/{leagueShortName}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -204,7 +208,7 @@ public class ImportController(
     }
     
     /// <summary>
-    /// Backfills Team1Side and Team2Side for games missing side data.
+    /// Same as backfill-game-ids — re-syncs game Cargo rows for a league.
     /// </summary>
     [HttpPost("backfill-game-sides/{leagueShortName}")]
     [ProducesResponseType(StatusCodes.Status200OK)]

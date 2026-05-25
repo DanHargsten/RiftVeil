@@ -163,6 +163,7 @@ public class LeaguepediaImportService(
 
         matchStats.Print("Matches");
         gameStats.Print("Games");
+        await SyncTeamMetadataAfterMatchImportAsync(leagueId);
     }
 
     /// <summary>
@@ -196,6 +197,7 @@ public class LeaguepediaImportService(
 
         matchStats.Print($"Matches (last {recentDays} days)");
         gameStats.Print($"Games (last {recentDays} days)");
+        await SyncTeamMetadataAfterMatchImportAsync(leagueId);
     }
 
     /// <summary>
@@ -227,6 +229,13 @@ public class LeaguepediaImportService(
 
         matchStats.Print("Matches (ongoing)");
         gameStats.Print("Games (ongoing)");
+        await SyncTeamMetadataAfterMatchImportAsync(leagueId);
+    }
+
+    private async Task SyncTeamMetadataAfterMatchImportAsync(int leagueId)
+    {
+        Console.WriteLine("  Syncing team metadata for imported league teams...");
+        await BackfillTeamMetadataAsync(leagueId, overwrite: false);
     }
 
     private Task DelayBetweenTournamentsAsync()
@@ -359,7 +368,7 @@ public class LeaguepediaImportService(
 
         var results = await client.QueryAsync(
             tables: "MatchScheduleGame",
-            fields: "MatchId,Blue,Red,Winner,Vod,N_GameInMatch=GameNumber",
+            fields: "MatchId,GameId,Blue,Red,Winner,Vod,N_GameInMatch=GameNumber",
             where: $"OverviewPage=\"{tournament.LiquipediaSlug}\"",
             orderBy: "N_GameInMatch ASC",
             limit: 500
@@ -373,7 +382,6 @@ public class LeaguepediaImportService(
 
         var matchIds = tournamentMatches.Values.Select(match => match.Id).ToList();
 
-        // Load full game objects so we can update existing ones
         var existingGames = await dbContext.Games
             .Where(game => matchIds.Contains(game.MatchId))
             .ToListAsync();
@@ -410,55 +418,42 @@ public class LeaguepediaImportService(
                 continue;
             }
 
-            // Update existing game if WinningTeam is missing
             if (existingGameKeys.TryGetValue($"{match.Id}:{gameNumber}", out var existingGame))
             {
-                var winnerStrGame = row.GetProperty("Winner").GetString();
-                if (existingGame.WinningTeam == null && int.TryParse(winnerStrGame, out var wg) && wg is 1 or 2)
-                {
-                    var blueG = row.GetProperty("Blue").GetString();
-                    if (!string.IsNullOrWhiteSpace(blueG) && teamsById.TryGetValue(match.Team1Id, out var t1g))
-                    {
-                        var isTeam1BlueG = string.Equals(blueG, t1g.Name, StringComparison.OrdinalIgnoreCase) ||
-                                           string.Equals(blueG, t1g.ShortName, StringComparison.OrdinalIgnoreCase);
-                        int winningTeamG = wg == 1 ? (isTeam1BlueG ? 1 : 2) : (isTeam1BlueG ? 2 : 1);
-                        existingGame.SetWinningTeam(winningTeamG);
-                        stats.Updated++;
-                    }
-                    else { stats.Existing++; }
-                }
-                else { stats.Existing++; }
+                if (ApplyExistingGameFromCargoRow(existingGame, row, match, teamsById))
+                    stats.Updated++;
+                else
+                    stats.Existing++;
+
                 continue;
             }
 
-            // New game — create it
-            var blueTeam = row.GetProperty("Blue").GetString();
-            var redTeam = row.GetProperty("Red").GetString();
-            var winnerStr = row.GetProperty("Winner").GetString();
-
-            string? team1Side = null;
-            string? team2Side = null;
-            int? winningTeam = null;
-
-            if (!string.IsNullOrWhiteSpace(blueTeam) && !string.IsNullOrWhiteSpace(redTeam))
+            if (!teamsById.TryGetValue(match.Team1Id, out var team1)
+                || !teamsById.TryGetValue(match.Team2Id, out var team2))
             {
-                if (teamsById.TryGetValue(match.Team1Id, out var t1))
-                {
-                    var isTeam1Blue = string.Equals(blueTeam, t1.Name, StringComparison.OrdinalIgnoreCase) ||
-                                      string.Equals(blueTeam, t1.ShortName, StringComparison.OrdinalIgnoreCase);
-                    team1Side = isTeam1Blue ? "Blue" : "Red";
-                    team2Side = isTeam1Blue ? "Red" : "Blue";
-
-                    if (int.TryParse(winnerStr, out var w) && w is 1 or 2)
-                    {
-                        winningTeam = w == 1
-                            ? (team1Side == "Blue" ? 1 : 2)
-                            : (team1Side == "Red" ? 1 : 2);
-                    }
-                }
+                stats.Ignored++;
+                continue;
             }
 
+            var blueTeam = row.GetProperty("Blue").GetString();
+            var redTeam = row.GetProperty("Red").GetString();
+            string? team1Side = null;
+            string? team2Side = null;
+            if (TryResolveSidesFromCargo(blueTeam, redTeam, team1, team2, out var resolvedTeam1Side, out var resolvedTeam2Side))
+            {
+                team1Side = resolvedTeam1Side;
+                team2Side = resolvedTeam2Side;
+            }
+
+            int? winningTeam = null;
+            var winnerStr = row.GetProperty("Winner").GetString();
+            if (team1Side != null && int.TryParse(winnerStr, out var wikiWinner) && wikiWinner is 1 or 2)
+                winningTeam = ResolveWinningTeamFromWikiSide(wikiWinner, team1Side);
+
             var vodUrl = row.GetProperty("Vod").GetString();
+            var leaguepediaGameId = row.TryGetProperty("GameId", out var gameIdProp)
+                ? gameIdProp.GetString()?.Trim()
+                : null;
 
             var game = new Game(
                 matchId: match.Id,
@@ -466,14 +461,128 @@ public class LeaguepediaImportService(
                 team1Side: team1Side,
                 team2Side: team2Side,
                 winningTeam: winningTeam,
-                vodUrl: string.IsNullOrWhiteSpace(vodUrl) ? null : vodUrl
-            );
+                vodUrl: string.IsNullOrWhiteSpace(vodUrl) ? null : vodUrl,
+                externalId: leaguepediaGameId);
 
             dbContext.Games.Add(game);
             stats.Imported++;
         }
 
         await dbContext.SaveChangesAsync();
+    }
+
+    private bool ApplyExistingGameFromCargoRow(
+        Game game,
+        JsonElement row,
+        Match match,
+        Dictionary<int, Team> teamsById)
+    {
+        var changed = false;
+
+        var leaguepediaGameId = row.TryGetProperty("GameId", out var gameIdProp)
+            ? gameIdProp.GetString()?.Trim()
+            : null;
+        if (!string.IsNullOrWhiteSpace(leaguepediaGameId) && string.IsNullOrWhiteSpace(game.ExternalId))
+        {
+            game.SetExternalId(leaguepediaGameId);
+            changed = true;
+        }
+
+        if (!teamsById.TryGetValue(match.Team1Id, out var team1)
+            || !teamsById.TryGetValue(match.Team2Id, out var team2))
+        {
+            return changed;
+        }
+
+        var blueTeam = row.GetProperty("Blue").GetString();
+        var redTeam = row.GetProperty("Red").GetString();
+
+        if (game.Team1Side == null
+            && TryResolveSidesFromCargo(blueTeam, redTeam, team1, team2, out var team1Side, out var team2Side))
+        {
+            game.SetSides(team1Side, team2Side);
+            changed = true;
+        }
+
+        if (game.WinningTeam == null && game.Team1Side != null)
+        {
+            var winnerStr = row.GetProperty("Winner").GetString();
+            if (int.TryParse(winnerStr, out var wikiWinner) && wikiWinner is 1 or 2)
+            {
+                var winningTeam = ResolveWinningTeamFromWikiSide(wikiWinner, game.Team1Side);
+                if (winningTeam.HasValue)
+                {
+                    game.SetWinningTeam(winningTeam.Value);
+                    changed = true;
+                }
+            }
+        }
+
+        var vodUrl = row.GetProperty("Vod").GetString();
+        if (string.IsNullOrWhiteSpace(game.VodUrl) && !string.IsNullOrWhiteSpace(vodUrl))
+        {
+            game.SetVodUrl(vodUrl);
+            changed = true;
+        }
+
+        return changed;
+    }
+
+    private static bool TryResolveSidesFromCargo(
+        string? blueTeam,
+        string? redTeam,
+        Team team1,
+        Team team2,
+        out string team1Side,
+        out string team2Side)
+    {
+        team1Side = string.Empty;
+        team2Side = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(blueTeam) || string.IsNullOrWhiteSpace(redTeam))
+            return false;
+
+        if (CargoTeamNameMatches(blueTeam, team1))
+        {
+            team1Side = "Blue";
+            team2Side = "Red";
+            return true;
+        }
+
+        if (CargoTeamNameMatches(blueTeam, team2))
+        {
+            team1Side = "Red";
+            team2Side = "Blue";
+            return true;
+        }
+
+        return false;
+    }
+
+    private static int? ResolveWinningTeamFromWikiSide(int wikiWinner, string team1Side)
+    {
+        if (wikiWinner is not (1 or 2))
+            return null;
+
+        var team1Won = wikiWinner == 1
+            ? team1Side.Equals("Blue", StringComparison.OrdinalIgnoreCase)
+            : team1Side.Equals("Red", StringComparison.OrdinalIgnoreCase);
+
+        return team1Won ? 1 : 2;
+    }
+
+    private static bool CargoTeamNameMatches(string? cargoName, Team team) =>
+        CargoTeamNameMatches(cargoName, team.Name) || CargoTeamNameMatches(cargoName, team.ShortName);
+
+    private static bool CargoTeamNameMatches(string? cargoName, string? entityName)
+    {
+        if (string.IsNullOrWhiteSpace(cargoName) || string.IsNullOrWhiteSpace(entityName))
+            return false;
+
+        if (string.Equals(cargoName, entityName, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return cargoName.StartsWith(entityName + " (", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -621,11 +730,11 @@ public class LeaguepediaImportService(
         if (_teamCache.TryGetValue(teamName, out var cachedTeam))
             return cachedTeam;
 
-        var team = await dbContext.Teams.FirstOrDefaultAsync(t => t.Name == teamName);
+        var cachedCargo = await ResolveTeamCargoForNameAsync(teamName);
+        var team = await FindExistingTeamAsync(teamName, cachedCargo);
 
         if (team == null)
         {
-            var cachedCargo = await ResolveTeamCargoForNameAsync(teamName);
             var shortName = await AllocateImportShortNameAsync(teamName, cachedCargo?.Short);
             if (string.IsNullOrWhiteSpace(cachedCargo?.Short))
             {
@@ -650,6 +759,57 @@ public class LeaguepediaImportService(
 
         _teamCache[teamName] = team;
         return team;
+    }
+
+    /// <summary>
+    /// Resolves a Leaguepedia match team name to an existing <see cref="Team"/> when wiki
+    /// disambiguation suffixes differ (e.g. <c>"LYON (2024 American Team)"</c> vs <c>"LYON"</c>).
+    /// </summary>
+    private async Task<Team?> FindExistingTeamAsync(string teamName, TeamCargoData? cargo)
+    {
+        var exact = await dbContext.Teams.FirstOrDefaultAsync(team => team.Name == teamName);
+        if (exact != null)
+            return exact;
+
+        var stripped = StripDisambiguationSuffix(teamName);
+        if (stripped != null)
+        {
+            var byStrippedName = await dbContext.Teams.FirstOrDefaultAsync(team => team.Name == stripped);
+            if (byStrippedName != null)
+            {
+                Console.WriteLine($"  Matched '{teamName}' to existing team '{byStrippedName.Name}' (disambiguation)");
+                return byStrippedName;
+            }
+        }
+        else
+        {
+            var byDisambiguationPrefix = await dbContext.Teams.FirstOrDefaultAsync(team =>
+                team.Name.StartsWith(teamName + " ("));
+            if (byDisambiguationPrefix != null)
+            {
+                Console.WriteLine(
+                    $"  Matched '{teamName}' to existing team '{byDisambiguationPrefix.Name}' (disambiguation)");
+                return byDisambiguationPrefix;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(cargo?.OverviewPage))
+        {
+            var byExternalId = await dbContext.Teams.FirstOrDefaultAsync(team =>
+                team.ExternalId == cargo.OverviewPage);
+            if (byExternalId != null)
+                return byExternalId;
+        }
+
+        if (!string.IsNullOrWhiteSpace(cargo?.Short)
+            && !cargo.Short.StartsWith("UNK", StringComparison.OrdinalIgnoreCase))
+        {
+            var byShort = await dbContext.Teams.FirstOrDefaultAsync(team => team.ShortName == cargo.Short);
+            if (byShort != null)
+                return byShort;
+        }
+
+        return null;
     }
 
     private async Task CacheTeamCargoRowAsync(JsonElement row, bool verifyIconUrl = false)
@@ -925,187 +1085,55 @@ public class LeaguepediaImportService(
     }
     
     /// <summary>
-    /// Backfills ExternalId (Leaguepedia GameId) on games that were imported before
-    /// GameId was captured. Queries MatchScheduleGame for each match whose games
-    /// are missing ExternalId and sets it from the API response.
+    /// Re-syncs games from Leaguepedia Cargo for tournaments that still have incomplete rows.
+    /// Normal match import already performs this; kept for repairing older databases.
     /// </summary>
-    /// <returns>Count of games updated and tournaments skipped (no Cargo rows).</returns>
     public async Task<(int GamesUpdated, int TournamentsSkipped)> BackfillGameExternalIdsAsync(int leagueId)
     {
-        var tournaments = await dbContext.Tournaments
-            .Where(tournament => tournament.LeagueId == leagueId
-                        && tournament.LiquipediaSlug != null
-                        && tournament.Matches.Any(match => match.ExternalId != null && match.Games.Any(game => game.ExternalId == null)))
-            .Include(tournament => tournament.Matches)
-                .ThenInclude(match => match.Games)
-            .ToListAsync();
-
-        Console.WriteLine($"  Found {tournaments.Count} tournaments with games missing ExternalId");
-
-        int updatedCount = 0;
-        int skippedCount = 0;
-
-        foreach (var tournament in tournaments)
-        {
-            Console.WriteLine($"  Fetching games for: {tournament.Name}");
-
-            // One Cargo query per tournament (not per match) to limit API load.
-            var results = await client.QueryAsync(
-                tables: "MatchScheduleGame",
-                fields: "MatchId,GameId,N_GameInMatch=GameNumber",
-                where: $"OverviewPage=\"{tournament.LiquipediaSlug}\"",
-                limit: 500
-            );
-
-            if (results.Count == 0)
-            {
-                Console.WriteLine($"  No results for {tournament.Name} — skipping");
-                skippedCount++;
-                continue;
-            }
-            
-            var lpGamesByMatch = results
-                .GroupBy(row => row.GetProperty("MatchId").GetString() ?? "")
-                .Where(rowsByMatchId => rowsByMatchId.Key != "")
-                .ToDictionary(
-                    rowsByMatchId => rowsByMatchId.Key,
-                    rowsByMatchId => rowsByMatchId.ToList()
-                );
-
-            foreach (var match in tournament.Matches.Where(scheduledMatch => scheduledMatch.ExternalId != null))
-            {
-                if (!lpGamesByMatch.TryGetValue(match.ExternalId!, out var lpGames))
-                    continue;
-
-                foreach (var row in lpGames)
-                {
-                    var leaguepediaGameId = row.GetProperty("GameId").GetString();
-                    var gameNumberStr = row.GetProperty("GameNumber").GetString();
-
-                    if (string.IsNullOrWhiteSpace(leaguepediaGameId))
-                        continue;
-
-                    if (!int.TryParse(gameNumberStr, out var gameNumber) || gameNumber <= 0)
-                        continue;
-
-                    var matchedGame = match.Games.FirstOrDefault(
-                        game => game.GameNumber == gameNumber && game.ExternalId == null);
-                    if (matchedGame == null)
-                        continue;
-
-                    matchedGame.SetExternalId(leaguepediaGameId);
-                    updatedCount++;
-                }
-            }
-
-            await dbContext.SaveChangesAsync();
-            // No extra spacer — client paces requests via PostSuccessDelayMilliseconds.
-        }
-
-        Console.WriteLine($"\n--- Backfill Summary ---");
-        Console.WriteLine($"{updatedCount} games updated with ExternalId");
-        Console.WriteLine($"{skippedCount} tournaments skipped (no Leaguepedia data)");
-        Console.WriteLine($"------------------------\n");
-
-        return (updatedCount, skippedCount);
+        return await ResyncGamesFromCargoForLeagueAsync(leagueId);
     }
-    
+
     /// <summary>
-    /// Backfills Team1Side and Team2Side for games that were imported before side data was available.
+    /// Re-syncs blue/red sides from Leaguepedia Cargo for incomplete games.
+    /// Normal match import already performs this; kept for repairing older databases.
     /// </summary>
     public async Task<(int gamesUpdated, int tournamentsSkipped)> BackfillGameSidesAsync(int leagueId)
     {
+        return await ResyncGamesFromCargoForLeagueAsync(leagueId);
+    }
+
+    private async Task<(int GamesUpdated, int TournamentsSkipped)> ResyncGamesFromCargoForLeagueAsync(int leagueId)
+    {
         var tournaments = await dbContext.Tournaments
-            .Where(tournament => tournament.LeagueId == leagueId
-                        && tournament.LiquipediaSlug != null
-                        && tournament.Matches.Any(match => match.Games.Any(game => game.ExternalId != null && game.Team1Side == null)))
-            .Include(tournament => tournament.Matches)
-                .ThenInclude(match => match.Games)
+            .Where(tournament => tournament.LeagueId == leagueId && tournament.LiquipediaSlug != null)
             .ToListAsync();
 
-        Console.WriteLine($"  Found {tournaments.Count} tournaments with games missing sides");
-
-        int updatedCount = 0;
-        int skippedCount = 0;
+        var gameStats = new ImportStats();
+        var skippedCount = 0;
 
         foreach (var tournament in tournaments)
         {
-            Console.WriteLine($"  Fetching sides for: {tournament.Name}");
-
             var results = await client.QueryAsync(
                 tables: "MatchScheduleGame",
-                fields: "MatchId,GameId,Blue,Red,N_GameInMatch=GameNumber",
+                fields: "MatchId",
                 where: $"OverviewPage=\"{tournament.LiquipediaSlug}\"",
-                limit: 500
-            );
+                limit: 1);
 
             if (results.Count == 0)
             {
-                Console.WriteLine($"  No results for {tournament.Name} — skipping");
                 skippedCount++;
                 continue;
             }
 
-            // Build lookup: ExternalId → (Blue, Red)
-            var sidesByGameId = results
-                .Where(cargoRow => !string.IsNullOrWhiteSpace(cargoRow.GetProperty("GameId").GetString()))
-                .ToDictionary(
-                    cargoRow => cargoRow.GetProperty("GameId").GetString()!,
-                    cargoRow => (
-                        Blue: cargoRow.GetProperty("Blue").GetString(),
-                        Red: cargoRow.GetProperty("Red").GetString()
-                    )
-                );
-
-            foreach (var match in tournament.Matches)
-            {
-                foreach (var game in match.Games.Where(scheduledGame => scheduledGame.ExternalId != null && scheduledGame.Team1Side == null))
-                {
-                    if (!sidesByGameId.TryGetValue(game.ExternalId!, out var sides))
-                        continue;
-
-                    if (string.IsNullOrWhiteSpace(sides.Blue) || string.IsNullOrWhiteSpace(sides.Red))
-                        continue;
-
-                    // Determine which side Team1 is on — load teams if not already on this instance.
-                    var matchWithTeams = await dbContext.Matches
-                        .Include(loadedMatch => loadedMatch.Team1)
-                        .Include(loadedMatch => loadedMatch.Team2)
-                        .FirstOrDefaultAsync(loadedMatch => loadedMatch.Id == match.Id);
-
-                    if (matchWithTeams == null) continue;
-
-                    var isTeam1Blue =
-                        string.Equals(sides.Blue, matchWithTeams.Team1.Name, StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(sides.Blue, matchWithTeams.Team1.ShortName, StringComparison.OrdinalIgnoreCase);
-
-                    var isTeam1Red =
-                        string.Equals(sides.Red, matchWithTeams.Team1.Name, StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(sides.Red, matchWithTeams.Team1.ShortName, StringComparison.OrdinalIgnoreCase);
-
-                    if (!isTeam1Blue && !isTeam1Red)
-                    {
-                        Console.WriteLine($"  Warning: Could not match team sides for game {game.ExternalId}");
-                        continue;
-                    }
-
-                    var team1Side = isTeam1Blue ? "Blue" : "Red";
-                    var team2Side = isTeam1Blue ? "Red" : "Blue";
-
-                    game.SetSides(team1Side, team2Side);
-                    updatedCount++;
-                }
-            }
-
-            await dbContext.SaveChangesAsync();
-            // No extra spacer — client paces requests via PostSuccessDelayMilliseconds.
+            await ImportGamesForTournamentAsync(tournament, gameStats);
         }
 
-        Console.WriteLine($"\n--- Backfill Sides Summary ---");
-        Console.WriteLine($"{updatedCount} games updated with sides");
-        Console.WriteLine($"{skippedCount} tournaments skipped");
-        Console.WriteLine($"------------------------------\n");
+        var gamesUpdated = gameStats.Updated + gameStats.Imported;
+        Console.WriteLine($"\n--- Game Cargo Re-sync Summary ---");
+        Console.WriteLine($"{gamesUpdated} games updated or created");
+        Console.WriteLine($"{skippedCount} tournaments skipped (no Leaguepedia data)");
+        Console.WriteLine($"----------------------------------\n");
 
-        return (updatedCount, skippedCount);
+        return (gamesUpdated, skippedCount);
     }
 }
