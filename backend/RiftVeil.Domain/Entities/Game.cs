@@ -162,7 +162,7 @@ public class Game : BaseEntity
     /// </summary>
     public bool RemoveManualVods()
     {
-        var manualVods = Vods.Where(vod => vod.Locale == "manual").ToList();
+        var manualVods = Vods.Where(vod => vod.Source == VodSource.Manual).ToList();
         if (manualVods.Count == 0)
             return false;
 
@@ -188,11 +188,12 @@ public class Game : BaseEntity
         var added = AddGameVod(
                 provider,
                 baseUrl,
-                "manual",
+                locale: null,
                 parameter,
                 gameStartOffsetSeconds,
                 draftOffsetSeconds,
-                priority: -10)
+                priority: -10,
+                source: VodSource.Manual)
             ?? throw new InvalidOperationException("Could not add manual VOD row.");
 
         SetVodUrl(ResolveManualPlaybackUrl(baseUrl, draftOffsetSeconds, gameStartOffsetSeconds, provider));
@@ -206,16 +207,29 @@ public class Game : BaseEntity
         string? parameter = null,
         int? offsetSeconds = null,
         int? draftOffsetSeconds = null,
-        int priority = 0)
+        int priority = 0,
+        VodSource source = VodSource.Imported)
     {
         var normalizedLocale = ValidationUtils.NormalizeOptional(locale);
 
-        if (Vods.Any(v => v.Provider == provider && v.Locale == normalizedLocale))
+        if (Vods.Any(v =>
+                v.Provider == provider
+                && v.Locale == normalizedLocale
+                && v.Source == source))
         {
             return null;
         }
 
-        var vod = new GameVod(Id, provider, url, normalizedLocale, parameter, offsetSeconds, draftOffsetSeconds, priority);
+        var vod = new GameVod(
+            Id,
+            provider,
+            url,
+            normalizedLocale,
+            parameter,
+            offsetSeconds,
+            draftOffsetSeconds,
+            priority,
+            source);
         Vods.Add(vod);
         return vod;
     }

@@ -24,6 +24,7 @@ public record GameDto(
 public record GameVodDto(
     int Id,
     VodProvider Provider,
+    VodSource Source,
     string? Locale,
     string Url,
     int? OffsetSeconds = null,

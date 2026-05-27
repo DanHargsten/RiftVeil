@@ -28,6 +28,11 @@ public class GameVod : BaseEntity
     public string? Locale { get; private set; }
 
     /// <summary>
+    /// Whether this VOD came from import pipelines or manual admin override.
+    /// </summary>
+    public VodSource Source { get; private set; }
+
+    /// <summary>
     /// Raw video/parameter ID from the API.
     /// </summary>
     public string? Parameter { get; private set; }
@@ -58,7 +63,8 @@ public class GameVod : BaseEntity
         string? parameter = null,
         int? offsetSeconds = null,
         int? draftOffsetSeconds = null,
-        int priority = 0)
+        int priority = 0,
+        VodSource source = VodSource.Imported)
     {
         if (string.IsNullOrWhiteSpace(url))
             throw new ArgumentException("URL is required", nameof(url));
@@ -73,6 +79,7 @@ public class GameVod : BaseEntity
         Provider = provider;
         Url = url.Trim();
         Locale = ValidationUtils.NormalizeOptional(locale);
+        Source = source;
         Parameter = ValidationUtils.NormalizeOptional(parameter);
         OffsetSeconds = offsetSeconds;
         DraftOffsetSeconds = draftOffsetSeconds;

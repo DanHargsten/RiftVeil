@@ -5,6 +5,7 @@ using RiftVeil.Application.Interfaces.Read;
 using RiftVeil.Application.Mappings;
 using RiftVeil.Domain.Common;
 using RiftVeil.Domain.Entities;
+using RiftVeil.Domain.Enums;
 using RiftVeil.Infrastructure.Data;
 
 namespace RiftVeil.Api.Controllers;
@@ -84,7 +85,7 @@ public class GamesController(
 
     private static GameVodUpdateResultDto ToVodUpdateResult(Game game)
     {
-        var manualVod = game.Vods.FirstOrDefault(vod => vod.Locale == "manual");
+        var manualVod = game.Vods.FirstOrDefault(vod => vod.Source == VodSource.Manual);
         return new GameVodUpdateResultDto(
             game.Id,
             game.GameNumber,

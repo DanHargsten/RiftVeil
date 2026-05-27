@@ -110,7 +110,7 @@ public static class MatchProjections
                 .OrderBy(g => g.GameNumber)
                 .Select(g =>
                 {
-                    var manualVod = g.Vods.FirstOrDefault(vod => vod.Locale == "manual");
+                    var manualVod = g.Vods.FirstOrDefault(vod => vod.Source == VodSource.Manual);
                     return new GameDto(
                         g.Id,
                         g.GameNumber,
@@ -119,6 +119,7 @@ public static class MatchProjections
                         g.Vods.Select(v => new GameVodDto(
                             v.Id,
                             v.Provider,
+                            v.Source,
                             v.Locale,
                             v.Url,
                             v.OffsetSeconds,

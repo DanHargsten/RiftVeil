@@ -132,11 +132,12 @@ public class RiftVeilDbContext(DbContextOptions<RiftVeilDbContext> options) : Db
         {
             entity.Property(v => v.Provider).IsRequired();
             entity.Property(v => v.Locale).HasMaxLength(10);
+            entity.Property(v => v.Source).IsRequired().HasDefaultValue(Domain.Enums.VodSource.Imported);
             entity.Property(v => v.Url).IsRequired().HasMaxLength(2048);
             entity.Property(v => v.Parameter).HasMaxLength(200);
             entity.Property(v => v.Priority).HasDefaultValue(0);
 
-            entity.HasIndex(v => new { v.GameId, v.Provider, v.Locale }).IsUnique();
+            entity.HasIndex(v => new { v.GameId, v.Provider, v.Locale, v.Source }).IsUnique();
 
             entity.HasOne(v => v.Game)
                 .WithMany(g => g.Vods)
