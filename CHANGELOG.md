@@ -6,6 +6,24 @@ For class-level detail, heuristics, and file references, see [`docs/technical-lo
 
 Early months (2026-01 through ~2026-04-13) are summarised at a high level; the project log was backfilled from memory and commits before day-by-day notes started.
 
+## 2026-05-27
+
+### Added
+
+- **VOD source tracking** for game VOD rows: API now distinguishes imported entries from manual admin overrides without relying on `locale = "manual"`.
+- **Admin import visibility**: import steps now keep per-step response summaries and show a compact run summary when a job finishes.
+- **Admin Game VOD quick pick**: latest finished matches missing at least one game VOD can be loaded directly from the Game VODs tab.
+
+### Changed
+
+- **Import match reconciliation**: Leaguepedia and LoLesports matching now handle placeholder opponents more safely and can update previously unresolved participants when codes and timing align.
+- **LoLesports VOD selection**: best default VOD now uses locale priority (English first, then league-preferred locale, then fallback locale) instead of hard-filtering to `en-US`.
+- **Match UI resilience**: champion icon loading now tries multiple valid Data Dragon id variants before showing a missing-state placeholder.
+
+### Notes
+
+- Apply EF migration **`AddGameVodSource`** before using mixed imported/manual VOD rows in existing databases.
+
 ## 2026-05-25
 
 ### Added

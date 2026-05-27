@@ -14,6 +14,8 @@ Short-term list for practical fixes that are smaller than the scoped items in `f
 ## Import / data flow
 
 - [x] Add backfill actions (`game ids`, `game sides`, `team metadata`) as explicit admin actions — match import now syncs game Cargo rows; **Repair** tab keeps optional team-metadata refresh.
+- [x] Replace manual VOD locale sentinel (`locale = "manual"`) with explicit `GameVod.Source` so imported/manual rows can coexist safely.
+- [x] Improve placeholder-opponent reconciliation in import matching so unresolved scheduled rows can be updated when participants are known.
 - [ ] Improve admin helper text around Game Details prerequisites (`played games`, `ExternalId`).
 
 ## Media / logos

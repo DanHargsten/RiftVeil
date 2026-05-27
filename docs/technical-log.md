@@ -6,6 +6,46 @@ Entries are **newest first**, same structure as before this split.
 
 ---
 
+## 2026-05-27
+
+### Added
+
+- Backend/domain:
+  - **`VodSource`** enum and **`GameVod.Source`** property.
+  - EF migration **`AddGameVodSource`** (+ snapshot/designer) to move legacy `Locale = "manual"` rows to explicit source semantics.
+  - **`GameVodDto.Source`** in application projection output.
+- Tests:
+  - **`GameVodManualOverrideTests`** (manual/import coexistence and fallback behavior).
+  - **`LeaguepediaImportServiceTests`** coverage for scheduled/finished match updates when opponents resolve.
+  - **`LolesportsVodEnricherTests`** coverage for strict matching and placeholder fallback ambiguity.
+- Frontend:
+  - **`championIconUtils`** for multi-candidate Data Dragon champion icon id resolution.
+  - `AdminImportTab` run summary model and richer per-step result messaging.
+  - `AdminGameVodsTab` quick-pick list for recently finished matches missing game VOD rows.
+
+### Changed
+
+- Backend:
+  - **`Game`** manual VOD logic switched from locale sentinels to source-aware add/remove/select.
+  - **`GamesController`** and **`MatchProjections`** now identify manual rows via `VodSource.Manual`.
+  - **`RiftVeilDbContext`** config uses required default source + source-aware unique index for `GameVods`.
+  - **`Match.SyncFromImport`** introduced to safely update participants/schedule fields for pre-seeded or placeholder matches.
+  - **`LeaguepediaImportService`** updates existing matches more aggressively (participant/schedule sync + finish-state updates) and tracks placeholder-team replacement paths.
+  - **`LolesportsVodEnricher`**:
+    - event matching split into strict and fallback placeholder paths,
+    - fallback only allowed for unique candidates in tight time windows,
+    - locale-aware default VOD prioritization replaces hard `en-US` filter,
+    - league id lookup supports multiple slug candidates with improved diagnostics.
+- Frontend:
+  - Manual VOD detection in `vodPlaybackUtils`, `MatchDetail`, and admin VOD tooling now relies on `vod.source === "Manual"` instead of `locale === "manual"`.
+  - `GameScoreboard` champion icon rendering now tries multiple normalized ids before final missing-state fallback.
+  - `MatchList` "jump to today" visibility uses anchor intersection state directly for less flicker-prone behavior.
+
+### Notes
+
+- Migration dependency: apply **`AddGameVodSource`** before relying on manual/import dual-row behavior.
+- Existing CRLF/LF warnings were emitted by git for a subset of touched files; no behavior changes were introduced solely for line-ending normalization.
+
 ## 2026-05-25
 
 ### Added

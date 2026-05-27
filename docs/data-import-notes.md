@@ -56,6 +56,33 @@ Hard-coded delays in **`LeaguepediaImportService`** were replaced with **`League
 
 - **`LolesportsVodEnricher.EnrichLeagueAsync`** pre-filters remote tournaments to those whose date range (with buffer) overlaps DB tournaments that still have games **without** a VOD, avoiding expensive **`getCompletedEvents`** calls for fully covered seasons.
 - Removed extra hard-coded **`Task.Delay`** between event details and between tournaments; **`LolesportsClientOptions.RetryDelayMilliseconds`** already paces retries on transient GraphQL errors.
+- Event-to-match mapping now uses two stages:
+  - **strict** matching (both team codes + time window),
+  - **placeholder fallback** (exactly one placeholder side, tight time window, unique candidate only).
+- When fallback succeeds and the missing side can be resolved by short code, local match participants are synced before VOD attachment.
+- Default VOD URL selection no longer hard-filters to `en-US`; it now prefers **English**, then **league-preferred locale prefixes**, then any remaining locale.
+
+---
+
+## `GameVod.Source`: imported vs manual rows
+
+Manual VOD overrides used to be encoded as `Locale = "manual"`. This made dedupe and selection logic brittle and mixed origin semantics into locale text.
+
+### Schema and domain change
+
+- Added enum **`VodSource`** (`Imported`, `Manual`) on **`GameVod`**.
+- Unique index changed from `(GameId, Provider, Locale)` to `(GameId, Provider, Locale, Source)`.
+- Domain add/remove/manual-selection logic now keys on `Source` instead of magic locale values.
+
+### Migration (`AddGameVodSource`)
+
+For existing rows:
+
+- add `Source` with default `Imported`,
+- migrate historical manual rows (`Locale = 'manual'`) to `Source = Manual` and set `Locale = NULL`,
+- recreate the unique index with the new key shape.
+
+Apply migration **before** running mixed import + manual VOD workflows in non-empty databases.
 
 ---
 
