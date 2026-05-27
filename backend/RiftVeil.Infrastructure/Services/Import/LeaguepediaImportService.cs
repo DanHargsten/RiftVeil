@@ -264,6 +264,26 @@ public class LeaguepediaImportService(
             .Where(match => match.TournamentId == tournament.Id && match.ExternalId != null)
             .ToDictionaryAsync(match => match.ExternalId!);
 
+        var placeholderTeamIdSet = new HashSet<int>();
+        if (existingMatches.Count > 0)
+        {
+            var existingTeamIds = existingMatches.Values
+                .SelectMany(match => new[] { match.Team1Id, match.Team2Id })
+                .Distinct()
+                .ToList();
+
+            var existingTeams = await dbContext.Teams
+                .Where(team => existingTeamIds.Contains(team.Id))
+                .Select(team => new { team.Id, team.Name, team.ShortName })
+                .ToListAsync();
+
+            foreach (var existingTeam in existingTeams)
+            {
+                if (IsPlaceholderTeamIdentity(existingTeam.Name, existingTeam.ShortName))
+                    placeholderTeamIdSet.Add(existingTeam.Id);
+            }
+        }
+
         var startingImportedCount = matchStats.Imported;
 
         foreach (var row in results)
@@ -279,26 +299,6 @@ public class LeaguepediaImportService(
             var team1ScoreStr = row.GetProperty("Team1Score").GetString();
             var team2ScoreStr = row.GetProperty("Team2Score").GetString();
             var isFinished = !string.IsNullOrWhiteSpace(winnerStr) && winnerStr != "0";
-
-            // Update existing match if it was Scheduled but now has a result
-            if (existingMatches.TryGetValue(matchId, out var existingMatch))
-            {
-                if (existingMatch.Status == MatchStatus.Scheduled && isFinished
-                    && int.TryParse(team1ScoreStr, out var t1ScoreUpd)
-                    && int.TryParse(team2ScoreStr, out var t2ScoreUpd))
-                {
-                    existingMatch.MarkFinished(existingMatch.StartsAtUtc, existingMatch.StartsAtUtc.AddHours(2), t1ScoreUpd, t2ScoreUpd);
-                    matchStats.Updated++;
-                    Console.WriteLine($"  Updated match {matchId} to Finished ({t1ScoreUpd}-{t2ScoreUpd})");
-                }
-                else
-                {
-                    matchStats.Existing++;
-                }
-                continue;
-            }
-
-            // New match — create it
             var team1Name = row.GetProperty("Team1").GetString();
             var team2Name = row.GetProperty("Team2").GetString();
             if (string.IsNullOrWhiteSpace(team1Name) || string.IsNullOrWhiteSpace(team2Name))
@@ -328,6 +328,61 @@ public class LeaguepediaImportService(
 
             var round = row.GetProperty("Tab").GetString();
 
+            // Update existing match if it was Scheduled but now has a result
+            if (existingMatches.TryGetValue(matchId, out var existingMatch))
+            {
+                var wasChanged = false;
+                var replacedPlaceholderTeam = false;
+                if (existingMatch.Team1Id != team1.Id
+                    || existingMatch.Team2Id != team2.Id
+                    || existingMatch.StartsAtUtc != startsAt.Value
+                    || existingMatch.BestOf != bestOf
+                    || !string.Equals(existingMatch.Round, round, StringComparison.Ordinal))
+                {
+                    replacedPlaceholderTeam =
+                        (existingMatch.Team1Id != team1.Id
+                         && placeholderTeamIdSet.Contains(existingMatch.Team1Id)
+                         && !IsPlaceholderTeam(team1))
+                        || (existingMatch.Team2Id != team2.Id
+                            && placeholderTeamIdSet.Contains(existingMatch.Team2Id)
+                            && !IsPlaceholderTeam(team2));
+
+                    existingMatch.SyncFromImport(
+                        team1Id: team1.Id,
+                        team2Id: team2.Id,
+                        startsAtUtc: startsAt.Value,
+                        bestOf: bestOf,
+                        round: round);
+                    wasChanged = true;
+                }
+
+                if (replacedPlaceholderTeam)
+                {
+                    Console.WriteLine(
+                        $"  Updated match {matchId}: replaced placeholder team with resolved teams ({team1.ShortName} vs {team2.ShortName})");
+                }
+
+                if (existingMatch.Status == MatchStatus.Scheduled && isFinished
+                    && int.TryParse(team1ScoreStr, out var t1ScoreUpd)
+                    && int.TryParse(team2ScoreStr, out var t2ScoreUpd))
+                {
+                    existingMatch.MarkFinished(existingMatch.StartsAtUtc, existingMatch.StartsAtUtc.AddHours(2), t1ScoreUpd, t2ScoreUpd);
+                    matchStats.Updated++;
+                    Console.WriteLine($"  Updated match {matchId} to Finished ({t1ScoreUpd}-{t2ScoreUpd})");
+                }
+                else if (wasChanged)
+                {
+                    matchStats.Updated++;
+                    Console.WriteLine($"  Updated match {matchId} participants/schedule");
+                }
+                else
+                {
+                    matchStats.Existing++;
+                }
+                continue;
+            }
+
+            // New match — create it
             var match = new Match(
                 tournamentId: tournament.Id,
                 team1Id: team1.Id,
@@ -1012,6 +1067,25 @@ public class LeaguepediaImportService(
 
         var guess = compact[..3];
         return shortName.Equals(guess, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsPlaceholderTeam(Team team) =>
+        IsPlaceholderTeamIdentity(team.Name, team.ShortName);
+
+    private static bool IsPlaceholderTeamIdentity(string? name, string? shortName)
+    {
+        if (!string.IsNullOrWhiteSpace(shortName))
+        {
+            var normalizedShort = shortName.Trim().ToUpperInvariant();
+            if (normalizedShort == "TBD" || normalizedShort.StartsWith("UNK", StringComparison.Ordinal))
+                return true;
+        }
+
+        if (string.IsNullOrWhiteSpace(name))
+            return false;
+
+        var normalizedName = name.Trim().ToUpperInvariant();
+        return normalizedName is "TBD" or "TO BE DECIDED";
     }
 
     /// <summary>

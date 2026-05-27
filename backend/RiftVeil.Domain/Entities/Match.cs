@@ -104,4 +104,22 @@ public class Match : BaseEntity
         VodUrl = ValidationUtils.NormalizeOptional(vodUrl);
         Status = MatchStatus.Finished;
     }
+
+    /// <summary>
+    /// Syncs teams and schedule fields for a match that was created before participants were finalized.
+    /// </summary>
+    public void SyncFromImport(int team1Id, int team2Id, DateTimeOffset startsAtUtc, int bestOf, string? round)
+    {
+        if (bestOf is not (1 or 2 or 3 or 5))
+            throw new ArgumentOutOfRangeException(nameof(bestOf), "BestOf must be 1, 2, 3, or 5.");
+
+        if (team1Id == team2Id)
+            throw new ArgumentException("A team cannot play against itself");
+
+        Team1Id = team1Id;
+        Team2Id = team2Id;
+        StartsAtUtc = ValidationUtils.EnsureUtc(startsAtUtc);
+        BestOf = bestOf;
+        Round = ValidationUtils.NormalizeOptional(round);
+    }
 }

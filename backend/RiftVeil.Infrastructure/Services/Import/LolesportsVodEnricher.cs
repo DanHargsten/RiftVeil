@@ -18,14 +18,26 @@ public class LolesportsVodEnricher(
     LolesportsClient client,
     ILogger<LolesportsVodEnricher> logger)
 {
-    private static readonly Dictionary<string, string> LeagueSlugMap = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, string[]> LeagueSlugMap = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["LEC"] = "lec",
-        ["LCS"] = "lcs",
-        ["LCK"] = "lck",
-        ["LPL"] = "lpl",
-        ["CBLOL"] = "cblol",
-        ["LCP"] = "lcp",
+        ["LEC"] = ["lec"],
+        ["LCS"] = ["lcs"],
+        ["LCK"] = ["lck"],
+        ["LPL"] = ["lpl"],
+        // Riot has renamed/reshaped some ecosystems over time (e.g. CBLOL -> LTA South).
+        // Keep legacy + current slugs so VOD enrichment survives branding transitions.
+        ["CBLOL"] = ["cblol", "lta-south"],
+        ["LCP"] = ["lcp"],
+    };
+
+    private static readonly Dictionary<string, string[]> LeagueLocaleFallbackPrefixes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["LEC"] = ["en"],
+        ["LCS"] = ["en"],
+        ["LCK"] = ["ko"],
+        ["LPL"] = ["zh"],
+        ["CBLOL"] = ["pt"],
+        ["LCP"] = ["zh", "vi", "th", "ja"],
     };
 
     public async Task EnrichVodsAsync(
@@ -82,6 +94,7 @@ public class LolesportsVodEnricher(
             .Include(tournament => tournament.Matches).ThenInclude(match => match.Team2)
             .Include(tournament => tournament.Matches).ThenInclude(match => match.Games).ThenInclude(game => game.Vods)
             .ToListAsync();
+        var teamsByShort = BuildUniqueTeamShortMap(await dbContext.Teams.ToListAsync());
 
         // Skip lolesports tournaments whose date range doesn't overlap with any DB
         // tournament that still has games missing a VOD.
@@ -198,21 +211,44 @@ public class LolesportsVodEnricher(
                 }
 
                 Match? ourMatch = null;
+                var usedFallbackMatch = false;
                 foreach (var tournament in ourTournaments)
                 {
-                    ourMatch = tournament.Matches.FirstOrDefault(match =>
-                    {
-                        var t1 = match.Team1.ShortName.ToUpperInvariant().Trim();
-                        var t2 = match.Team2.ShortName.ToUpperInvariant().Trim();
+                    ourMatch = FindStrictEventMatch(tournament.Matches, codes, evTime);
+                    if (ourMatch != null)
+                        break;
 
-                        var teamsMatch = codes.Contains(t1) && codes.Contains(t2);
-                        var timeClose = Math.Abs((match.StartsAtUtc - evTime).TotalMinutes) < 120;
-                        return teamsMatch && timeClose;
-                    });
+                    ourMatch = FindFallbackPlaceholderEventMatch(tournament.Matches, codes, evTime);
+                    if (ourMatch != null)
+                    {
+                        usedFallbackMatch = true;
+                        break;
+                    }
+
                     if (ourMatch != null) break;
                 }
 
-                if (ourMatch == null) continue;
+                if (ourMatch == null)
+                {
+                    continue;
+                }
+                if (usedFallbackMatch)
+                {
+                    logger.LogInformation(
+                        "Matched event via placeholder fallback for match {MatchId} ({Team1} vs {Team2})",
+                        ourMatch.Id,
+                        ourMatch.Team1.ShortName,
+                        ourMatch.Team2.ShortName);
+
+                    if (TryReplacePlaceholderTeamFromEventCodes(ourMatch, codes, teamsByShort))
+                    {
+                        logger.LogInformation(
+                            "Resolved placeholder team on match {MatchId} from event codes [{Code1}, {Code2}]",
+                            ourMatch.Id,
+                            codes[0],
+                            codes[1]);
+                    }
+                }
 
                 var gamesNeedingVods = ourMatch.Games.Where(game => string.IsNullOrEmpty(game.VodUrl)).ToList();
                 if (gamesNeedingVods.Count == 0) continue;
@@ -242,7 +278,7 @@ public class LolesportsVodEnricher(
 
                 foreach (var game in gamesNeedingVods)
                 {
-                    if (EnrichGameVods(game, detailGames))
+                    if (EnrichGameVods(game, detailGames, league.ShortName))
                         enrichedInTournament++;
                 }
             }
@@ -257,24 +293,200 @@ public class LolesportsVodEnricher(
         logger.LogInformation("VOD enrichment finished: {Total} VODs total for {LeagueShortName}", totalEnriched, leagueShortName);
     }
 
+    private static Match? FindStrictEventMatch(IEnumerable<Match> matches, string[] eventCodes, DateTimeOffset eventTimeUtc)
+    {
+        var codeSet = eventCodes
+            .Select(NormalizeCode)
+            .Where(code => !string.IsNullOrWhiteSpace(code))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (codeSet.Count < 2)
+            return null;
+
+        const int strictWindowMinutes = 180;
+        return matches.FirstOrDefault(match =>
+        {
+            var matchCodes = GetMatchCodes(match);
+            if (matchCodes.Team1 == null || matchCodes.Team2 == null)
+                return false;
+
+            var teamsMatch = codeSet.Contains(matchCodes.Team1) && codeSet.Contains(matchCodes.Team2);
+            var timeClose = Math.Abs((match.StartsAtUtc - eventTimeUtc).TotalMinutes) <= strictWindowMinutes;
+            return teamsMatch && timeClose;
+        });
+    }
+
+    private static Match? FindFallbackPlaceholderEventMatch(
+        IEnumerable<Match> matches,
+        string[] eventCodes,
+        DateTimeOffset eventTimeUtc)
+    {
+        var codeSet = eventCodes
+            .Select(NormalizeCode)
+            .Where(code => !string.IsNullOrWhiteSpace(code))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (codeSet.Count < 2)
+            return null;
+
+        const int fallbackWindowMinutes = 120;
+        var candidates = matches.Where(match =>
+        {
+            var timeClose = Math.Abs((match.StartsAtUtc - eventTimeUtc).TotalMinutes) <= fallbackWindowMinutes;
+            if (!timeClose)
+                return false;
+
+            var matchCodes = GetMatchCodes(match);
+            var team1Placeholder = IsPlaceholderTeam(match.Team1);
+            var team2Placeholder = IsPlaceholderTeam(match.Team2);
+
+            // Fallback is only allowed when exactly one side is a placeholder.
+            if (team1Placeholder == team2Placeholder)
+                return false;
+
+            var knownCode = team1Placeholder ? matchCodes.Team2 : matchCodes.Team1;
+            return knownCode != null && codeSet.Contains(knownCode);
+        }).ToList();
+
+        return candidates.Count == 1 ? candidates[0] : null;
+    }
+
+    private static bool TryReplacePlaceholderTeamFromEventCodes(
+        Match match,
+        string[] eventCodes,
+        Dictionary<string, Team> teamsByShort)
+    {
+        var matchCodes = GetMatchCodes(match);
+        var team1Placeholder = IsPlaceholderTeam(match.Team1);
+        var team2Placeholder = IsPlaceholderTeam(match.Team2);
+        if (team1Placeholder == team2Placeholder)
+            return false;
+
+        var knownCode = team1Placeholder ? matchCodes.Team2 : matchCodes.Team1;
+        if (string.IsNullOrWhiteSpace(knownCode))
+            return false;
+
+        var replacementCode = eventCodes
+            .Select(NormalizeCode)
+            .FirstOrDefault(code => !string.Equals(code, knownCode, StringComparison.OrdinalIgnoreCase));
+        if (string.IsNullOrWhiteSpace(replacementCode))
+            return false;
+
+        if (!teamsByShort.TryGetValue(replacementCode, out var replacementTeam))
+            return false;
+
+        if (IsPlaceholderTeam(replacementTeam))
+            return false;
+
+        if (team1Placeholder)
+        {
+            if (replacementTeam.Id == match.Team2Id)
+                return false;
+
+            match.SyncFromImport(
+                team1Id: replacementTeam.Id,
+                team2Id: match.Team2Id,
+                startsAtUtc: match.StartsAtUtc,
+                bestOf: match.BestOf,
+                round: match.Round);
+        }
+        else
+        {
+            if (replacementTeam.Id == match.Team1Id)
+                return false;
+
+            match.SyncFromImport(
+                team1Id: match.Team1Id,
+                team2Id: replacementTeam.Id,
+                startsAtUtc: match.StartsAtUtc,
+                bestOf: match.BestOf,
+                round: match.Round);
+        }
+
+        return true;
+    }
+
+    private static (string? Team1, string? Team2) GetMatchCodes(Match match) =>
+        (NormalizeCode(match.Team1.ShortName), NormalizeCode(match.Team2.ShortName));
+
+    private static string? NormalizeCode(string? code) =>
+        string.IsNullOrWhiteSpace(code) ? null : code.Trim().ToUpperInvariant();
+
+    private static int GetLocalePriority(string leagueShortName, string? locale)
+    {
+        if (string.IsNullOrWhiteSpace(locale))
+            return 3;
+
+        if (locale.StartsWith("en", StringComparison.OrdinalIgnoreCase))
+            return 0;
+
+        if (LeagueLocaleFallbackPrefixes.TryGetValue(leagueShortName, out var preferredPrefixes)
+            && preferredPrefixes.Any(prefix => locale.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
+        {
+            return 1;
+        }
+
+        return 2;
+    }
+
+    private static bool IsPlaceholderTeam(Team team)
+    {
+        var shortName = NormalizeCode(team.ShortName);
+        if (!string.IsNullOrWhiteSpace(shortName)
+            && (shortName == "TBD" || shortName.StartsWith("UNK", StringComparison.Ordinal)))
+        {
+            return true;
+        }
+
+        var name = NormalizeCode(team.Name);
+        return name is "TBD" or "TO BE DECIDED";
+    }
+
+    private static Dictionary<string, Team> BuildUniqueTeamShortMap(IEnumerable<Team> teams)
+    {
+        var map = new Dictionary<string, Team>(StringComparer.OrdinalIgnoreCase);
+        var duplicates = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var team in teams)
+        {
+            var shortName = NormalizeCode(team.ShortName);
+            if (string.IsNullOrWhiteSpace(shortName) || duplicates.Contains(shortName))
+                continue;
+
+            if (map.ContainsKey(shortName))
+            {
+                map.Remove(shortName);
+                duplicates.Add(shortName);
+                continue;
+            }
+
+            map[shortName] = team;
+        }
+
+        return map;
+    }
+
     /// <summary>
-    /// Extracts all English VODs for a game and sets the best one as default VodUrl.
-    /// Returns true if at least one VOD was added.
+    /// Extracts VODs for a game and picks default URL by locale priority:
+    /// English first, then league-preferred locale, then any locale.
+    /// Returns true if at least one VOD row was added.
     /// </summary>
-    private bool EnrichGameVods(Game game, List<JsonElement> detailGames)
+    private bool EnrichGameVods(Game game, List<JsonElement> detailGames, string leagueShortName)
     {
         var targetGame = detailGames.FirstOrDefault(detailGame =>
             detailGame.TryGetProperty("number", out var numEl) && numEl.GetInt32() == game.GameNumber);
 
         if (targetGame.ValueKind == JsonValueKind.Undefined || !targetGame.TryGetProperty("vods", out var vodsEl))
             return false;
+        
 
         var vods = vodsEl.EnumerateArray().ToList();
         if (vods.Count == 0) return false;
 
         bool any = false;
         string? bestUrl = null;
-        VodProvider bestProvider = VodProvider.Twitch;
+        int bestLocalePriority = int.MaxValue;
+        int bestProviderPriority = int.MaxValue;
 
         foreach (var vod in vods)
         {
@@ -288,8 +500,6 @@ public class LolesportsVodEnricher(
             if (providerStr == "youtube") provider = VodProvider.YouTube;
             else if (providerStr == "twitch") provider = VodProvider.Twitch;
             else continue;
-
-            if (locale != "en-US") continue;
 
             var offset = vod.TryGetProperty("offset", out var o) && o.ValueKind == JsonValueKind.Number
                 ? o.GetInt32() : 0;
@@ -312,10 +522,15 @@ public class LolesportsVodEnricher(
             any = true;
             logger.LogDebug("Game {GameNumber}: {Provider} | {Locale} | {VideoId}", game.GameNumber, provider, locale, videoId);
 
-            if (bestUrl == null || (provider == VodProvider.YouTube && bestProvider != VodProvider.YouTube))
+            var localePriority = GetLocalePriority(leagueShortName, locale);
+            var providerPriority = provider == VodProvider.YouTube ? 0 : 1;
+            if (bestUrl == null
+                || localePriority < bestLocalePriority
+                || (localePriority == bestLocalePriority && providerPriority < bestProviderPriority))
             {
                 bestUrl = url;
-                bestProvider = provider;
+                bestLocalePriority = localePriority;
+                bestProviderPriority = providerPriority;
             }
         }
 
@@ -329,18 +544,36 @@ public class LolesportsVodEnricher(
 
     private async Task<string?> GetLolesportsLeagueIdAsync(string shortName)
     {
-        if (!LeagueSlugMap.TryGetValue(shortName, out var slug)) return null;
+        if (!LeagueSlugMap.TryGetValue(shortName, out var candidateSlugs))
+            return null;
 
         var leaguesJson = await client.CallAsync("getLeagues");
         var leagues = leaguesJson.RootElement
             .GetProperty("data").GetProperty("leagues")
-            .EnumerateArray();
+            .EnumerateArray()
+            .ToList();
 
         foreach (var league in leagues)
         {
-            if (league.TryGetProperty("slug", out var slugEl) && slugEl.GetString() == slug)
+            if (!league.TryGetProperty("slug", out var slugEl))
+                continue;
+
+            var leagueSlug = slugEl.GetString();
+            if (string.IsNullOrWhiteSpace(leagueSlug))
+                continue;
+
+            if (candidateSlugs.Any(slug => slug.Equals(leagueSlug, StringComparison.OrdinalIgnoreCase)))
                 return league.TryGetProperty("id", out var idEl) ? idEl.GetString() : null;
         }
+
+        logger.LogInformation(
+            "No lolesports league slug match for {LeagueShortName}. Tried [{CandidateSlugs}]. Available slugs sample: {AvailableSlugs}",
+            shortName,
+            string.Join(", ", candidateSlugs),
+            string.Join(", ", leagues
+                .Select(league => league.TryGetProperty("slug", out var slugEl) ? slugEl.GetString() : null)
+                .Where(slug => !string.IsNullOrWhiteSpace(slug))
+                .Take(12)));
 
         return null;
     }
