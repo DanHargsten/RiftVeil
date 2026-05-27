@@ -11,7 +11,7 @@ export interface GameVodMetadata {
 export type GameVodDisplayMode = "none" | "single" | "split";
 
 function manualVodFromGame(game: GameListItem) {
-    return game.vods?.find((vod) => vod.locale === "manual") ?? null;
+    return game.vods?.find((vod) => vod.source === "Manual") ?? null;
 }
 
 export function getGameVodMetadata(game: GameListItem): GameVodMetadata | null {

@@ -8,7 +8,7 @@ import {
     vodTimestampFieldError,
 } from "@/components/Match/vodTimestampUtils.ts";
 import { stripPlaybackOffset } from "@/components/Match/vodPlaybackUtils.ts";
-import { gamesApi, matchesApi, type GameListItem, type MatchDetails } from "@/lib/api.ts";
+import { gamesApi, matchesApi, type GameListItem, type MatchDetails, type MatchListItem } from "@/lib/api.ts";
 
 type GameVodDraft = {
     url: string;
@@ -17,7 +17,7 @@ type GameVodDraft = {
 };
 
 function draftFromGame(game: GameListItem): GameVodDraft {
-    const manualVod = game.vods?.find((vod) => vod.locale === "manual") ?? null;
+    const manualVod = game.vods?.find((vod) => vod.source === "Manual") ?? null;
     const draftOffset = game.vodDraftOffsetSeconds ?? manualVod?.draftOffsetSeconds;
     const gameStartOffset = game.vodGameStartOffsetSeconds ?? manualVod?.offsetSeconds;
 
@@ -180,6 +180,16 @@ export function AdminGameVodsTab() {
         queryFn: () => matchesApi.getById(loadedMatchId!),
         enabled: loadedMatchId != null,
     });
+    const { data: recentMatches } = useQuery({
+        queryKey: ["admin-recent-matches-for-vods"],
+        queryFn: () => matchesApi.getRecent(30),
+    });
+
+    const quickPickMatches: MatchListItem[] = (recentMatches ?? [])
+        .filter((recentMatch) =>
+            recentMatch.status === "Finished"
+            && recentMatch.games.some((game) => game.winningTeam != null && !game.vodUrl))
+        .slice(0, 10);
 
     function handleLoadMatch(event: React.FormEvent) {
         event.preventDefault();
@@ -204,6 +214,13 @@ export function AdminGameVodsTab() {
         }
     }
 
+    function handleQuickPick(matchId: number) {
+        setFeedback(null);
+        setLoadError(null);
+        setMatchIdInput(String(matchId));
+        setLoadedMatchId(matchId);
+    }
+
     const queryError = error instanceof Error ? formatAdminApiError(error.message) : null;
 
     return (
@@ -212,9 +229,29 @@ export function AdminGameVodsTab() {
 
             <div className="admin__form admin__vods-form">
                 <p className="admin__hint">
-                    Add third-party VOD links (e.g. Onivia highlights) when LoLesports import has nothing,
-                    or to point at a full broadcast URL. Timestamps from the video player (e.g. 1:03 or 6:21).
+                    Add game VOD links when LoLesports import has nothing, or point to another valid broadcast link.
+                    Use timestamps from the video player (e.g. 1:03 or 6:21).
                 </p>
+
+                {quickPickMatches.length > 0 ? (
+                    <div className="admin__hint">
+                        <strong>Quick pick:</strong> latest finished matches missing at least one game VOD.
+                        <div style={{ marginTop: "0.45rem", display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+                            {quickPickMatches.map((recentMatch) => (
+                                <button
+                                    key={recentMatch.id}
+                                    type="button"
+                                    className="admin__mini-btn"
+                                    onClick={() => handleQuickPick(recentMatch.id)}
+                                    disabled={isFetching}
+                                    title={`${recentMatch.tournamentName} · Match #${recentMatch.id}`}
+                                >
+                                    {recentMatch.team1ShortName} vs {recentMatch.team2ShortName} · #{recentMatch.id}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                ) : null}
 
                 <form className="admin__vods-load" onSubmit={handleLoadMatch}>
                     <label className="admin__label" htmlFor={matchIdFieldId}>Match ID</label>

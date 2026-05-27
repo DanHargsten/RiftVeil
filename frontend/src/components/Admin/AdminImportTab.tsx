@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useId, useMemo, useState } from "react";
+import { LeagueLogo } from "@/components/common/Logos.tsx";
 import { tournamentsApi } from "@/lib/api.ts";
 import { ADMIN_IMPORT_LEAGUES, ADMIN_LEAGUES, RECENT_DAYS, type AdminLeague } from "@/components/Admin/adminShared.ts";
 
@@ -11,6 +12,16 @@ type StepResult = {
     step: Step;
     status: "idle" | "running" | "done" | "error";
     message?: string;
+};
+
+type ImportSummary = {
+    league: AdminLeague;
+    startedAtIso: string;
+    finishedAtIso: string;
+    totalSteps: number;
+    completedSteps: number;
+    failedSteps: number;
+    stepResults: StepResult[];
 };
 
 const STEP_LABELS: Record<Step, string> = {
@@ -26,13 +37,19 @@ function scopeSuffix(scope: ImportScope): string {
     return "";
 }
 
+async function readImportResponseText(response: Response): Promise<string> {
+    const text = (await response.text()).trim();
+    if (text.length > 0) return text;
+    return "Done";
+}
+
 async function runImport(
     league: AdminLeague,
     step: Step,
     importScope: ImportScope,
     gameDetailsMode: GameDetailsMode,
     gameDetailsTournamentId: number | null,
-): Promise<void> {
+): Promise<string> {
     const leagues = league === "ALL" ? [...ADMIN_IMPORT_LEAGUES] : [league];
 
     if (step === "game-details") {
@@ -45,23 +62,26 @@ async function runImport(
                 const text = await res.text();
                 throw new Error(text || res.statusText);
             }
-            return;
+            return await readImportResponseText(res);
         }
 
         const query = gameDetailsMode === "recent"
             ? `recentDays=${RECENT_DAYS}`
             : "ongoingOnly=true";
 
+        const runSummaries: string[] = [];
         for (const leagueCode of leagues) {
             const res = await fetch(`/api/import/game-details/${leagueCode}?${query}`, { method: "POST" });
             if (!res.ok) {
                 const text = await res.text();
                 throw new Error(`${leagueCode}: ${text || res.statusText}`);
             }
+            runSummaries.push(`${leagueCode}: ${await readImportResponseText(res)}`);
         }
-        return;
+        return runSummaries.join(" | ");
     }
 
+    const runSummaries: string[] = [];
     for (const leagueCode of leagues) {
         const endpoint = step === "matches"
             ? `matches/${leagueCode}${scopeSuffix(importScope)}`
@@ -73,7 +93,10 @@ async function runImport(
             const text = await res.text();
             throw new Error(`${leagueCode}: ${text || res.statusText}`);
         }
+        runSummaries.push(`${leagueCode}: ${await readImportResponseText(res)}`);
     }
+
+    return runSummaries.join(" | ");
 }
 
 export function AdminImportTab() {
@@ -91,6 +114,7 @@ export function AdminImportTab() {
     const [gameDetailsMode, setGameDetailsMode] = useState<GameDetailsMode>("recent");
     const [gameDetailsTournamentId, setGameDetailsTournamentId] = useState<number | null>(null);
     const [results, setResults] = useState<StepResult[]>([]);
+    const [importSummary, setImportSummary] = useState<ImportSummary | null>(null);
     const [running, setRunning] = useState(false);
 
     const { data: tournaments } = useQuery({
@@ -135,29 +159,59 @@ export function AdminImportTab() {
         }
 
         setRunning(true);
+        setImportSummary(null);
+        const startedAtIso = new Date().toISOString();
 
         const steps = (["tournaments", "matches", "vods", "game-details"] as Step[]).filter((step) =>
             selectedSteps.has(step),
         );
-        setResults(steps.map((step) => ({ step, status: "idle" })));
+        let currentResults: StepResult[] = steps.map((step) => ({ step, status: "idle" }));
+        setResults(currentResults);
 
         for (const step of steps) {
-            setResults((prev) => prev.map((result) => (result.step === step ? { ...result, status: "running" } : result)));
+            currentResults = currentResults.map((result) => (
+                result.step === step
+                    ? { ...result, status: "running", message: undefined }
+                    : result
+            ));
+            setResults(currentResults);
+
             try {
-                await runImport(selectedLeague, step, importScope, gameDetailsMode, gameDetailsTournamentId);
-                setResults((prev) => prev.map((result) => (result.step === step ? { ...result, status: "done" } : result)));
+                const summaryText = await runImport(
+                    selectedLeague,
+                    step,
+                    importScope,
+                    gameDetailsMode,
+                    gameDetailsTournamentId,
+                );
+                currentResults = currentResults.map((result) => (
+                    result.step === step
+                        ? { ...result, status: "done", message: summaryText }
+                        : result
+                ));
+                setResults(currentResults);
             } catch (err) {
                 const msg = err instanceof Error ? err.message : "Unknown error";
-                setResults((prev) =>
-                    prev.map((result) =>
-                        result.step === step ? { ...result, status: "error", message: msg } : result,
-                    ),
-                );
+                currentResults = currentResults.map((result) => (
+                    result.step === step
+                        ? { ...result, status: "error", message: msg }
+                        : result
+                ));
+                setResults(currentResults);
                 break;
             }
         }
 
         setRunning(false);
+        setImportSummary({
+            league: selectedLeague,
+            startedAtIso,
+            finishedAtIso: new Date().toISOString(),
+            totalSteps: currentResults.length,
+            completedSteps: currentResults.filter((result) => result.status === "done").length,
+            failedSteps: currentResults.filter((result) => result.status === "error").length,
+            stepResults: currentResults,
+        });
     }
 
     return (
@@ -176,7 +230,16 @@ export function AdminImportTab() {
                                 disabled={running}
                                 aria-pressed={selectedLeague === leagueCode}
                             >
-                                {leagueCode}
+                                <span className="admin__league-btn-content">
+                                    {leagueCode !== "ALL" && (
+                                        <LeagueLogo
+                                            shortName={leagueCode}
+                                            size={15}
+                                            className="admin__league-btn-logo"
+                                        />
+                                    )}
+                                    <span>{leagueCode}</span>
+                                </span>
                             </button>
                         ))}
                     </div>
@@ -335,12 +398,50 @@ export function AdminImportTab() {
                                     {result.status === "error" && "✕"}
                                     {result.status === "idle" && "·"}
                                 </span>
-                                <span>{STEP_LABELS[result.step]}</span>
+                                <span className="admin__result-title">{STEP_LABELS[result.step]}</span>
+                                {result.status === "done" && result.message && (
+                                    <span className="admin__result-message">{result.message}</span>
+                                )}
                                 {result.status === "error" && result.message && (
                                     <span className="admin__result-error" role="alert">{result.message}</span>
                                 )}
                             </div>
                         ))}
+                    </div>
+                )}
+
+                {importSummary && (
+                    <div className={`admin__import-summary${
+                        importSummary.failedSteps > 0
+                            ? " admin__import-summary--error"
+                            : " admin__import-summary--success"
+                    }`}>
+                        <div className="admin__import-summary-header">
+                            {importSummary.league !== "ALL" && (
+                                <LeagueLogo
+                                    shortName={importSummary.league}
+                                    size={20}
+                                    className="admin__import-summary-logo"
+                                />
+                            )}
+                            <div className="admin__import-summary-title-wrap">
+                                <p className="admin__import-summary-title">
+                                    Import complete for {importSummary.league}
+                                </p>
+                                <p className="admin__import-summary-time">
+                                    {new Date(importSummary.startedAtIso).toLocaleTimeString()} - {new Date(importSummary.finishedAtIso).toLocaleTimeString()}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="admin__import-summary-stats">
+                            <span className="admin__import-summary-chip">
+                                Steps {importSummary.completedSteps}/{importSummary.totalSteps}
+                            </span>
+                            <span className="admin__import-summary-chip">
+                                Errors {importSummary.failedSteps}
+                            </span>
+                        </div>
                     </div>
                 )}
             </div>

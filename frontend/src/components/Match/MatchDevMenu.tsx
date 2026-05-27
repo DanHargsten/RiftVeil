@@ -46,7 +46,6 @@ export function MatchDevMenu({ currentGame, gameCount, devTools }: MatchDevMenuP
 
     useLayoutEffect(() => {
         if (!open) {
-            setPanelPosition(null);
             return;
         }
 

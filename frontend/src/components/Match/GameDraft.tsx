@@ -1,6 +1,9 @@
+import { useMemo, useState } from "react";
 import { resolveDraftSides } from "@/components/Match/draftUtils.ts";
+import { buildChampionIconUrls } from "@/components/Match/championIconUtils.ts";
 import statGoldIcon from "@/assets/icons/lol-icons/lol-stat-gold.png";
 import statKdaIcon from "@/assets/icons/lol-icons/lol-stat-kda.png";
+import { useDdragonVersion } from "@/hooks/useDdragonVersion.ts";
 import type { DraftEntryDto } from "@/lib/api.ts";
 
 export interface DraftTeamStats {
@@ -17,6 +20,9 @@ interface GameDraftProps {
 }
 
 export function GameDraft({ draft, team1Side, leftTeam, rightTeam }: GameDraftProps) {
+    const { version, fallbackVersion } = useDdragonVersion();
+    const ddragonVersion = version ?? fallbackVersion;
+
     if (draft.length === 0) {
         return <p className="draft__empty">Draft data not available for this game.</p>;
     }
@@ -26,6 +32,7 @@ export function GameDraft({ draft, team1Side, leftTeam, rightTeam }: GameDraftPr
     return (
         <section className="draft" aria-label="Champion draft">
             <div className="draft__body">
+                {/* ========== LEFT TEAM ========== */}
                 <DraftTeamStatsColumn align="left" teamStats={leftTeam} />
                 <DraftSide
                     align="left"
@@ -33,14 +40,20 @@ export function GameDraft({ draft, team1Side, leftTeam, rightTeam }: GameDraftPr
                     picks={sides.leftPicks}
                     banOrder={sides.banOrder}
                     pickOrder={sides.pickOrder}
+                    ddragonVersion={ddragonVersion}
                 />
+
+                {/* ========== CENTER SEPARATOR ========== */}
                 <div className="draft__separator" aria-hidden="true" />
+
+                {/* ========== RIGHT TEAM ========== */}
                 <DraftSide
                     align="right"
                     bans={sides.rightBans}
                     picks={sides.rightPicks}
                     banOrder={sides.banOrder}
                     pickOrder={sides.pickOrder}
+                    ddragonVersion={ddragonVersion}
                 />
                 <DraftTeamStatsColumn align="right" teamStats={rightTeam} />
             </div>
@@ -54,12 +67,14 @@ function DraftSide({
     picks,
     banOrder,
     pickOrder,
+    ddragonVersion,
 }: {
     align: "left" | "right";
     bans: DraftEntryDto[];
     picks: DraftEntryDto[];
     banOrder: Map<number, number>;
     pickOrder: Map<number, number>;
+    ddragonVersion: string;
 }) {
     return (
         <div className={`draft__${align}`}>
@@ -67,11 +82,12 @@ function DraftSide({
                 <div className="draft__bans-icons">
                     {bans.map((entry) => (
                         <DraftChampIcon
-                            key={entry.sequenceNumber}
+                            key={`${entry.sequenceNumber}-${entry.champion}-${ddragonVersion}`}
                             champion={entry.champion}
                             phase="Ban"
                             size={40}
                             sequenceNumber={banOrder.get(entry.sequenceNumber)}
+                            ddragonVersion={ddragonVersion}
                         />
                     ))}
                 </div>
@@ -79,11 +95,12 @@ function DraftSide({
             <div className={`draft__pick-icons draft__pick-icons--${align}`}>
                 {picks.map((entry) => (
                     <DraftChampIcon
-                        key={entry.sequenceNumber}
+                        key={`${entry.sequenceNumber}-${entry.champion}-${ddragonVersion}`}
                         champion={entry.champion}
                         phase="Pick"
                         size={50}
                         sequenceNumber={pickOrder.get(entry.sequenceNumber)}
+                        ddragonVersion={ddragonVersion}
                     />
                 ))}
             </div>
@@ -147,14 +164,21 @@ function DraftChampIcon({
     phase,
     size,
     sequenceNumber,
+    ddragonVersion,
 }: {
     champion: string;
     phase: "Pick" | "Ban";
     size: number;
     sequenceNumber?: number;
+    ddragonVersion: string;
 }) {
-    const normalized = champion.replace(/[^a-zA-Z0-9]/g, "");
-    const url = `https://ddragon.leagueoflegends.com/cdn/15.8.1/img/champion/${normalized}.png`;
+    const [candidateIndex, setCandidateIndex] = useState(0);
+    const [hasError, setHasError] = useState(false);
+    const urls = useMemo(
+        () => buildChampionIconUrls(champion, ddragonVersion),
+        [champion, ddragonVersion],
+    );
+    const currentUrl = urls[candidateIndex] ?? null;
     const phaseClass = phase.toLowerCase();
 
     return (
@@ -162,17 +186,27 @@ function DraftChampIcon({
             className={`draft__champ-icon draft__champ-icon--${phaseClass}`}
             style={{ width: size, height: size }}
             title={champion}
+            role="img"
+            aria-label={`${phase} ${champion}`}
         >
-            <img
-                src={url}
-                alt={champion}
-                width={size}
-                height={size}
-                onError={(event) => {
-                    (event.target as HTMLImageElement).style.opacity = "0";
-                }}
-            />
-            {phase === "Pick" ? <span className="draft__champ-seq">{sequenceNumber}</span> : null}
+            {hasError || !currentUrl ? null : (
+                <img
+                    src={currentUrl}
+                    alt=""
+                    aria-hidden="true"
+                    width={size}
+                    height={size}
+                    onError={() => {
+                        if (candidateIndex < urls.length - 1) {
+                            setCandidateIndex((current) => current + 1);
+                            return;
+                        }
+
+                        setHasError(true);
+                    }}
+                />
+            )}
+            {phase === "Pick" ? <span className="draft__champ-seq" aria-hidden="true">{sequenceNumber}</span> : null}
         </div>
     );
 }

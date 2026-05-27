@@ -31,20 +31,16 @@ export function MatchList({ tournamentId, onTournamentChange, spoilerProps }: Ma
     const tournamentSelectId = `${formIds}-tournament`;
     const spoilerCheckboxId = `${formIds}-spoiler`;
     const [search, setSearch] = useState("");
-    const [showJumpToToday, setShowJumpToToday] = useState(false);
+    const [isTodayAnchorVisible, setIsTodayAnchorVisible] = useState(true);
     const [localTournamentId, setLocalTournamentId] = useState<number | "all">(
         tournamentId != null ? tournamentId : "all",
     );
     const selectedTournamentId = onTournamentChange
         ? (tournamentId != null ? tournamentId : "all")
-        : localTournamentId;
+        : (tournamentId != null ? tournamentId : localTournamentId);
     const todayRef = useRef<HTMLDivElement>(null);
     const hasScrolled = useRef(false);
     const prevTournamentRef = useRef(selectedTournamentId);
-
-    useLayoutEffect(() => {
-        setLocalTournamentId(tournamentId != null ? tournamentId : "all");
-    }, [tournamentId]);
 
     const { data: tournaments } = useQuery({
         queryKey: ["tournaments"],
@@ -76,6 +72,11 @@ export function MatchList({ tournamentId, onTournamentChange, spoilerProps }: Ma
         () => groupMatchesByDate(filteredMatches, { insertEmptyToday: filteredMatches.length > 0 }),
         [filteredMatches],
     );
+    const hasTodayGroup = useMemo(
+        () => groupedMatches.some((group) => group.isToday),
+        [groupedMatches],
+    );
+    const showJumpToToday = hasTodayGroup && !isTodayAnchorVisible;
 
     useLayoutEffect(() => {
         if (prevTournamentRef.current !== selectedTournamentId) {
@@ -103,15 +104,13 @@ export function MatchList({ tournamentId, onTournamentChange, spoilerProps }: Ma
 
     useEffect(() => {
         const todayAnchor = todayRef.current;
-        const hasTodayGroup = groupedMatches.some((group) => group.isToday);
         if (!todayAnchor || !hasTodayGroup) {
-            setShowJumpToToday(false);
             return;
         }
 
         const observer = new IntersectionObserver(
             ([entry]) => {
-                setShowJumpToToday(!entry.isIntersecting);
+                setIsTodayAnchorVisible(entry.isIntersecting);
             },
             {
                 root: null,
@@ -122,7 +121,7 @@ export function MatchList({ tournamentId, onTournamentChange, spoilerProps }: Ma
 
         observer.observe(todayAnchor);
         return () => observer.disconnect();
-    }, [groupedMatches]);
+    }, [hasTodayGroup, groupedMatches]);
 
     function jumpToToday() {
         if (!todayRef.current) return;

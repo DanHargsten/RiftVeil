@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { useItemLookup } from "@/hooks/useItemLookup.ts";
 import type { PlayerStatsDto } from "@/lib/api.ts";
 import statCsIcon from "@/assets/icons/lol-icons/lol-stat-cs.png";
@@ -20,6 +20,7 @@ import {
     formatPlayerName,
     type LaneRole,
 } from "@/components/Match/laneMatchupUtils.ts";
+import { buildChampionIconUrls } from "@/components/Match/championIconUtils.ts";
 
 interface GameScoreboardProps {
     team1Players: PlayerStatsDto[];
@@ -47,6 +48,7 @@ export function GameScoreboard({
 
     return (
         <section className="scoreboard" role="region" aria-label="Player scoreboard">
+            {/* ========== SCOREBOARD TABLE ========== */}
             <div className="scoreboard__table-wrap">
                 <table className="scoreboard__table scoreboard__table--matchups">
                     <caption className="sr-only">
@@ -203,7 +205,12 @@ function PlayerCell({
     return (
         <td className={cellClass}>
             <div className={scoreboardClass("scoreboard__player-inner", side)}>
-                <ChampionIcon champion={player.champion} size={40} ddragonVersion={ddragonVersion} />
+                <ChampionIcon
+                    key={`${player.champion}-${ddragonVersion}`}
+                    champion={player.champion}
+                    size={40}
+                    ddragonVersion={ddragonVersion}
+                />
                 <div className="scoreboard__player-info">
                     <span className="scoreboard__player-name">{formatPlayerName(player.playerName)}</span>
                     <span className="scoreboard__player-champ">{player.champion}</span>
@@ -274,7 +281,7 @@ function ItemsCell({
             <div className={scoreboardClass("scoreboard__items-inner", side)}>
                 {slots.map((slot, slotIndex) => (
                     <ItemIcon
-                        key={`${player.playerName}-${side}-item-${slotIndex}`}
+                        key={`${player.playerName}-${side}-item-${slotIndex}-${slot.name}`}
                         name={slot.name}
                         iconUrl={getItemIconUrl(slot.name)}
                         isTrinket={slot.isTrinket}
@@ -304,10 +311,6 @@ function ItemIcon({
 }) {
     const [hasError, setHasError] = useState(false);
     const trinketClass = isTrinket ? "scoreboard__item-icon--trinket" : "";
-
-    useEffect(() => {
-        setHasError(false);
-    }, [iconUrl, name]);
 
     if (!iconUrl || hasError) {
         return (
@@ -341,14 +344,25 @@ function ChampionIcon({
     size: number;
     ddragonVersion: string;
 }) {
+    const [candidateIndex, setCandidateIndex] = useState(0);
     const [hasError, setHasError] = useState(false);
-    const url = championIconUrl(champion, ddragonVersion);
-
-    useEffect(() => {
-        setHasError(false);
-    }, [url]);
+    const urls = useMemo(
+        () => buildChampionIconUrls(champion, ddragonVersion),
+        [champion, ddragonVersion],
+    );
+    const url = urls[candidateIndex] ?? null;
 
     if (hasError) {
+        return (
+            <div
+                className="scoreboard__champ-icon scoreboard__champ-icon--missing"
+                role="img"
+                aria-label={champion}
+            />
+        );
+    }
+
+    if (!url) {
         return (
             <div
                 className="scoreboard__champ-icon scoreboard__champ-icon--missing"
@@ -365,22 +379,14 @@ function ChampionIcon({
             width={size}
             height={size}
             className="scoreboard__champ-icon"
-            onError={() => setHasError(true)}
+            onError={() => {
+                if (candidateIndex < urls.length - 1) {
+                    setCandidateIndex((current) => current + 1);
+                    return;
+                }
+
+                setHasError(true);
+            }}
         />
     );
-}
-
-function championIconUrl(champion: string, ddragonVersion: string): string {
-    const normalized = champion
-        .replace(/[^a-zA-Z0-9]/g, "")
-        .replace(/^(.)/, (c) => c.toUpperCase());
-
-    const overrides: Record<string, string> = {
-        Wukong: "MonkeyKing",
-        Nunu: "Nunu",
-        Renata: "Renata",
-    };
-
-    const ddName = overrides[champion] ?? normalized;
-    return `https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/champion/${ddName}.png`;
 }

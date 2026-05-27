@@ -40,6 +40,8 @@ export function League() {
         ?? null;
     const [selectedTournamentId, setSelectedTournamentId] = useState<number | null>(null);
     const activeTournamentId = selectedTournamentId ?? defaultId;
+    // null = never toggled (use default), string = user-selected round, "CLOSED" = explicitly collapsed
+    const [openRound, setOpenRound] = useState<string | null>(null);
 
     const { data: matches, isLoading: matchesLoading } = useQuery({
         queryKey: ["matches", "tournament", activeTournamentId],
@@ -68,9 +70,6 @@ export function League() {
     // Only auto-open the round that is currently in progress; finished/upcoming tournaments stay collapsed
     const defaultOpenRound =
         selectedTournament?.status === "Ongoing" ? activeRoundKey : null;
-
-    // null = never toggled (use default), string = user-selected round, "CLOSED" = explicitly collapsed
-    const [openRound, setOpenRound] = useState<string | null>(null);
 
     const activeRound = openRound === "CLOSED" ? null : (openRound ?? defaultOpenRound);
 

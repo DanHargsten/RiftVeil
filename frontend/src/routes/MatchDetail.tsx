@@ -19,7 +19,7 @@ function emptyVodDraft(): MatchDevVodDraft {
 }
 
 function vodDraftFromGame(game: GameListItem): MatchDevVodDraft {
-    const manualVod = game.vods?.find((vod) => vod.locale === "manual") ?? null;
+    const manualVod = game.vods?.find((vod) => vod.source === "Manual") ?? null;
     const draftOffset = game.vodDraftOffsetSeconds ?? manualVod?.draftOffsetSeconds;
     const gameStartOffset = game.vodGameStartOffsetSeconds ?? manualVod?.offsetSeconds;
 
@@ -50,7 +50,7 @@ function mergeSavedVodIntoMatch(
             if (game.id !== gameId)
                 return game;
 
-            const manualVod = game.vods?.find((vod) => vod.locale === "manual");
+            const manualVod = game.vods?.find((vod) => vod.source === "Manual");
             const nextManualVod = manualVod
                 ? {
                     ...manualVod,
@@ -67,8 +67,8 @@ function mergeSavedVodIntoMatch(
                 vodDraftOffsetSeconds: saved.draftOffsetSeconds,
                 vodGameStartOffsetSeconds: saved.gameStartOffsetSeconds,
                 vods: nextManualVod
-                    ? (game.vods ?? []).map((vod) => (vod.locale === "manual" ? nextManualVod : vod))
-                    : game.vods?.filter((vod) => vod.locale !== "manual") ?? null,
+                    ? (game.vods ?? []).map((vod) => (vod.source === "Manual" ? nextManualVod : vod))
+                    : game.vods?.filter((vod) => vod.source !== "Manual") ?? null,
             };
         }),
     };
@@ -112,14 +112,7 @@ export function MatchDetail() {
         setDevMessage(null);
         if (currentGame)
             setVodDraft(vodDraftFromGame(currentGame));
-    }, [
-        currentGame?.id,
-        currentGame?.vodBaseUrl,
-        currentGame?.vodUrl,
-        currentGame?.vodDraftOffsetSeconds,
-        currentGame?.vodGameStartOffsetSeconds,
-        currentGame?.vods,
-    ]);
+    }, [currentGame]);
 
     const { data: gameDetails, isLoading: gameLoading, isError: gameDetailsError } = useQuery({
         queryKey: ["game-details", currentGame?.id],

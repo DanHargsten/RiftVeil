@@ -57,6 +57,7 @@ export async function deleteApi(endpoint: string): Promise<void> {
 export interface GameVodItem {
   id: number;
   provider: string;
+  source: "Imported" | "Manual";
   locale: string | null;
   url: string;
   offsetSeconds?: number | null;

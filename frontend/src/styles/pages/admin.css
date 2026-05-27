@@ -132,6 +132,18 @@
     transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 
+.admin__league-btn-content {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.admin__league-btn-logo {
+    border-radius: 3px;
+    object-fit: contain;
+    opacity: 0.92;
+}
+
 .admin__league-btn:hover:not(:disabled) {
     border-color: var(--border-strong);
     color: var(--text);
@@ -527,10 +539,85 @@
     min-width: 8rem;
 }
 
+.admin__result-message {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.admin__result-error {
+    color: var(--live-text);
+    font-size: 0.82rem;
+}
+
 .admin__results-panel {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+}
+
+.admin__import-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface-2);
+}
+
+.admin__import-summary--success {
+    border-color: color-mix(in srgb, var(--status-finished) 40%, var(--border));
+}
+
+.admin__import-summary--error {
+    border-color: color-mix(in srgb, var(--live-text) 40%, var(--border));
+}
+
+.admin__import-summary-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.admin__import-summary-logo {
+    border-radius: 4px;
+    object-fit: contain;
+}
+
+.admin__import-summary-title-wrap {
+    min-width: 0;
+}
+
+.admin__import-summary-title {
+    margin: 0;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.admin__import-summary-time {
+    margin: 0.1rem 0 0;
+    font-size: 0.78rem;
+    color: var(--text-muted-extra);
+}
+
+.admin__import-summary-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.admin__import-summary-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.22rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: color-mix(in srgb, var(--surface-1) 35%, var(--surface-2));
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
 }
 
 .admin__results-block {

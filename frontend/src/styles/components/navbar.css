@@ -88,6 +88,11 @@
     background: none;
     border: none;
     cursor: pointer;
+    appearance: none;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
 }
 
 .navbar__league-chevron {
