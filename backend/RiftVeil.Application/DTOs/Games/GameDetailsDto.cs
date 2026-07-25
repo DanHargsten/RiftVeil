@@ -59,6 +59,8 @@ public class PlayerStatsDto
 public class TeamStatsDto
 {
     public int TotalKills { get; init; }
+    public int TotalDeaths { get; init; }
+    public int TotalAssists { get; init; }
     public int TotalGoldEarned { get; init; }
     public int TowersDestroyed { get; init; }
     public int InhibitorsDestroyed { get; init; }

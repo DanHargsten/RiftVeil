@@ -1,9 +1,9 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using RiftVeil.Application.Dtos.Teams;
 using RiftVeil.Domain.Entities;
 using RiftVeil.Domain.Enums;
-using RiftVeil.Application.Dtos.Teams;
 using RiftVeil.Infrastructure.Data;
 
 namespace RiftVeil.Infrastructure.Services.Import;
@@ -826,6 +826,22 @@ public class LeaguepediaImportService(
         if (exact != null)
             return exact;
 
+        // MatchSchedule occasionally emits a team code instead of the canonical
+        // Teams.Name. Resolve that code locally even when the Cargo Teams lookup
+        // is temporarily empty or unavailable.
+        if (IsPlausibleTeamCode(teamName))
+        {
+            var normalizedCode = teamName.ToUpperInvariant();
+            var byScheduleCode = await dbContext.Teams.FirstOrDefaultAsync(
+                team => team.ShortName == normalizedCode);
+            if (byScheduleCode != null)
+            {
+                Console.WriteLine(
+                    $"  Matched schedule code '{teamName}' to existing team '{byScheduleCode.Name}'");
+                return byScheduleCode;
+            }
+        }
+
         var stripped = StripDisambiguationSuffix(teamName);
         if (stripped != null)
         {
@@ -865,6 +881,13 @@ public class LeaguepediaImportService(
         }
 
         return null;
+    }
+
+    private static bool IsPlausibleTeamCode(string value)
+    {
+        return value.Length <= 20
+            && !value.Any(char.IsWhiteSpace)
+            && !value.StartsWith("UNK", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task CacheTeamCargoRowAsync(JsonElement row, bool verifyIconUrl = false)
@@ -1157,7 +1180,7 @@ public class LeaguepediaImportService(
     {
         return TryParseDate(dateStr) ?? DateTimeOffset.UtcNow;
     }
-    
+
     /// <summary>
     /// Re-syncs games from Leaguepedia Cargo for tournaments that still have incomplete rows.
     /// Normal match import already performs this; kept for repairing older databases.

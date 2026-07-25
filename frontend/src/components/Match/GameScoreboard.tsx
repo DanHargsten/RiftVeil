@@ -6,7 +6,8 @@ import statDamageIcon from "@/assets/icons/lol-icons/lol-stat-damage.png";
 import statGoldIcon from "@/assets/icons/lol-icons/lol-stat-gold.png";
 import statItemsIcon from "@/assets/icons/lol-icons/lol-stat-items.png";
 import statKdaIcon from "@/assets/icons/lol-icons/lol-stat-kda.png";
-import statPlayerIcon from "@/assets/icons/lol-icons/lol-stat-player.png";
+import blueSideIcon from "@/assets/icons/lol-objectives/blue.svg";
+import redSideIcon from "@/assets/icons/lol-objectives/red.svg";
 import { formatGoldStat } from "@/components/Match/matchDisplayUtils.ts";
 import {
     buildItemSlots,
@@ -99,7 +100,7 @@ function ScoreboardHead({ showDamage }: { showDamage: boolean }) {
     return (
         <thead>
             <tr>
-                <ScoreboardHeaderCell label="Player" icon={statPlayerIcon} />
+                <ScoreboardSideHeaderCell sideLabel="Blue side player" icon={blueSideIcon} />
                 <ScoreboardHeaderCell label="K/D/A" icon={statKdaIcon} />
                 <ScoreboardHeaderCell label="CS" icon={statCsIcon} />
                 <ScoreboardHeaderCell label="Gold" icon={statGoldIcon} />
@@ -113,7 +114,7 @@ function ScoreboardHead({ showDamage }: { showDamage: boolean }) {
                 <ScoreboardHeaderCell label="Gold" icon={statGoldIcon} align="right" />
                 <ScoreboardHeaderCell label="CS" icon={statCsIcon} align="right" />
                 <ScoreboardHeaderCell label="K/D/A" icon={statKdaIcon} align="right" />
-                <ScoreboardHeaderCell label="Player" icon={statPlayerIcon} align="right" />
+                <ScoreboardSideHeaderCell sideLabel="Red side player" icon={redSideIcon} align="right" />
             </tr>
         </thead>
     );
@@ -140,6 +141,32 @@ function ScoreboardHeaderCell({
                     aria-hidden="true"
                 />
                 <span>{label}</span>
+            </span>
+        </th>
+    );
+}
+
+function ScoreboardSideHeaderCell({
+    sideLabel,
+    icon,
+    align = "left",
+}: {
+    sideLabel: string;
+    icon: string;
+    align?: "left" | "right";
+}) {
+    return (
+        <th scope="col" className={`scoreboard__th scoreboard__th--${align} scoreboard__th--side`}>
+            <span className={`scoreboard__th-content scoreboard__th-content--${align} scoreboard__th-content--side`}>
+                <img
+                    src={icon}
+                    alt=""
+                    className="scoreboard__th-icon scoreboard__th-icon--side"
+                    width={16}
+                    height={16}
+                    aria-hidden="true"
+                />
+                <span className="sr-only">{sideLabel}</span>
             </span>
         </th>
     );
@@ -208,8 +235,9 @@ function PlayerCell({
                 <ChampionIcon
                     key={`${player.champion}-${ddragonVersion}`}
                     champion={player.champion}
-                    size={40}
+                    size={44}
                     ddragonVersion={ddragonVersion}
+                    level={player.championLevel}
                 />
                 <div className="scoreboard__player-info">
                     <span className="scoreboard__player-name">{formatPlayerName(player.playerName)}</span>
@@ -339,10 +367,12 @@ function ChampionIcon({
     champion,
     size,
     ddragonVersion,
+    level,
 }: {
     champion: string;
     size: number;
     ddragonVersion: string;
+    level?: number | null;
 }) {
     const [candidateIndex, setCandidateIndex] = useState(0);
     const [hasError, setHasError] = useState(false);
@@ -354,39 +384,58 @@ function ChampionIcon({
 
     if (hasError) {
         return (
-            <div
-                className="scoreboard__champ-icon scoreboard__champ-icon--missing"
-                role="img"
-                aria-label={champion}
-            />
+            <div className="scoreboard__champ-icon-wrap">
+                <div
+                    className="scoreboard__champ-icon scoreboard__champ-icon--missing"
+                    role="img"
+                    aria-label={champion}
+                />
+                <ChampionLevelBadge level={level} />
+            </div>
         );
     }
 
     if (!url) {
         return (
-            <div
-                className="scoreboard__champ-icon scoreboard__champ-icon--missing"
-                role="img"
-                aria-label={champion}
-            />
+            <div className="scoreboard__champ-icon-wrap">
+                <div
+                    className="scoreboard__champ-icon scoreboard__champ-icon--missing"
+                    role="img"
+                    aria-label={champion}
+                />
+                <ChampionLevelBadge level={level} />
+            </div>
         );
     }
 
     return (
-        <img
-            src={url}
-            alt=""
-            width={size}
-            height={size}
-            className="scoreboard__champ-icon"
-            onError={() => {
-                if (candidateIndex < urls.length - 1) {
-                    setCandidateIndex((current) => current + 1);
-                    return;
-                }
+        <div className="scoreboard__champ-icon-wrap">
+            <img
+                src={url}
+                alt=""
+                width={size}
+                height={size}
+                className="scoreboard__champ-icon"
+                onError={() => {
+                    if (candidateIndex < urls.length - 1) {
+                        setCandidateIndex((current) => current + 1);
+                        return;
+                    }
 
-                setHasError(true);
-            }}
-        />
+                    setHasError(true);
+                }}
+            />
+            <ChampionLevelBadge level={level} />
+        </div>
+    );
+}
+
+function ChampionLevelBadge({ level }: { level?: number | null }) {
+    if (level == null || level <= 0) return null;
+
+    return (
+        <span className="scoreboard__champ-level" aria-label={`Champion level ${level}`}>
+            {level}
+        </span>
     );
 }

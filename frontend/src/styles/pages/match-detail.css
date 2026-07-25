@@ -220,7 +220,8 @@
 }
 
 .match-detail__tournament-stage,
-.match-detail__best-of {
+.match-detail__best-of,
+.match-detail__series-date {
     color: var(--text-muted);
 }
 
@@ -314,6 +315,16 @@
     font-weight: 300;
     color: var(--text-muted-extra);
     line-height: 1;
+}
+
+.match-detail__score-date {
+    margin-top: 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-family: "Inter", system-ui, sans-serif;
 }
 
 /* ================================================================================================
@@ -698,6 +709,7 @@
     text-transform: uppercase;
     letter-spacing: 0.07em;
     color: var(--text-muted);
+    font-family: "Inter", system-ui, sans-serif;
 }
 
 .match-detail__stats-header--objectives {
@@ -770,22 +782,12 @@
     font-size: 0.78rem;
 }
 
-.match-detail__subsection--objectives-side .match-detail__objectives-head {
-    font-size: 0.58rem;
-    padding: 0.3rem 0.1rem 0.4rem;
-}
-
 .match-detail__subsection--objectives-side .match-detail__objectives-row {
-    min-height: 2rem;
+    min-height: 2.3rem;
 }
 
 .match-detail__subsection--objectives-side .match-detail__objectives-score {
-    font-size: 0.95rem;
-}
-
-.match-detail__subsection--objectives-side .match-detail__objectives-label {
-    font-size: 0.48rem;
-    max-width: 4.5rem;
+    font-size: 0.96rem;
 }
 
 .match-detail__section--stacked .match-detail__objectives-body {
@@ -808,6 +810,7 @@
     border-bottom: 1px solid var(--border);
     background: var(--surface-2);
     margin: 0;
+    font-family: "Inter", system-ui, sans-serif;
 }
 
 .match-detail__placeholder-body {
@@ -852,41 +855,6 @@
     text-align: center;
 }
 
-.match-detail__objectives-head {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(4.75rem, auto) minmax(0, 1fr);
-    align-items: end;
-    padding: 0.35rem 0.15rem 0.45rem;
-    border-bottom: 1px solid var(--border);
-    font-size: 0.62rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-muted-extra);
-}
-
-.match-detail__objectives-head-score:first-child {
-    text-align: end;
-    padding-right: 0.25rem;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.match-detail__objectives-head-score:last-child {
-    text-align: start;
-    padding-left: 0.25rem;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.match-detail__objectives-head-mid {
-    text-align: center;
-}
-
 .match-detail__objectives-list {
     display: flex;
     flex-direction: column;
@@ -894,7 +862,7 @@
 
 .match-detail__objectives-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(4.75rem, auto) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 2rem minmax(0, 1fr);
     align-items: center;
     min-height: 2.35rem;
     border-bottom: 1px solid var(--border);
@@ -905,7 +873,7 @@
 }
 
 .match-detail__objectives-score {
-    font-size: 1.05rem;
+    font-size: 0.96rem;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     line-height: 1;
@@ -926,22 +894,9 @@
 
 .match-detail__objectives-mid {
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.2rem;
-    padding: 0.3rem 0.15rem;
-}
-
-.match-detail__objectives-label {
-    font-size: 0.52rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: rgb(230 235 245 / 0.78);
-    text-align: center;
-    line-height: 1.15;
-    max-width: 6rem;
+    padding: 0.3rem 0;
 }
 
 /* PNGs are light-on-black; luminance mask → tint via --objective-icon-color */
@@ -951,10 +906,10 @@
 
 .match-detail__objectives-icon--img {
     display: block;
-    width: 1.25rem;
-    height: 1.25rem;
+    width: 1.42rem;
+    height: 1.42rem;
     object-fit: contain;
-    opacity: 0.9;
+    opacity: 1;
 }
 
 .match-detail__objectives-icon--svg {

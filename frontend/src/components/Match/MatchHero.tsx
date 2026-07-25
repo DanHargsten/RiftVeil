@@ -23,6 +23,7 @@ export function MatchHero({ match, from, backLabel, footer, devMenu }: MatchHero
     const leaguePath = `/leagues/${leagueShortName.toLowerCase()}`;
     const team1Display = formatTeamDisplayNames(match.team1ShortName, match.team1Name);
     const team2Display = formatTeamDisplayNames(match.team2ShortName, match.team2Name);
+    const seriesDateLabel = formatSeriesDateLabel(match);
 
     return (
         <header className="match-detail__hero">
@@ -83,6 +84,7 @@ export function MatchHero({ match, from, backLabel, footer, devMenu }: MatchHero
                             {team2Wins}
                         </span>
                     </div>
+                    {seriesDateLabel ? <span className="match-detail__score-date">{seriesDateLabel}</span> : null}
                 </div>
                 <HeroTeamBlock
                     align="right"
@@ -94,6 +96,14 @@ export function MatchHero({ match, from, backLabel, footer, devMenu }: MatchHero
             {footer ? <div className="match-detail__hero-footer">{footer}</div> : null}
         </header>
     );
+}
+
+function formatSeriesDateLabel(match: MatchDetails): string | null {
+    const sourceDate = match.startedAtUtc ?? match.startsAtUtc;
+    if (!sourceDate) return null;
+    const seriesDate = new Date(sourceDate);
+    if (Number.isNaN(seriesDate.getTime())) return null;
+    return seriesDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 function HeroWatermark({

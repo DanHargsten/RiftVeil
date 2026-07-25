@@ -5,6 +5,10 @@ Short-term list for practical fixes that are smaller than the scoped items in `f
 ## UI / UX
 
 - [ ] **Match detail tooltips:** On hover, show contextual stats and labels for interactive elements (items, runes, champions, objectives, damage bars, draft picks/bans, etc.) instead of relying on bare icons or truncated values.
+- [ ] **Top players module:** add sortable "Top Players" cards for most played, highest KDA, kills/game, assists/game, win rate, and MVP-style impact metrics.
+- [ ] **Champion snapshot panel:** add top 5 bans and top pick per role (Top/Jungle/Mid/Bot/Support) for the active league/tournament filters.
+- [ ] **Head-to-head stat expansion:** extend H2H with KP%, DPM, CSM, GPM, diff@15, first-to-lvl-6, kills, and solo-kill totals.
+- [ ] **Runes + build order:** in match detail, show each player's rune page and item build order timeline (not only final items).
 - [ ] **Mobile / responsive layout (prio):** Frontend targets desktop only for now; viewport `@media` rules were removed. Reintroduce breakpoints for match detail, damage breakdown, sidebar, home, and match list when prioritised.
 - [ ] Sidebar: when a league has many tournaments, make the list scrollable instead of clipping.
 - [ ] Sidebar structure: group tournaments by year (`LEC -> 2026, 2025, 2024`) before split/stage labels.

@@ -104,6 +104,9 @@ updated **weekly**. Public domain. Used by the entire LoL analytics community.
   `Game`.
 - Mapping `OE.gameid` ↔ `Game.ExternalId` (Leaguepedia GameId): tournament + date + team names is
   almost always 1:1. Manual override table for the 1–2 % that don't match.
+- Make `OE.gamelength` the primary source for game duration and persist it to
+  `GameTeamStats.GameDurationSeconds` (and optionally `Game.Duration` for fallback), so match detail
+  duration does not depend on unstable Cargo `Gamelength`.
 
 ### Estimated effort
 
@@ -454,3 +457,70 @@ user.
 
 Needs bracket metadata and clearer product rules. Current per-match score hiding is enough for
 regular season; this matters most for playoffs and double-elim formats.
+
+---
+
+## 9. Player + champion analytics suite
+
+### Problem
+
+Current match and league pages cover scoreboards, draft, and objectives, but they do not yet expose
+the "comparison layer" users ask for most often: top performers across many games, champion
+meta summaries per role, and richer head-to-head metrics beyond core KDA/gold/CS lines.
+
+### Goal
+
+Ship an analytics layer that answers:
+
+- Who are the top players right now (most played, kills, KDA, win rate)?
+- Which champions are most banned and most picked by role?
+- How do two teams compare in lane and early-game pressure (KP, DPM, CSM, GPM, diff@15, first to 6, solo kills)?
+- What runes and build paths are players actually using?
+
+### Scope
+
+#### Phase 1 - Top players
+
+- Add "Top Players" cards/tables with league and date filters.
+- Metrics: games played, win rate, KDA, kills/game, deaths/game, assists/game, DPM, GPM.
+- Include minimum-games threshold to avoid noisy outliers.
+
+#### Phase 2 - Champion stats
+
+- Add "Champion stats" panel with:
+  - top 5 banned champions,
+  - top pick per role (Top/Jungle/Mid/Bot/Support),
+  - optional win-rate split for each surfaced champion.
+- Respect same filters as Top Players so comparisons stay consistent.
+
+#### Phase 3 - Head-to-head expansion
+
+- Extend existing H2H panel with:
+  - KP%,
+  - damage per minute,
+  - CS per minute,
+  - gold per minute,
+  - gold/CS diff at 15,
+  - first to 6 kills rate,
+  - solo kill totals.
+- Keep baseline KDA/gold/objective rows for readability and progressive disclosure.
+
+#### Phase 4 - Runes + build order
+
+- Store or derive full rune pages and item purchase order per player per game.
+- Add match-detail subpanel showing:
+  - primary/secondary runes,
+  - keystone,
+  - item purchase timeline (early/core/late view).
+- Fallback gracefully when source data is missing for older games.
+
+### Data dependencies
+
+- Current Leaguepedia import is enough for parts of Phase 1-3, but rune/build-order depth likely
+  requires an additional source or importer extension.
+- Consider using Oracle's Elixir for per-minute rate normalization where Leaguepedia is incomplete.
+
+### Why later
+
+High user value, but this cuts across import schema, API contracts, aggregation queries, caching, and
+new frontend surfaces. Better as one scoped project with explicit phases than ad-hoc UI additions.

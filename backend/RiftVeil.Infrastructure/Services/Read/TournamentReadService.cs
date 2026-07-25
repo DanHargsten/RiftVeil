@@ -19,7 +19,7 @@ public class TournamentReadService(RiftVeilDbContext context) : ITournamentReadS
         int? leagueId = null,
         TournamentStatus? status = null)
     {
-        var query = _context.Tournaments.AsQueryable();
+        var query = _context.Tournaments.AsNoTracking();
 
         if (leagueId.HasValue)
         {
@@ -41,6 +41,8 @@ public class TournamentReadService(RiftVeilDbContext context) : ITournamentReadS
     public async Task<TournamentDetailsDto?> GetByIdAsync(int id)
     {
         var tournament = await _context.Tournaments
+            .AsNoTracking()
+            .AsSplitQuery()
             .Include(tournament => tournament.League)
             .Include(tournament => tournament.Matches)
                 .ThenInclude(match => match.Team1)

@@ -17,6 +17,7 @@ public class LeagueReadService(RiftVeilDbContext context) : ILeagueReadService
     public async Task<List<LeagueListItemDto>> GetAllAsync()
     {
         return await _context.Leagues
+            .AsNoTracking()
             .OrderBy(league => league.Name)
             .Select(LeagueProjections.ToListItemDto())
             .ToListAsync();
@@ -26,6 +27,7 @@ public class LeagueReadService(RiftVeilDbContext context) : ILeagueReadService
     public async Task<LeagueDetailsDto?> GetByIdAsync(int leagueId)
     {
         var league = await _context.Leagues
+            .AsNoTracking()
             .Include(league => league.Tournaments)
             .FirstOrDefaultAsync(league => league.Id == leagueId);
 

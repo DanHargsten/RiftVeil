@@ -6,6 +6,26 @@ For class-level detail, heuristics, and file references, see [`docs/technical-lo
 
 Early months (2026-01 through ~2026-04-13) are summarised at a high level; the project log was backfilled from memory and commits before day-by-day notes started.
 
+## 2026-07-24
+
+### Fixed
+
+- **Leaguepedia match reconciliation** now reuses an existing team when MatchSchedule supplies its short code but the Cargo Teams lookup is empty or temporarily unavailable, instead of creating an unnecessary `UNK` placeholder.
+- **Game details API contract** now includes team total deaths and assists consistently with the stored team statistics and frontend types.
+- **Backend test reliability**: integration tests no longer run development database seed logic or depend on Windows Event Log permissions; LoLesports VOD tests use relative dates instead of expiring calendar fixtures.
+
+### Changed
+
+- **Match query guardrails**: invalid tournament ids, reversed date ranges, and excessive `days` / `count` values now return `400 Bad Request`.
+- **Read query efficiency**: read-only league, tournament, and match queries no longer use EF change tracking; tournament details use split-query loading for nested match/game/VOD collections.
+- **Frontend loading**: the admin route is loaded as a separate JavaScript chunk, reducing the initial application bundle for regular visitors.
+- **Dependency maintenance**: React Router, EF Core 8, ASP.NET Core test packages, and Swagger tooling were updated to patched versions.
+
+### Notes
+
+- Admin remains intentionally unauthenticated while the site is local-only; authentication is still required before public deployment.
+- Verification after the maintenance pass: frontend lint/build clean, **39/39 backend tests passing**, and no known npm or NuGet vulnerabilities reported.
+
 ## 2026-05-27
 
 ### Added

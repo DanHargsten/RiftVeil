@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using RiftVeil.Domain.Entities;
 using RiftVeil.Domain.Enums;
 using RiftVeil.Infrastructure.Data;
@@ -19,6 +20,9 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        // Keep development-only database initialization out of integration tests.
+        builder.UseEnvironment("Testing");
+
         builder.ConfigureAppConfiguration((_, config) =>
         {
             config.AddInMemoryCollection(new Dictionary<string, string?>
@@ -35,7 +39,7 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
             // Add in-memory database
             services.AddDbContext<RiftVeilDbContext>(options =>
             {
-                options.UseInMemoryDatabase("RiftVeilTestDb");
+                options.UseInMemoryDatabase(_databaseName);
             });
 
             // Ensure database is created and seeded
@@ -46,6 +50,14 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
             context.Database.EnsureDeleted();
             context.Database.EnsureCreated();
             SeedTestData(context);
+        });
+
+        // Avoid the Windows Event Log provider in test runs. It can require elevated
+        // permissions and otherwise masks the assertion that actually failed.
+        builder.ConfigureLogging(logging =>
+        {
+            logging.ClearProviders();
+            logging.AddConsole();
         });
     }
 

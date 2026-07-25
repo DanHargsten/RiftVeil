@@ -5,14 +5,9 @@ import { GameDraft } from "@/components/Match/GameDraft.tsx";
 import { GameObjectives } from "@/components/Match/GameObjectives.tsx";
 import { GameScoreboard } from "@/components/Match/GameScoreboard.tsx";
 import { isBlueSideFirst } from "@/components/Match/laneMatchupUtils.ts";
-import {
-    formatGameDurationLabel,
-    formatGoldStat,
-    formatTeamKda,
-    sumPlayerStat,
-} from "@/components/Match/matchDisplayUtils.ts";
+import { formatGameDurationLabel } from "@/components/Match/matchDisplayUtils.ts";
 import { TeamLogo } from "@/components/common/Logos.tsx";
-import type { GameDetailsDto, GameListItem, MatchDetails, PlayerStatsDto } from "@/lib/api.ts";
+import type { GameDetailsDto, GameListItem, MatchDetails } from "@/lib/api.ts";
 
 interface GamePanelProps {
     match: MatchDetails;
@@ -27,7 +22,6 @@ interface GameSideTeam {
     shortName: string;
     logoUrl?: string | null;
     iconLogoUrl?: string | null;
-    players: PlayerStatsDto[];
 }
 
 function resolveGameSideTeams(
@@ -40,14 +34,12 @@ function resolveGameSideTeams(
         shortName: match.team1ShortName,
         logoUrl: match.team1LogoUrl,
         iconLogoUrl: match.team1IconLogoUrl,
-        players: gameDetails.team1Players,
     };
     const team2: GameSideTeam = {
         teamNum: 2,
         shortName: match.team2ShortName,
         logoUrl: match.team2LogoUrl,
         iconLogoUrl: match.team2IconLogoUrl,
-        players: gameDetails.team2Players,
     };
     return {
         left: blueFirst ? team1 : team2,
@@ -111,8 +103,6 @@ export function GamePanel({
                 <GameDraft
                     draft={gameDetails.draft}
                     team1Side={gameDetails.team1Side}
-                    leftTeam={buildDraftTeamStats(gameSideTeams.left)}
-                    rightTeam={buildDraftTeamStats(gameSideTeams.right)}
                 />
                 <h2 id="match-detail-scoreboard-heading" className="sr-only">Scoreboard</h2>
                 <div className="match-detail__subsection match-detail__subsection--scoreboard">
@@ -143,7 +133,6 @@ export function GamePanel({
                         aria-labelledby="match-detail-objectives-title"
                     >
                         <GameObjectives
-                            match={match}
                             gameDetails={gameDetails}
                             loading={gameLoading}
                             error={gameDetailsError}
@@ -156,18 +145,6 @@ export function GamePanel({
                         tertiaryView={damageView}
                     />
                 </div>
-                <div className="match-detail__section-divider" aria-hidden="true" />
-                <section
-                    className="match-detail__subsection match-detail__subsection--compact"
-                    aria-labelledby="match-detail-highlights-title"
-                >
-                    <h3 id="match-detail-highlights-title" className="match-detail__section-title">
-                        Highlights
-                    </h3>
-                    <div className="match-detail__placeholder-body match-detail__placeholder-body--compact">
-                        <span>Coming soon</span>
-                    </div>
-                </section>
             </section>
         </GamePanelShell>
     );
@@ -192,14 +169,6 @@ function GamePanelShell({
             {children}
         </div>
     );
-}
-
-function buildDraftTeamStats(team: GameSideTeam) {
-    return {
-        shortName: team.shortName,
-        kda: formatTeamKda(team.players),
-        gold: formatGoldStat(sumPlayerStat(team.players, "goldEarned")),
-    };
 }
 
 function DraftScoreboardHeader({

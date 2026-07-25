@@ -6,6 +6,60 @@ Entries are **newest first**, same structure as before this split.
 
 ---
 
+## 2026-07-24
+
+### Fixed
+
+- **`LeaguepediaImportService.FindExistingTeamAsync`**:
+  - added a guarded MatchSchedule short-code lookup before allocating a placeholder team,
+  - only code-like values (maximum 20 characters, no whitespace, not `UNK*`) are eligible,
+  - fixes schedule rows such as `LOS` failing to reuse an existing `Team.ShortName == "LOS"` when the Cargo Teams response is empty.
+- **Game-details contract alignment**:
+  - added `TotalDeaths` and `TotalAssists` to application **`TeamStatsDto`**,
+  - projected both fields from **`GameTeamStats`** in **`GameReadService`**,
+  - brings the JSON payload back in line with the existing frontend `TeamStatsDto`.
+- **Test host isolation**:
+  - **`TestWebApplicationFactory`** now uses the `Testing` environment, preventing development-only `DbInitializer` execution,
+  - the generated `_databaseName` is now actually passed to `UseInMemoryDatabase`,
+  - logging providers are replaced with console logging so Windows Event Log permission failures cannot mask assertions.
+- **Time-independent VOD tests**: **`LolesportsVodEnricherTests`** derives match and tournament windows from `DateTimeOffset.UtcNow`, so `recentDays: 7` coverage does not expire as fixed fixture dates age.
+
+### Changed
+
+- **Read-side EF queries**:
+  - `LeagueReadService`, `TournamentReadService`, and `MatchReadService` use `AsNoTracking`,
+  - `TournamentReadService.GetByIdAsync` uses `AsSplitQuery` for the nested league/matches/teams/games/VOD graph to avoid a large cartesian join.
+- **`MatchesController` query validation**:
+  - `tournamentId` must be positive,
+  - `from` cannot be later than `to`,
+  - upcoming `days` is restricted to `1..90`,
+  - recent `count` is restricted to `1..100`,
+  - invalid-range integration coverage was added as a six-case theory.
+- **Frontend route splitting**:
+  - `Admin` is loaded with `React.lazy` / `Suspense`,
+  - production output moved roughly 31 kB into an admin-only chunk and reduced the main JavaScript bundle from about 389 kB to 360 kB.
+- **Dependency updates**:
+  - EF Core / SQL Server / Design and ASP.NET Core testing packages: `8.0.29`,
+  - `Microsoft.Extensions.Options`: `8.0.2`,
+  - `Swashbuckle.AspNetCore`: `10.2.3`,
+  - `react-router-dom`: `^7.18.1`,
+  - npm transitive development dependencies refreshed through the lockfile.
+
+### Verification
+
+- `dotnet test RiftVeil.sln --no-restore`: **39 passed, 0 failed**.
+- `npm run lint`: passed.
+- `npm run build`: passed; admin emitted as a separate chunk.
+- `npm audit`: **0 known vulnerabilities**.
+- `dotnet list RiftVeil.sln package --vulnerable --include-transitive`: no vulnerable packages reported.
+- `dotnet format --verify-no-changes` passed for every C# file changed in this maintenance pass.
+- `git diff --check`: passed.
+
+### Notes
+
+- Authentication was deliberately left unchanged because the application is not publicly deployed. Protect all admin/import/write endpoints before making the API internet-accessible.
+- Existing unrelated work in the match-detail UI, CSS, planning docs, and local assets was preserved.
+
 ## 2026-05-27
 
 ### Added

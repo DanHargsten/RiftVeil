@@ -44,6 +44,8 @@ public class GameReadService(RiftVeilDbContext dbContext) : IGameReadService
                 TeamStats = game.TeamStats.Select(teamStat => new TeamStatsDto
                 {
                     TotalKills = teamStat.TotalKills,
+                    TotalDeaths = teamStat.TotalDeaths,
+                    TotalAssists = teamStat.TotalAssists,
                     TotalGoldEarned = teamStat.TotalGoldEarned,
                     TowersDestroyed = teamStat.TowersDestroyed,
                     InhibitorsDestroyed = teamStat.InhibitorsDestroyed,

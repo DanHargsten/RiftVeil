@@ -15,15 +15,20 @@ public class LolesportsVodEnricherTests
     [Fact]
     public async Task EnrichVodsAsync_StrictMatchWithinThreeHours_AddsVod()
     {
+        var matchTimeUtc = DateTimeOffset.UtcNow.AddDays(-1);
         var dbName = $"LolesportsVodEnricherTests_Strict_{Guid.NewGuid()}";
         await using (var db = CreateDbContext(dbName))
         {
-            await SeedLeagueAsync(db, usePlaceholderOpponent: false, addAmbiguousPlaceholderMatch: false);
+            await SeedLeagueAsync(
+                db,
+                matchTimeUtc,
+                usePlaceholderOpponent: false,
+                addAmbiguousPlaceholderMatch: false);
         }
 
         await using (var db = CreateDbContext(dbName))
         {
-            var enricher = CreateEnricher(db, CreateHandler(matchTimeUtc: DateTimeOffset.Parse("2026-05-26T17:00:00Z")));
+            var enricher = CreateEnricher(db, CreateHandler(matchTimeUtc.AddHours(2)));
             await enricher.EnrichVodsAsync("LEC", recentDays: 7);
         }
 
@@ -38,15 +43,20 @@ public class LolesportsVodEnricherTests
     [Fact]
     public async Task EnrichVodsAsync_FallbackWithUniquePlaceholderMatch_ReplacesOpponentAndAddsVod()
     {
+        var matchTimeUtc = DateTimeOffset.UtcNow.AddDays(-1);
         var dbName = $"LolesportsVodEnricherTests_Fallback_{Guid.NewGuid()}";
         await using (var db = CreateDbContext(dbName))
         {
-            await SeedLeagueAsync(db, usePlaceholderOpponent: true, addAmbiguousPlaceholderMatch: false);
+            await SeedLeagueAsync(
+                db,
+                matchTimeUtc,
+                usePlaceholderOpponent: true,
+                addAmbiguousPlaceholderMatch: false);
         }
 
         await using (var db = CreateDbContext(dbName))
         {
-            var enricher = CreateEnricher(db, CreateHandler(matchTimeUtc: DateTimeOffset.Parse("2026-05-26T15:00:00Z")));
+            var enricher = CreateEnricher(db, CreateHandler(matchTimeUtc));
             await enricher.EnrichVodsAsync("LEC", recentDays: 7);
         }
 
@@ -69,15 +79,20 @@ public class LolesportsVodEnricherTests
     [Fact]
     public async Task EnrichVodsAsync_FallbackWithMultiplePlaceholderCandidates_DoesNotEnrich()
     {
+        var matchTimeUtc = DateTimeOffset.UtcNow.AddDays(-1);
         var dbName = $"LolesportsVodEnricherTests_Ambiguous_{Guid.NewGuid()}";
         await using (var db = CreateDbContext(dbName))
         {
-            await SeedLeagueAsync(db, usePlaceholderOpponent: true, addAmbiguousPlaceholderMatch: true);
+            await SeedLeagueAsync(
+                db,
+                matchTimeUtc,
+                usePlaceholderOpponent: true,
+                addAmbiguousPlaceholderMatch: true);
         }
 
         await using (var db = CreateDbContext(dbName))
         {
-            var enricher = CreateEnricher(db, CreateHandler(matchTimeUtc: DateTimeOffset.Parse("2026-05-26T15:00:00Z")));
+            var enricher = CreateEnricher(db, CreateHandler(matchTimeUtc));
             await enricher.EnrichVodsAsync("LEC", recentDays: 7);
         }
 
@@ -133,6 +148,7 @@ public class LolesportsVodEnricherTests
 
     private static async Task SeedLeagueAsync(
         RiftVeilDbContext dbContext,
+        DateTimeOffset matchTimeUtc,
         bool usePlaceholderOpponent,
         bool addAmbiguousPlaceholderMatch)
     {
@@ -150,8 +166,8 @@ public class LolesportsVodEnricherTests
         var tournament = new Tournament(
             leagueId: league.Id,
             name: "LEC 2026 Spring Playoffs",
-            startsAtUtc: DateTimeOffset.Parse("2026-05-20T00:00:00Z"),
-            endsAtUtc: DateTimeOffset.Parse("2026-06-10T00:00:00Z"),
+            startsAtUtc: matchTimeUtc.AddDays(-6),
+            endsAtUtc: matchTimeUtc.AddDays(6),
             status: TournamentStatus.Ongoing,
             externalId: "lec-2026-spring-playoffs",
             liquipediaSlug: "LEC/2026 Season/Spring Playoffs");
@@ -163,7 +179,7 @@ public class LolesportsVodEnricherTests
             tournamentId: tournament.Id,
             team1Id: mkoi.Id,
             team2Id: opponentId,
-            startsAtUtc: DateTimeOffset.Parse("2026-05-26T15:00:00Z"),
+            startsAtUtc: matchTimeUtc,
             bestOf: 5,
             status: MatchStatus.Finished,
             round: "Round 1",
@@ -177,7 +193,7 @@ public class LolesportsVodEnricherTests
                 tournamentId: tournament.Id,
                 team1Id: mkoi.Id,
                 team2Id: unknown2.Id,
-                startsAtUtc: DateTimeOffset.Parse("2026-05-26T15:15:00Z"),
+                startsAtUtc: matchTimeUtc.AddMinutes(15),
                 bestOf: 5,
                 status: MatchStatus.Finished,
                 round: "Round 2",
@@ -199,9 +215,7 @@ public class LolesportsVodEnricherTests
             {"data":{"leagues":[{"id":"lec-league-id","slug":"lec"}]}}
             """,
             tournamentsJson:
-            """
-            {"data":{"leagues":[{"tournaments":[{"id":"lec-tournament-id","startDate":"2026-05-20T00:00:00Z","endDate":"2026-06-10T00:00:00Z"}]}]}}
-            """,
+            $@"{{""data"":{{""leagues"":[{{""tournaments"":[{{""id"":""lec-tournament-id"",""startDate"":""{matchTimeUtc.AddDays(-6):yyyy-MM-ddTHH:mm:ssZ}"",""endDate"":""{matchTimeUtc.AddDays(6):yyyy-MM-ddTHH:mm:ssZ}""}}]}}]}}}}",
             completedEventsJson:
             $@"{{""data"":{{""schedule"":{{""events"":[{{""startTime"":""{matchTimeUtc:yyyy-MM-ddTHH:mm:ssZ}"",""match"":{{""id"":""event-match-1"",""teams"":[{{""code"":""MKOI""}},{{""code"":""G2""}}]}}}}]}}}}}}",
             eventDetailsJson:

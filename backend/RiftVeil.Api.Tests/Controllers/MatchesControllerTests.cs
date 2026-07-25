@@ -110,6 +110,20 @@ public class MatchesControllerTests : IClassFixture<TestWebApplicationFactory>
         Assert.Equal(2, matches.Count);
     }
 
+    [Theory]
+    [InlineData("/api/matches?tournamentId=0")]
+    [InlineData("/api/matches?from=2026-07-02T00:00:00Z&to=2026-07-01T00:00:00Z")]
+    [InlineData("/api/matches/upcoming?days=0")]
+    [InlineData("/api/matches/upcoming?days=91")]
+    [InlineData("/api/matches/recent?count=0")]
+    [InlineData("/api/matches/recent?count=101")]
+    public async Task GetMatches_WithInvalidQueryRange_ReturnsBadRequest(string url)
+    {
+        var response = await _client.GetAsync(url);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
     [Fact]
     public async Task GetMatchById_ReturnsOk_WithMatchDetails()
     {

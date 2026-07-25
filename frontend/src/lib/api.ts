@@ -172,6 +172,7 @@ export interface PlayerStatsDto {
   playerName: string;
   ingameRole: string;
   champion: string;
+  championLevel?: number | null;
   kills: number;
   deaths: number;
   assists: number;

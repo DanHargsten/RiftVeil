@@ -19,12 +19,19 @@ public class MatchesController(IMatchReadService matchReadService) : ControllerB
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(List<MatchListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<List<MatchListItemDto>>> GetAllAsync(
         [FromQuery] int? tournamentId = null,
         [FromQuery] MatchStatus? status = null,
         [FromQuery] DateTimeOffset? from = null,
         [FromQuery] DateTimeOffset? to = null)
     {
+        if (tournamentId is <= 0)
+            return BadRequest("tournamentId must be a positive integer.");
+
+        if (from.HasValue && to.HasValue && from > to)
+            return BadRequest("'from' cannot be later than 'to'.");
+
         var matches = await matchReadService.GetAllAsync(tournamentId, status, from, to);
         return Ok(matches);
     }
@@ -35,9 +42,13 @@ public class MatchesController(IMatchReadService matchReadService) : ControllerB
     /// <param name="days">Number of days to look ahead (default 7).</param>
     [HttpGet("upcoming")]
     [ProducesResponseType(typeof(List<MatchListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<List<MatchListItemDto>>> GetUpcomingAsync(
         [FromQuery] int days = 7)
     {
+        if (days is < 1 or > 90)
+            return BadRequest("days must be between 1 and 90.");
+
         var matches = await matchReadService.GetUpcomingAsync(days);
         return Ok(matches);
     }
@@ -48,9 +59,13 @@ public class MatchesController(IMatchReadService matchReadService) : ControllerB
     /// <param name="count">Maximum number of matches to return (default 10).</param>
     [HttpGet("recent")]
     [ProducesResponseType(typeof(List<MatchListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<List<MatchListItemDto>>> GetRecentAsync(
         [FromQuery] int count = 10)
     {
+        if (count is < 1 or > 100)
+            return BadRequest("count must be between 1 and 100.");
+
         var matches = await matchReadService.GetRecentAsync(count);
         return Ok(matches);
     }

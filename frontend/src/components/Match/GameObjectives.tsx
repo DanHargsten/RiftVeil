@@ -1,24 +1,34 @@
 import type { ReactNode } from "react";
-import baronIcon from "@/assets/icons/lol-objectives/baron.png";
-import dragonIcon from "@/assets/icons/lol-objectives/dragon.png";
-import towerIcon from "@/assets/icons/lol-objectives/tower.png";
+import baronIcon from "@/assets/icons/lol-objectives/baron.svg";
+import dragonIcon from "@/assets/icons/lol-objectives/dragon.svg";
+import heraldIcon from "@/assets/icons/lol-objectives/riftHerald.svg";
+import inhibIcon from "@/assets/icons/lol-objectives/inhibitor.svg";
+import towerIcon from "@/assets/icons/lol-objectives/tower.svg";
+import voidgrubIcon from "@/assets/icons/lol-objectives/voidgrubs.svg";
 import { isBlueSideFirst } from "@/components/Match/laneMatchupUtils.ts";
-import type { GameDetailsDto, MatchDetails, TeamStatsDto } from "@/lib/api.ts";
+import type { GameDetailsDto, TeamStatsDto } from "@/lib/api.ts";
 
 export interface GameObjectivesProps {
-    match: MatchDetails;
     gameDetails: GameDetailsDto | undefined;
     loading: boolean;
     error: boolean;
 }
 
-type ObjectiveField = "towersDestroyed" | "totalDragonsSlain" | "baronsSlain" | "voidGrubsSlain";
+type ObjectiveField =
+    | "voidGrubsSlain"
+    | "riftHeraldsSlain"
+    | "totalDragonsSlain"
+    | "baronsSlain"
+    | "towersDestroyed"
+    | "inhibitorsDestroyed";
 
 const OBJECTIVE_ROWS: { label: string; field: ObjectiveField }[] = [
-    { label: "Towers", field: "towersDestroyed" },
+    { label: "Voidgrubs", field: "voidGrubsSlain" },
+    { label: "Herald", field: "riftHeraldsSlain" },
     { label: "Dragons", field: "totalDragonsSlain" },
     { label: "Barons", field: "baronsSlain" },
-    { label: "Void grubs", field: "voidGrubsSlain" },
+    { label: "Towers", field: "towersDestroyed" },
+    { label: "Inhibs", field: "inhibitorsDestroyed" },
 ];
 
 function statValue(stats: TeamStatsDto | null | undefined, field: ObjectiveField): number {
@@ -26,25 +36,20 @@ function statValue(stats: TeamStatsDto | null | undefined, field: ObjectiveField
 }
 
 function resolveObjectiveSides(
-    match: MatchDetails,
     gameDetails: GameDetailsDto,
 ): {
-    leftName: string;
-    rightName: string;
     leftStats: TeamStatsDto | null | undefined;
     rightStats: TeamStatsDto | null | undefined;
 } {
     const blueFirst = isBlueSideFirst(gameDetails.team1Side);
 
     return {
-        leftName: blueFirst ? match.team1ShortName : match.team2ShortName,
-        rightName: blueFirst ? match.team2ShortName : match.team1ShortName,
         leftStats: blueFirst ? gameDetails.team1Stats : gameDetails.team2Stats,
         rightStats: blueFirst ? gameDetails.team2Stats : gameDetails.team1Stats,
     };
 }
 
-export function GameObjectives({ match, gameDetails, loading, error }: GameObjectivesProps) {
+export function GameObjectives({ gameDetails, loading, error }: GameObjectivesProps) {
     if (loading) {
         return (
             <ObjectivesState>
@@ -73,7 +78,7 @@ export function GameObjectives({ match, gameDetails, loading, error }: GameObjec
         );
     }
 
-    const sides = resolveObjectiveSides(match, gameDetails);
+    const sides = resolveObjectiveSides(gameDetails);
 
     return (
         <div
@@ -81,19 +86,12 @@ export function GameObjectives({ match, gameDetails, loading, error }: GameObjec
             role="group"
             aria-labelledby="match-detail-objectives-title"
         >
-            <div className="match-detail__objectives-head">
-                <span className="match-detail__objectives-head-score">{sides.leftName}</span>
-                <span className="match-detail__objectives-head-mid" aria-hidden="true" />
-                <span className="match-detail__objectives-head-score">{sides.rightName}</span>
-            </div>
             <div className="match-detail__objectives-list">
                 {OBJECTIVE_ROWS.map((row) => (
                     <ObjectiveRow
                         key={row.field}
                         label={row.label}
                         field={row.field}
-                        leftName={sides.leftName}
-                        rightName={sides.rightName}
                         leftValue={statValue(sides.leftStats, row.field)}
                         rightValue={statValue(sides.rightStats, row.field)}
                     />
@@ -114,19 +112,15 @@ function ObjectivesState({ children }: { children: ReactNode }) {
 function ObjectiveRow({
     label,
     field,
-    leftName,
-    rightName,
     leftValue,
     rightValue,
 }: {
     label: string;
     field: ObjectiveField;
-    leftName: string;
-    rightName: string;
     leftValue: number;
     rightValue: number;
 }) {
-    const ariaLabel = `${label}: ${leftName} ${leftValue}, ${rightName} ${rightValue}`;
+    const ariaLabel = `${label}: left team ${leftValue}, right team ${rightValue}`;
 
     return (
         <div className="match-detail__objectives-row" aria-label={ariaLabel}>
@@ -134,8 +128,7 @@ function ObjectiveRow({
                 {leftValue}
             </div>
             <div className="match-detail__objectives-mid">
-                <ObjectiveRowIcon field={field} />
-                <span className="match-detail__objectives-label">{label}</span>
+                <ObjectiveRowIcon field={field} label={label} />
             </div>
             <div className="match-detail__objectives-score match-detail__objectives-score--right">
                 {rightValue}
@@ -144,31 +137,24 @@ function ObjectiveRow({
     );
 }
 
-function ObjectiveRowIcon({ field }: { field: ObjectiveField }) {
-    if (field === "voidGrubsSlain") {
-        return (
-            <svg
-                className="match-detail__objectives-icon match-detail__objectives-icon--svg"
-                viewBox="0 0 20 12"
-                aria-hidden
-            >
-                <ellipse cx="5" cy="6" rx="3.2" ry="4.2" fill="currentColor" />
-                <ellipse cx="10" cy="6" rx="3.2" ry="4.2" fill="currentColor" />
-                <ellipse cx="15" cy="6" rx="3.2" ry="4.2" fill="currentColor" />
-            </svg>
-        );
-    }
-
-    const src = field === "towersDestroyed" ? towerIcon : field === "totalDragonsSlain" ? dragonIcon : baronIcon;
+function ObjectiveRowIcon({ field, label }: { field: ObjectiveField; label: string }) {
+    const srcByField: Record<ObjectiveField, string> = {
+        voidGrubsSlain: voidgrubIcon,
+        riftHeraldsSlain: heraldIcon,
+        totalDragonsSlain: dragonIcon,
+        baronsSlain: baronIcon,
+        towersDestroyed: towerIcon,
+        inhibitorsDestroyed: inhibIcon,
+    };
 
     return (
         <img
-            src={src}
-            alt=""
+            src={srcByField[field]}
+            alt={label}
+            title={label}
             className="match-detail__objectives-icon match-detail__objectives-icon--img"
             width={20}
             height={20}
-            aria-hidden
         />
     );
 }

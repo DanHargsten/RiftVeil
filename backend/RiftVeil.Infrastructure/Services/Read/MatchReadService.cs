@@ -21,7 +21,7 @@ public class MatchReadService(RiftVeilDbContext context) : IMatchReadService
         DateTimeOffset? from = null,
         DateTimeOffset? to = null)
     {
-        var query = _context.Matches.AsQueryable();
+        var query = _context.Matches.AsNoTracking();
 
         if (tournamentId.HasValue)
         {
@@ -61,6 +61,7 @@ public class MatchReadService(RiftVeilDbContext context) : IMatchReadService
         var cutoffTime = now.AddDays(days);
 
         return await _context.Matches
+            .AsNoTracking()
             .Where(match => match.Status == MatchStatus.Scheduled)
             .Where(match => match.StartsAtUtc >= now)
             .Where(match => match.StartsAtUtc <= cutoffTime)
@@ -74,6 +75,7 @@ public class MatchReadService(RiftVeilDbContext context) : IMatchReadService
     {
         var now = DateTimeOffset.UtcNow;
         return await _context.Matches
+            .AsNoTracking()
             .Where(match => match.Status == MatchStatus.Finished)
             .OrderByDescending(match => match.StartedAtUtc)
             .Take(count)
@@ -90,6 +92,7 @@ public class MatchReadService(RiftVeilDbContext context) : IMatchReadService
         // any list-view would show with a LIVE badge. See MatchProjections for context.
         var now = DateTimeOffset.UtcNow;
         return await _context.Matches
+            .AsNoTracking()
             .Where(match =>
                 match.Status == MatchStatus.Live
                 || (match.Status == MatchStatus.Scheduled
@@ -105,6 +108,7 @@ public class MatchReadService(RiftVeilDbContext context) : IMatchReadService
     public async Task<MatchDetailsDto?> GetByIdAsync(int id)
     {
         var match = await _context.Matches
+            .AsNoTracking()
             .Include(match => match.Tournament)
                 .ThenInclude(tournament => tournament.League)
             .Include(match => match.Team1)
